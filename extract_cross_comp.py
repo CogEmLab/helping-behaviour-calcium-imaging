@@ -38,7 +38,7 @@ def load_and_preprocess_data(file_path):
     
     # Filter out specific sessions and cohorts
     excluded_sessions = ['Hab1', 'Hab2', 'Hab3', 'Toy', 'Pool', 'Empty']
-    excluded_cohorts = ['Oct_2021', 'Mar_2024', 'May_2024']
+    excluded_cohorts = []
     
     data = data[~data['Session'].isin(excluded_sessions) & ~data['Cohort'].isin(excluded_cohorts)]
     
@@ -60,43 +60,54 @@ def process_session(row, fps, window, plot_example=False, axes=None):
     cohort = row['Cohort']
     total_num_components = row['Total Components']
     time_victim_crossing = row['TimeVictimBodyCrossing(s)']
-    
+
     # Skip if crossing time is not available
     if np.isnan(time_victim_crossing):
-        return None
-    
+        return np.nan, np.nan, np.nan
+
     # Load CNMF model and process data
     model = load_CNMF(model_path)
-    npy_filepath =  model_path.replace('.hdf5', '_Dff_z_scored.npy').replace('cnmfe_model', 'npy_data')
-    # model.estimates.detrend_df_f(detrend_only=True)
-    # DF_F = model.estimates.F_dff
-    
-    # Normalize dF/F
-    # DF_F_Z_scored = (DF_F - DF_F.mean(axis=1)[:, None]) / DF_F.std(axis=1)[:, None]
+    npy_filepath = model_path.replace('.hdf5', '_Dff_z_scored.npy').replace('cnmfe_model', 'npy_data')
     DF_F_Z_scored = np.load(npy_filepath)
-    
+
     # Get SNR and spatial correlation values
     snr = model.estimates.SNR_comp
     sptl_corr = model.estimates.r_values
-    
+
     # Process time window
     time_victim_crossing = int(time_victim_crossing * fps)
     window_frames = window * fps
     start = int(time_victim_crossing - window_frames)
     end = int(time_victim_crossing + window_frames)
-    DF_F_Z_scored = DF_F_Z_scored[:, start:end]
     
+    # Ensure indices are within bounds
+    if start < 0 or end > DF_F_Z_scored.shape[1]:
+        return np.nan, np.nan, np.nan
+    
+    print(f"Processing window: {start} - {end} in {DF_F_Z_scored.shape[1]} frames")
+
+    DF_F_Z_scored = DF_F_Z_scored[:, start:end]
+
+    print(f'Current shape of DF_F_Z_scored: {DF_F_Z_scored.shape}')
+
+    # Check if DF_F_Z_scored is empty or has insufficient data
+    if DF_F_Z_scored.size == 0:
+        return np.nan, np.nan, np.nan
+
     # Compute the sum of dff inside the window
     sum_dff = np.sum(DF_F_Z_scored, axis=1)
 
     # Get most active components
     DF_F_Z_scored_selected, selected_ids = get_most_active_components(
-        DF_F_Z_scored, 'tech_plots/threshold_plots', cohort=cohort, session=session, animal=mouse_id, plot_example=plot_example, ax=axes['histogram'])
+        DF_F_Z_scored, 'tech_plots/threshold_plots', cohort=cohort, session=session, animal=mouse_id, plot_example=plot_example, ax=axes['histogram']
+    )
+
+    print(f"Selected {len(selected_ids)} components")
 
     # Separate sum_dff into selected and not selected components
     sum_dff_selected = sum_dff[selected_ids]
     sum_dff_not_selected = sum_dff[~np.isin(np.arange(len(sum_dff)), selected_ids)]
-     
+
     # Plot heatmaps for selected components
     filename = f'tech_plots/heatmaps/{cohort}/{session}/{mouse_id}_heatmap.png'
     # Create a directory for the cohort and session
@@ -112,18 +123,27 @@ def process_session(row, fps, window, plot_example=False, axes=None):
     pre_response = np.sum(DF_F_Z_scored_selected[:, :window_frames], axis=1)
     post_response = np.sum(DF_F_Z_scored_selected[:, window_frames:], axis=1)
     total_response = np.sum(DF_F_Z_scored_selected, axis=1)
-    
+
     # Remove components with zero total response
     mask = total_response != 0
-    response_score = (post_response[mask] - pre_response[mask]) / total_response[mask]
-    
+    if np.any(mask):
+        response_score = (post_response[mask] - pre_response[mask]) / total_response[mask]
+    else:
+        response_score = np.nan
+
+    print(f"Mask shape: {mask.shape}, response score shape: {response_score.shape}")
+
+    # Check again that objects exist and not empty before returning
+    if selected_ids.size == 0:
+        return np.nan, np.nan, np.nan
+
     return ({
         'selected_ids': selected_ids[mask],
         'response_score': response_score,
-        'snr': snr[selected_ids][mask],
-        'sptl_corr': sptl_corr[selected_ids][mask],
+        'snr': snr[selected_ids][mask] if selected_ids.size > 0 else np.nan,
+        'sptl_corr': sptl_corr[selected_ids][mask] if selected_ids.size > 0 else np.nan,
         'num_liberation_cells': len(selected_ids),
-        'percent_liberation_cells': len(selected_ids) / total_num_components
+        'percent_liberation_cells': len(selected_ids) / total_num_components if total_num_components > 0 else np.nan
     }, sum_dff_selected, sum_dff_not_selected)
 
 def main():
@@ -155,8 +175,8 @@ def main():
         plot_example = int(idx) == int(random_idx)
         
         result, sum_dff_selected, sum_dff_not_selected = process_session(row, fps, window, plot_example=plot_example, axes=axes)
-        
-        if result is not None:
+                
+        if result is not np.nan:
             # Update metadata
             for key in ['Cohort', 'Mouse', 'Session', 'DayofHelping', 'CNMFE Model Path']:
                 metadata[key.replace('CNMFE Model Path', 'Model Path')].extend([row[key]] * len(result['selected_ids']))
@@ -190,6 +210,13 @@ def main():
     data['Normalized liberation cells'] = (data['Normalized liberation cells'] / data['Normalized liberation cells_sum']) * 100
     data = data.drop(columns=['Normalized liberation cells_sum'])
     
+    # # Remove rows with NaN values
+    # data = data.dropna(subset=['Num of liberation cells', '% of liberation cells', 'Normalized liberation cells'])
+
+    # # Remove NaN values from sum_components
+    # sum_components = {key: np.array(value) for key, value in sum_components.items()}
+    # sum_components = {key: value[~np.isnan(value)] for key, value in sum_components.items()}
+
     plot_boxplots(sum_components['selected'], sum_components['not_selected'], axes['boxplots'])
 
     order = [0, 1, 2, 3, 4, 'RECNvlCtx', 'REMNvlCtx', 'REMHBTD']
