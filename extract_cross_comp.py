@@ -24,6 +24,18 @@ def setup_plot():
     fig = plt.figure(figsize=FIG_SIZE)
     gs = GridSpec(*GRID_SPEC, figure=fig)
     
+    
+    # Set larger font sizes
+    plt.rcParams.update({
+        'font.size': 14,          # General font size
+        'axes.titlesize': 18,     # Font size for axes titles
+        'axes.labelsize': 16,     # Font size for axes labels
+        'xtick.labelsize': 14,    # Font size for x-axis tick labels
+        'ytick.labelsize': 14,    # Font size for y-axis tick labels
+        'legend.fontsize': 14,    # Font size for legend
+        'figure.titlesize': 20    # Font size for figure title
+    })
+
     axes = {
         'heatmap': fig.add_subplot(gs[0:2, 0:2]),
         'histogram': fig.add_subplot(gs[0, 2]),
@@ -48,7 +60,6 @@ def load_and_preprocess_data(file_path):
     # Add new columns
     data['Num of liberation cells'] = np.nan
     data['% of liberation cells'] = np.nan
-    data['Normalized num of liberation cells'] = np.nan
     
     return data
 
@@ -69,6 +80,8 @@ def process_session(row, fps, window, plot_example=False, axes=None):
     model = load_CNMF(model_path)
     npy_filepath = model_path.replace('.hdf5', '_Dff_z_scored.npy').replace('cnmfe_model', 'npy_data')
     DF_F_Z_scored = np.load(npy_filepath)
+
+    high_quality_components = model.estimates.idx_components
 
     # Get SNR and spatial correlation values
     snr = model.estimates.SNR_comp
@@ -137,19 +150,23 @@ def process_session(row, fps, window, plot_example=False, axes=None):
     if selected_ids.size == 0:
         return np.nan, np.nan, np.nan
 
+    # Compute number of liberation cells that are selected and also in high_quality_components
+    mask_for_counting_selected_comps = np.isin(selected_ids, high_quality_components)
+    selected_ids_counted = selected_ids[mask_for_counting_selected_comps]
+
     return ({
         'selected_ids': selected_ids[mask],
         'response_score': response_score,
         'snr': snr[selected_ids][mask] if selected_ids.size > 0 else np.nan,
         'sptl_corr': sptl_corr[selected_ids][mask] if selected_ids.size > 0 else np.nan,
-        'num_liberation_cells': len(selected_ids),
-        'percent_liberation_cells': len(selected_ids) / total_num_components if total_num_components > 0 else np.nan
+        'num_liberation_cells': len(selected_ids_counted),
+        'percent_liberation_cells': (len(selected_ids_counted) / len(high_quality_components)) * 100 if total_num_components > 0 else np.nan
     }, sum_dff_selected, sum_dff_not_selected)
 
 def main():
     # Setup
     fig, axes = setup_plot()
-    data = load_and_preprocess_data('data/updated_session_file_MiniscopeCW_all_Moises.csv')
+    data = load_and_preprocess_data('data/session_file_MiniscopeCW_all_Moises_latest.csv')
     
     # Create output directories
     os.makedirs('tech_plots/threshold_plots', exist_ok=True)
@@ -180,7 +197,7 @@ def main():
             # Update metadata
             for key in ['Cohort', 'Mouse', 'Session', 'DayofHelping', 'CNMFE Model Path']:
                 metadata[key.replace('CNMFE Model Path', 'Model Path')].extend([row[key]] * len(result['selected_ids']))
-            
+                        
             metadata['Component ID'].extend(result['selected_ids'])
             metadata['Reg ID'].extend(range(len(result['selected_ids'])))  # Placeholder, update if needed
             metadata['Response Score'].extend(result['response_score'])
@@ -223,7 +240,7 @@ def main():
     sns.barplot(x='DayofHelping', y='% of liberation cells', data=data, 
                 fill=False, capsize=0.1, err_kws={'linewidth': 1.5}, color='black', ax=axes['components'], order=order)
     sns.swarmplot(x='DayofHelping', y='% of liberation cells', data=data, 
-                  hue='Mouse', size=6, palette='Set1', dodge=True, alpha=0.7, 
+                  hue='Mouse', size=8, palette='Set1', dodge=True, alpha=0.7, 
                   edgecolor='black', linewidth=0.5, ax=axes['components'], order=order)
     
     axes['components'].set_xlabel('Day of helping')
@@ -235,9 +252,14 @@ def main():
     axes['components'].spines['top'].set_visible(False)
     axes['components'].spines['right'].set_visible(False)
 
+    # Set legend to outside the plot
+    axes['components'].legend(loc='upper left', bbox_to_anchor=(1, 1), title='Mouse ID')
+
     # Save results
-    data.to_csv('processed-data/all_data_cnmfe_anna_normalized_cross_comp.csv', index=False)
+    data.to_csv('data/session_file_MiniscopeCW_all_Moises_latest_liberation_cells.csv', index=False)
     plt.savefig('tech_plots/overview_figure_liberation_cells_extraction.pdf')
+    # Also save as PNG
+    plt.savefig('tech_plots/overview_figure_liberation_cells_extraction.png')
     plt.close(fig)
 
 if __name__ == "__main__":
