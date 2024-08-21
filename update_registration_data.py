@@ -74,6 +74,25 @@ def assign_identity_switch(prev_value, new_value):
 metadata = pd.read_csv('processed-data/metadata_cross_comp.csv')
 # data = np.load('data/dHPC/collected_data.npy')
 
+# Assign day according to the scheme
+session_to_day = {
+    'HBTD1': 1,
+    'HBTD2': 2,
+    'HBTD3': 3,
+    'HBTD4': 4,
+    'HBTD5': 5,
+    'HBTD6': 6,
+    'RECNvlCtx': 7,
+    'Stranger': 7,
+    'REMNvlCtx': 7,
+    'REMHBTD': 7}
+
+# Assign day to metadata
+metadata['Day'] = metadata['Session'].map(session_to_day)
+
+# Print where nan
+print(metadata[metadata['Day'].isna()])
+
 # Create a column 'Tracked' in metadata, which is True if Reg ID is in mask
 metadata['Tracked'] = False
 
@@ -115,6 +134,6 @@ for mouse_id in mouse_ids:
     metadata.loc[metadata['Mouse'] == mouse_id, 'Preserved Identity Value'] = mouse_metadata['Preserved Identity Value']
 
 # Save metadata
-metadata.to_csv('data/dHPC/metadata_cross_comp_test.csv', index=False)
+metadata.to_csv('processed-data/metadata_cross_comp_updated.csv', index=False)
 
         
