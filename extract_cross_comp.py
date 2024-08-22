@@ -15,8 +15,8 @@ from src.utils import get_most_active_components
 from src.plotting import plot_heatmap, plot_boxplots
 
 # Constants
-WINDOW = 30  # seconds
-FIG_SIZE = (30, 15)
+WINDOW = 15  # seconds
+FIG_SIZE = (30, 12)
 GRID_SPEC = (2, 4)
 
 def setup_plot():
@@ -70,7 +70,7 @@ def process_session(row, fps, window, plot_example=False, axes=None):
     mouse_id = row['Mouse']
     cohort = row['Cohort']
     total_num_components = row['Total Components']
-    time_victim_crossing = row['TimeVictimBodyCrossing(s)']
+    time_victim_crossing = row['TimeVictimHeadCrossing(s)']
 
     # Skip if crossing time is not available
     if np.isnan(time_victim_crossing):
@@ -115,6 +115,7 @@ def process_session(row, fps, window, plot_example=False, axes=None):
         DF_F_Z_scored, 'tech_plots/threshold_plots', cohort=cohort, session=session, animal=mouse_id, plot_example=plot_example, ax=axes['histogram']
     )
 
+    quality_filter = np.isin(selected_ids, high_quality_components)
     print(f"Selected {len(selected_ids)} components")
 
     # Separate sum_dff into selected and not selected components
@@ -125,12 +126,12 @@ def process_session(row, fps, window, plot_example=False, axes=None):
     filename = f'tech_plots/heatmaps/{cohort}/{session}/{mouse_id}_heatmap.png'
     # Create a directory for the cohort and session
     os.makedirs(os.path.dirname(filename), exist_ok=True)
-    plot_heatmap(DF_F_Z_scored_selected, filename, ax=None, window_to_use=window, FPS=fps, animal=mouse_id, day_of_helping=row['DayofHelping'])
+    plot_heatmap(DF_F_Z_scored_selected[quality_filter], filename, ax=None, window_to_use=window, FPS=fps, animal=mouse_id, day_of_helping=row['DayofHelping'])
 
     # Plot again if plot_example is True on heatmap axis of the setup_plot
     if plot_example:
         filename = None
-        plot_heatmap(DF_F_Z_scored_selected, filename, axes['heatmap'], window, fps, mouse_id, row['DayofHelping'])
+        plot_heatmap(DF_F_Z_scored_selected[quality_filter], filename, axes['heatmap'], window, fps, mouse_id, row['DayofHelping'])
 
     # Calculate response scores
     pre_response = np.sum(DF_F_Z_scored_selected[:, :window_frames], axis=1)
@@ -150,23 +151,23 @@ def process_session(row, fps, window, plot_example=False, axes=None):
     if selected_ids.size == 0:
         return np.nan, np.nan, np.nan
 
-    # Compute number of liberation cells that are selected and also in high_quality_components
-    mask_for_counting_selected_comps = np.isin(selected_ids, high_quality_components)
-    selected_ids_counted = selected_ids[mask_for_counting_selected_comps]
+    #TODO: Filter out low quality for all metrics/data
+    # Get onlt liberation cells that are selected and also in high_quality_components
+    
 
     return ({
-        'selected_ids': selected_ids[mask],
-        'response_score': response_score,
-        'snr': snr[selected_ids][mask] if selected_ids.size > 0 else np.nan,
-        'sptl_corr': sptl_corr[selected_ids][mask] if selected_ids.size > 0 else np.nan,
-        'num_liberation_cells': len(selected_ids_counted),
-        'percent_liberation_cells': (len(selected_ids_counted) / len(high_quality_components)) * 100 if total_num_components > 0 else np.nan
+        'selected_ids': selected_ids[mask][quality_filter] if selected_ids.size > 0 else np.nan,
+        'response_score': response_score[quality_filter] if selected_ids.size > 0 else np.nan,
+        'snr': snr[selected_ids][mask][quality_filter] if selected_ids.size > 0 else np.nan,
+        'sptl_corr': sptl_corr[selected_ids][mask][quality_filter] if selected_ids.size > 0 else np.nan,
+        'num_liberation_cells': len(selected_ids[mask][quality_filter]),
+        'percent_liberation_cells': (len(selected_ids[mask][quality_filter]) / len(high_quality_components)) * 100 if total_num_components > 0 else np.nan
     }, sum_dff_selected, sum_dff_not_selected)
 
 def main():
     # Setup
     fig, axes = setup_plot()
-    data = load_and_preprocess_data('data/session_file_MiniscopeCW_all_Moises_latest.csv')
+    data = load_and_preprocess_data('data/session_file_MiniscopeCW_all_Moises_latest_liberation_cells.csv')
     
     # Create output directories
     os.makedirs('tech_plots/threshold_plots', exist_ok=True)
@@ -234,7 +235,7 @@ def main():
     # sum_components = {key: np.array(value) for key, value in sum_components.items()}
     # sum_components = {key: value[~np.isnan(value)] for key, value in sum_components.items()}
 
-    plot_boxplots(sum_components['selected'], sum_components['not_selected'], axes['boxplots'])
+    plot_boxplots(sum_components['selected'], sum_components['not_selected'], axes['boxplots'], '', ('Selected', 'Not selected'), 'Sum of $\\Delta F/F$ values in the window')
 
     order = [0, 1, 2, 3, 4, 'RECNvlCtx', 'REMNvlCtx', 'REMHBTD']
     sns.barplot(x='DayofHelping', y='% of liberation cells', data=data, 
