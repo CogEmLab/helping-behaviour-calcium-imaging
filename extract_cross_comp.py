@@ -134,9 +134,9 @@ def process_session(row, fps, window, plot_example=False, axes=None):
         plot_heatmap(DF_F_Z_scored_selected[quality_filter], filename, axes['heatmap'], window, fps, mouse_id, row['DayofHelping'])
 
     # Calculate response scores
-    pre_response = np.sum(DF_F_Z_scored_selected[:, :window_frames], axis=1)
-    post_response = np.sum(DF_F_Z_scored_selected[:, window_frames:], axis=1)
-    total_response = np.sum(DF_F_Z_scored_selected, axis=1)
+    pre_response = np.absolute(np.sum(DF_F_Z_scored_selected[:, :window_frames], axis=1)) # Add absolute value getting out of the bounds
+    post_response = np.absolute(np.sum(DF_F_Z_scored_selected[:, window_frames:], axis=1))
+    total_response = np.add(pre_response, post_response)
 
     # Remove components with zero total response
     mask = total_response != 0
