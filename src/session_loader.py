@@ -3,7 +3,8 @@ import pandas as pd
 import numpy as np
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from tifffile import imread
-from src.utils import get_behaviour_timestamps
+from src.utils import get_behaviour_timestamps, smooth_and_shrink_label
+from scipy import ndimage
 
 class Session:
     def __init__(self, data_row):
@@ -41,6 +42,11 @@ class Session:
         self.caiman_model = None
         self.liberation_cells_ids = None
         self.snr_values = None 
+        self.pnr_image_dims = None  # To store dimensions of the PNR image
+
+        # New attributes
+        self.neuron_labels = None
+        self.neuron_positions = None
 
     def load_caiman_model(self):
             """Load the CaImAn fitted model."""
@@ -77,7 +83,9 @@ class Session:
             print(f"Warning: PNR image file not found at {self.path_to_pnr}")
             return None
         try:
-            return imread(self.path_to_pnr)
+            self.pnr_image = imread(self.path_to_pnr)
+            self.pnr_image_dims = self.pnr_image.shape
+            return self.pnr_image
         except Exception as e:
             print(f"Error loading PNR image: {str(e)}")
             return None
@@ -195,15 +203,72 @@ class Session:
         )
         
         return accepted_components
+    
+    def get_neuron_labels(self, binary_output=False, smooth_sigma=3, shrink_pixels=2):
+        """
+        Generate labels for all neurons in the session.
+
+        :param binary_output: If True, return a binary mask. If False, return a labeled image.
+        :param smooth_sigma: Sigma for Gaussian smoothing.
+        :param shrink_pixels: Number of pixels to shrink the labels by erosion.
+        :return: Labeled image or binary mask with neuron labels.
+        """
+        # Load CaImAn model and PNR image
+        if self.caiman_model is None:
+            self.load_caiman_model()
+        if self.pnr_image is None:
+            self.load_pnr_image()
+        
+        pnr_image = self.pnr_image
+        img_shape = pnr_image.shape
+
+        if self.caiman_model is None or pnr_image is None:
+            print("Model or PNR image not available. Cannot generate neuron labels.")
+            return None
+
+        # Get the accepted components
+        accepted_components = self.load_accepted_components()
+        if accepted_components is None or len(accepted_components) == 0:
+            print("No accepted components found. Cannot generate neuron labels.")
+            return None
+        
+        # Initialize the label matrix efficiently
+        A_labels = np.zeros(img_shape, dtype=int)
+
+        # Precompute reshaped components outside the loop
+        A_reshaped = self.caiman_model.estimates.A.toarray().reshape((*img_shape, -1), order='F')
+
+        for i, comp in enumerate(accepted_components):
+            label = (A_reshaped[..., comp] > 0).astype(int)
+            if smooth_sigma > 0 or shrink_pixels > 0:
+                label = smooth_and_shrink_label(label, smooth_sigma=smooth_sigma, shrink_pixels=shrink_pixels)
+            A_labels = np.maximum(A_labels, label * (i + 1))
+
+        # Store the labels and positions
+        self.neuron_labels = (A_labels > 0).astype(int) if binary_output else A_labels
+        self.neuron_positions = self.extract_neuron_positions(self.neuron_labels)
+
+        return self.neuron_labels
+
+    def extract_neuron_positions(self, labels):
+        """
+        Extract the centroid positions of neurons from the labeled image.
+
+        :param labels: Labeled image or binary mask.
+        :return: List of centroid positions (row, col) for each neuron.
+        """
+        return np.array(ndimage.center_of_mass(labels, labels, range(1, np.max(labels) + 1)))
 
     def load_annotations(self):
-        #TODO: Return behaviour timestamps instead of the full table.
         """Load annotations."""
         if not os.path.exists(self.annotations_path):
             print(f"Warning: Annotations file not found at {self.annotations_path}")
             return None
         try:
-            return pd.read_csv(self.annotations_path)
+            annotations_table = pd.read_csv(self.annotations_path)
+            unique_behaviours = annotations_table['Behavior'].unique()
+            all_behaviour_timestamps = {behaviour: get_behaviour_timestamps(annotations_table, behaviour) for behaviour in unique_behaviours}
+            return all_behaviour_timestamps
         except Exception as e:
             print(f"Error loading annotations: {str(e)}")
             return None
