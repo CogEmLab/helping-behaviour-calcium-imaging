@@ -83,7 +83,7 @@ class Session:
             return None
 
     def load_dff_signal(self):
-        """Load the DFF calcium signal and assert the number of components matches."""
+        """Load the DFF calcium signal, pad it with an index column, and assert the number of components matches."""
         if not os.path.exists(self.dff_path):
             print(f"Warning: DFF signal file not found at {self.dff_path}")
             return None
@@ -96,11 +96,41 @@ class Session:
                 f"but got {dff_signal.shape[0]} in DFF signal."
             )
             
-            return dff_signal
+            # Create an index array to pad the dff_signal with
+            indices = np.arange(1, self.number_of_components_total + 1).reshape(-1, 1)
+            
+            # Concatenate the index array with the DFF signal array
+            dff_signal_padded = np.hstack((indices, dff_signal))
+            
+            return dff_signal_padded
         except Exception as e:
             print(f"Error loading DFF signal: {str(e)}")
             return None
 
+    def filter_dff_signal(self, dff_signal_padded, component_list):
+        """
+        Filter the DFF signal to include only the rows corresponding to the provided component list.
+        
+        :param dff_signal_padded: The DFF signal matrix padded with an index column
+        :param component_list: List of component indices to retain (either accepted components or liberation components)
+        :return: Filtered DFF signal matrix containing only the needed components
+        """
+        # Ensure the component_list is a numpy array
+        component_list = np.array(component_list)
+        
+        # Get the index column from the padded DFF signal
+        indices = dff_signal_padded[:, 0]
+        
+        # Create a mask to filter rows where the index is in the component_list
+        mask = np.isin(indices, component_list)
+        
+        # Apply the mask to filter the DFF signal
+        filtered_dff_signal = dff_signal_padded[mask, :]
+        
+        # Remove the index column after filtering (if you want just the DFF data)
+        filtered_dff_signal = filtered_dff_signal[:, 1:]
+        
+        return filtered_dff_signal
 
     def load_liberation_metadata(self, metadata_path):
         """
