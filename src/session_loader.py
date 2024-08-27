@@ -21,6 +21,7 @@ class Session:
         self.victim_lib_timecode = data_row['TimeVictimHeadCrossing(s)']
         self.day_of_helping = data_row['DayofHelping']
         self.model_path = data_row['CNMFE Model Path']
+        self.path_to_pnr = data_row['Peak-to-Noise Ratio Path']
         
         # Construct the annotations path
         annotations_filename = data_row['ManualAnnotationSide']
@@ -68,12 +69,11 @@ class Session:
 
     def load_pnr_image(self):
         """Load the peak-to-noise ratio image."""
-        pnr_path = f"{self.model_path.rsplit('.', 1)[0]}_pnr.npy"
-        if not os.path.exists(pnr_path):
-            print(f"Warning: PNR image file not found at {pnr_path}")
+        if not os.path.exists(self.path_to_pnr):
+            print(f"Warning: PNR image file not found at {self.path_to_pnr}")
             return None
         try:
-            return imread(pnr_path)
+            return imread(self.path_to_pnr)
         except Exception as e:
             print(f"Error loading PNR image: {str(e)}")
             return None
