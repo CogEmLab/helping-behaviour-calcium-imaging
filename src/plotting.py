@@ -4,48 +4,45 @@ from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from scipy import stats
 
-
-def plot_random_traces(DF_F_Z_scored, snr, output_path=None, ax=None):
+def plot_random_traces(DF_F_Z_scored, num_traces=10, snr=None, ax=None):
     """
-    Plot 10 random calcium traces from the detrended and z-scored data, colored by SNR.
-    Handle potential infinite values in the data.
+    Plot random calcium traces from the detrended and z-scored data.
+    Optionally color traces by SNR.
     
     :param DF_F_Z_scored: numpy array of detrended and z-scored calcium traces
-    :param snr: signal-to-noise ratio values for each component
-    :param output_path: path to save the plot, if None, the plot is not saved
-    :param ax: matplotlib axis object, if None, a new plot is created
+    :param num_traces: number of traces to plot, defaults to 10
+    :param snr: optional, signal-to-noise ratio values for each component
+    :param ax: optional, matplotlib axis object; if None, a new plot is created
+    :return: matplotlib axis with the plotted traces
     """
     # Set bigger font size for better readability
     plt.rcParams.update({'font.size': 14})
 
-    # # Remove any infinite values from SNR and corresponding traces
-    # finite_mask = np.isfinite(snr)
-    # DF_F_Z_scored = DF_F_Z_scored[finite_mask]
-    # snr = snr[finite_mask]
-
-    num_traces = min(10, DF_F_Z_scored.shape[0])
+    # Limit the number of traces to plot
+    num_traces = min(num_traces, DF_F_Z_scored.shape[0])
     if num_traces == 0:
         print("No finite traces available to plot.")
-        return
+        return ax
 
+    # Select random indices to plot
     random_indices = np.random.choice(DF_F_Z_scored.shape[0], num_traces, replace=False)
     
-    # Create a color map based on SNR values
-    snr_min, snr_max = np.percentile(snr, [1, 99])  # Use percentiles to avoid extreme values
-    norm = Normalize(vmin=snr_min, vmax=snr_max)
-    cmap = plt.get_cmap('viridis')
+    # Handle SNR-based coloring if SNR is provided
+    if snr is not None:
+        snr_min, snr_max = np.percentile(snr, [1, 99])  # Use percentiles to avoid extreme values
+        norm = Normalize(vmin=snr_min, vmax=snr_max)
+        cmap = plt.get_cmap('viridis')
 
     # Create a figure and axis if not provided
     if ax is None:
         fig, ax = plt.subplots(figsize=(15, 10))
 
     for i, idx in enumerate(random_indices):
-        trace = DF_F_Z_scored[idx - 1]
-        # Remove any remaining infinite values in the trace
-        trace[~np.isfinite(trace)] = np.nan
-        color = cmap(norm(min(max(snr[idx], snr_min), snr_max)))
-        ax.plot(trace + i*6, linewidth=1, color=color, label=f'SNR: {snr[idx]:.2f}')
-    
+        trace = DF_F_Z_scored[idx]
+        trace[~np.isfinite(trace)] = np.nan  # Remove any infinite values
+        color = cmap(norm(min(max(snr[idx], snr_min), snr_max))) if snr is not None else 'k'
+        ax.plot(trace + i*6, linewidth=1, color=color)
+
     # Turn off spines on the top and right side of the plot
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -54,21 +51,17 @@ def plot_random_traces(DF_F_Z_scored, snr, output_path=None, ax=None):
     ax.set_xlabel('Time (frames)')
     ax.set_ylabel('Z-scored ΔF/F + offset')
     
-    # Add colorbar
-    sm = ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])
-    cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.2)
-    cbar.set_label('SNR')
-    
-    # Add legend
-    # ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+    # Add colorbar if SNR is provided
+    if snr is not None:
+        sm = ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.2)
+        cbar.set_label('SNR')
 
     plt.tight_layout()
 
-    # Save the figure only if output_path is provided and no axis is given
-    if output_path is not None and ax is None:
-        plt.savefig(output_path, dpi=300, bbox_inches='tight')
-        plt.close()  # Close the figure to free up memory
+    return ax
+
 
 def plot_histogram(values, threshold, filename, ax=None):
     """
