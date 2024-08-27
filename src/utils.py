@@ -3,11 +3,8 @@
 import napari
 import numpy as np
 import pandas as pd
-from napari.layers import Image
-import pathlib
 import caiman as cm
 import os
-from napari.types import LayerDataTuple, ImageData
 from typing import List
 import cv2
 import logging
@@ -17,6 +14,10 @@ from caiman.motion_correction import MotionCorrect
 import matplotlib.pyplot as plt
 from caiman.source_extraction import cnmf
 from src.plotting import plot_histogram
+from caiman.source_extraction.cnmf.cnmf import load_CNMF
+import networkx as nx
+from scipy.spatial.distance import cdist
+from scipy import ndimage
 
 ############################################################################################################
 # Configure logging
@@ -24,6 +25,104 @@ logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s 
 
 ############################################################################################################
 # core functions
+
+def smooth_and_shrink_label(label, smooth_sigma=1, shrink_pixels=1):
+    """
+    Smooth and shrink a binary label.
+
+    :param label: Binary label array.
+    :param smooth_sigma: Sigma for Gaussian smoothing.
+    :param shrink_pixels: Number of pixels to erode.
+    :return: Smoothed and shrunken label array.
+    """
+    if smooth_sigma > 0:
+        # Apply Gaussian smoothing only if smooth_sigma is greater than 0
+        smoothed = ndimage.gaussian_filter(label.astype(float), sigma=smooth_sigma)
+        # Use a binary threshold to create a binary mask again
+        label = (smoothed > 0.5).astype(int)
+    
+    if shrink_pixels > 0:
+        # Apply binary erosion only if shrink_pixels is greater than 0
+        label = ndimage.binary_erosion(label, iterations=shrink_pixels).astype(int)
+
+    return label
+
+def calculate_binary_behaviors(annotations, unique_behaviors, npy_data):
+    """Calculates binary vectors indicating the presence of behaviors."""
+    behaviors = {behavior: get_behaviour_timestamps(annotations, behavior) for behavior in unique_behaviors}
+    binary_behaviors = {behavior: np.zeros(npy_data.shape[1]) for behavior in unique_behaviors}
+    
+    for behavior in unique_behaviors:
+        for start, end in behaviors[behavior]:
+            binary_behaviors[behavior][start:end] = 1
+    return binary_behaviors
+
+import numpy as np
+from scipy.spatial.distance import cdist
+
+def compute_correlations(estimates_spatial, DFF_z_scored, img_dims, threshold, 
+                         distance_metric='euclidean', correlation_method='pearson'):
+    """
+    Compute correlations and related metrics from the model and DFF data.
+
+    Parameters:
+        estimates_spatial (np.array): Spatial estimates from the model.
+        DFF_z_scored (np.array): Z-scored delta F/F values.
+        img_dims (tuple): Dimensions of the image.
+        threshold (float): Threshold for the adjacency matrix.
+        distance_metric (str): Metric to use for distance calculation. Default is 'euclidean'.
+        correlation_method (str): Method to use for correlation calculation. Default is 'pearson'.
+
+    Returns:
+        tuple: Contains the following elements:
+            - distances (np.array): Distance matrix between components (in pixels).
+            - cross_correlation (np.array): Cross-correlation matrix.
+            - correlated_pairs (tuple): Indices of highly correlated components.
+    """
+
+    # Input validation
+    if not isinstance(DFF_z_scored, np.ndarray):
+        raise TypeError("DFF_z_scored must be numpy array")
+    if DFF_z_scored is None or np.isnan(DFF_z_scored).any():
+        return None, None, None
+
+    # Compute binary activity map and centers of mass (coms)
+    A = np.stack([
+        np.where(estimates_spatial[:, i].reshape(img_dims, order='F') > 0, i + 1, 0)
+        for i in range(DFF_z_scored.shape[0])
+    ], axis=0)
+    coms = np.array([np.mean(np.where(A[i] > 0), axis=1) for i in range(A.shape[0])])
+
+    # Calculate pairwise distances between component centers
+    try:
+        distances = cdist(coms, coms, metric=distance_metric)
+    except Exception as e:
+        print(f"Error calculating distances: {e}")
+        return None, None, None
+
+    # Calculate cross-correlation and adjacency matrix
+    try:
+        if correlation_method == 'pearson':
+            cross_correlation = np.corrcoef(DFF_z_scored)
+        else:
+            raise ValueError("Unsupported correlation method")
+    except Exception as e:
+        print(f"Error calculating correlations: {e}")
+        return None, None, None
+
+    adjacency_matrix = (cross_correlation > threshold)
+    adjacency_matrix = np.tril(adjacency_matrix, k=-1)
+
+    # Identify highly correlated components
+    correlated_pairs = np.where(adjacency_matrix)
+
+    return distances, cross_correlation, adjacency_matrix, correlated_pairs
+
+def get_values(matrix):
+    lower_triangle_matrix = matrix[np.tril_indices(matrix.shape[0], k=-1)]
+    values_list = lower_triangle_matrix.tolist()
+    return values_list
+
 def get_most_active_components(DF_F_Z_scored, path, cohort, session, animal, plot_example=False, ax=None):
     """
     Get the most active components in the DF_F_Z_scored based on k*sigma threshold and save a histogram of the sum of the components with a threshold.
@@ -151,7 +250,7 @@ def load_behaviour_video(behaviour_video_path, manual_annotations):
 
     cap = cv2.VideoCapture(behaviour_video_path)
     ret = True
-
+    
     # Check for equal length of manual_annotations and video
     length_manual_annotations = manual_annotations['Stop (frames)'].max()
 
@@ -247,6 +346,61 @@ def load_data(ci_path, session_file, fps=30):
     behaviour_video = load_behaviour_video(behaviour_video_path, manual_annotations) 
 
     return ci_movie, behaviour_video
+
+def reevaluate_components(model_path, fname_new, fps=30):
+    """
+    Analyze calcium imaging data using CNMF-E algorithm.
+
+    Parameters:
+        ci_movie_path (str): Path to the calcium imaging movie file.
+        save_dir_docs (str): Directory to save the technical documentation files.
+        motion_correct (bool): Flag indicating whether to perform motion correction. Default is False.
+        plot (bool): Flag indicating whether to plot the rigid shifts. Default is False.
+
+    Returns:
+        cnmfe_model: The CNMF-E model object.
+        ci_movie: The calcium imaging movie.
+        fname_new: The filename of the memory-mappable file.
+        correlation_image: The correlation image.
+        peak_to_noise_ratio: The peak to noise ratio movie.
+        dims: The dimensions of the calcium imaging movie.
+        total_components: The total number of components.
+        num_accepted: The number of accepted components.
+        num_rejected: The number of rejected components.
+    """
+    logging.info('Analyzing data...')
+    # # Get the name of the file
+
+    # Perform setup for caiman
+    cluster, __ = general_setup()
+
+    # load memory mappable file
+    Yr, dims, T = cm.load_memmap(fname_new)
+    ci_movie = Yr.T.reshape((T,) + dims, order='F')
+
+    cnmfe_model = load_CNMF(model_path)
+
+    # # Upload the new parameters
+    cnmfe_model.params.quality['SNR_lowest'] = 2.0
+    cnmfe_model.params.quality['rval_lowest'] = 0.3
+    cnmfe_model.params.quality['min_SNR'] = 3.0
+
+    cnmfe_model.estimates.evaluate_components(ci_movie, cnmfe_model.params)
+
+    total_components = len(cnmfe_model.estimates.C)
+    num_accepted = len(cnmfe_model.estimates.idx_components)
+    num_rejected = len(cnmfe_model.estimates.idx_components_bad)
+
+    # Compute some summary images (correlation and peak to noise)
+    gsig_tmp = (3,3)
+    correlation_image, peak_to_noise_ratio = cm.summary_images.correlation_pnr(ci_movie[::max(T//1000, 1)], # subsample if needed
+                                                                            gSig=gsig_tmp[0], # used for filter
+                                                                            swap_dim=False) # change swap dim if output looks weird, it is a problem with tiffile
+    
+    cm.stop_server(dview=cluster)
+    
+    return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected
+
 
 def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plot=False):
     """
