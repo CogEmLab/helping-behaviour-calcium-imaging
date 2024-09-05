@@ -3,7 +3,54 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from scipy import stats
+import seaborn as sns
 
+def plot_correlated_traces(ax, traces, component_pairs, distances=None, annotations=None, color_palette='husl', n_to_plot=8, vertical_shift=10, line_alpha=0.7, text_offset=5):
+    """
+    Plot paired traces with optional annotations and distances.
+
+    Parameters:
+        ax (matplotlib.axes.Axes): The axis to plot on.
+        traces (numpy.ndarray): 2D array where each row is a trace to be plotted.
+        component_pairs (tuple): Tuple of two lists/arrays, each containing indices of components to be paired for plotting.
+        distances (numpy.ndarray, optional): 2D distance matrix between components. Defaults to None.
+        annotations (dict, optional): Dictionary with annotation names as keys and list of tuples (start, end) as values. Defaults to None.
+        color_palette (str, optional): Name of the Seaborn color palette to use for annotations. Defaults to 'husl'.
+        n_to_plot (int, optional): Number of component pairs to plot. Defaults to 8.
+        vertical_shift (int, optional): Vertical shift to apply between successive traces. Defaults to 10.
+        line_alpha (float, optional): Alpha transparency for the trace lines. Defaults to 0.7.
+        text_offset (int, optional): Offset for the distance text. Defaults to 5.
+
+    Returns:
+        None
+    """
+    n_to_plot = min(n_to_plot, len(component_pairs))
+
+    # Generate a color palette based on the number of annotations
+    color_set = None
+    if annotations is not None:
+        color_set = sns.color_palette(color_palette, len(annotations))
+
+    for i, (idx1, idx2) in enumerate(component_pairs[:n_to_plot]):
+        distance_text = f'Distance: {distances[idx1, idx2]:.2f}' if distances is not None else None
+
+        # Plot annotations (if provided)
+        if annotations is not None and color_set is not None:
+            for j, (annotation, timestamps) in enumerate(annotations.items()):
+                for start, end in timestamps:
+                    ax.axvspan(start, end, label=annotation if i == 0 else None, color=color_set[j], alpha=0.3)
+
+        # Plot the paired traces
+        ax.plot(traces[idx1] + vertical_shift * i, color='k', alpha=line_alpha)
+        ax.plot(traces[idx2] + vertical_shift * i, alpha=line_alpha)
+
+        # Add distance text (if provided)
+        if distance_text is not None:
+            ax.text(10, vertical_shift * i + text_offset, distance_text, fontsize=12)
+
+    if annotations is not None:
+        ax.legend()
+        
 def plot_random_traces(DF_F_Z_scored, num_traces=10, snr=None, ax=None):
     """
     Plot random calcium traces from the detrended and z-scored data.
@@ -63,7 +110,7 @@ def plot_random_traces(DF_F_Z_scored, num_traces=10, snr=None, ax=None):
     return ax
 
 
-def plot_histogram(values, threshold, filename, ax=None):
+def plot_histogram(values, threshold, filename, ax=None, suffix=None):
     """
     Plot a histogram of the sum of the components in the DF_F_Z_scored.
 
@@ -118,7 +165,9 @@ def plot_histogram(values, threshold, filename, ax=None):
     ax.spines['right'].set_visible(False)
 
     if save:
-        fig.savefig(filename)
+        fig.savefig(f"{filename}_{suffix}.png", dpi=300)
+        filename = filename.replace('.png', '.eps')
+        fig.savefig(f"{filename}_{suffix}.eps", dpi=300)
         plt.close(fig)
 
     return ax
@@ -173,7 +222,9 @@ def plot_heatmap(DF_F_Z_scored, filename, ax, window_to_use, FPS, animal, day_of
     ax.spines['right'].set_visible(False)
 
     if save:
-        fig.savefig(filename)
+        fig.savefig(f"{filename}")
+        filename = filename.replace('.png', '.eps')
+        fig.savefig(f"{filename}.eps", format='eps')
         plt.close(fig)
 
     return ax

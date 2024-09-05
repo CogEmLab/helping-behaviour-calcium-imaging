@@ -9,9 +9,10 @@ from matplotlib.gridspec import GridSpec
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from tqdm import tqdm
 import os
+from src.session_loader import Session
 
 # Import custom functions from utils and plotting modules
-from src.utils import get_most_active_components
+from src.utils import get_most_active_components, shuffle_signal
 from src.plotting import plot_heatmap, plot_boxplots
 
 # Constants
@@ -63,29 +64,46 @@ def load_and_preprocess_data(file_path):
     
     return data
 
-def process_session(row, fps, window, plot_example=False, axes=None):
+def process_session(row, fps, window, shuffle=False, plot_example=False, axes=None):
+    
     # Extract necessary data from the row
-    session = row['Session']
-    model_path = row['CNMFE Model Path']
-    mouse_id = row['Mouse']
-    cohort = row['Cohort']
-    total_num_components = row['Total Components']
-    time_victim_crossing = row['TimeVictimHeadCrossing(s)']
+    session = Session(row)
+   
+    (
+        session,
+        mouse_id,
+        cohort,
+        total_num_components,
+        time_victim_crossing,
+        session_outcome
+    ) = (
+        session.session,
+        session.animal_id,
+        session.cohort,
+        session.number_of_components_total,
+        session.victim_lib_timecode,
+        session.session_outcome
+    )
 
+    #* Skip if session outcome is not 'H'. Neural activity for helping and non-helping sessions can be assumed to be different, no need to mix these data together. (Duch's comment 2024 MidTermEvaluation)
+    if session_outcome != 'H':
+        return np.nan, np.nan, np.nan
+    
     # Skip if crossing time is not available
     if np.isnan(time_victim_crossing):
         return np.nan, np.nan, np.nan
 
     # Load CNMF model and process data
-    model = load_CNMF(model_path)
-    npy_filepath = model_path.replace('.hdf5', '_Dff_z_scored.npy').replace('cnmfe_model', 'npy_data')
-    DF_F_Z_scored = np.load(npy_filepath)
+    DF_F_Z_scored = session.load_dff_signal()[:, 1:] #! This signal is padded with an index column
 
-    high_quality_components = model.estimates.idx_components
+    if shuffle:
+        DF_F_Z_scored = shuffle_signal(DF_F_Z_scored)
+        suffix = '_shuffled'
+    else:
+        suffix = ''
 
-    # Get SNR and spatial correlation values
-    snr = model.estimates.SNR_comp
-    sptl_corr = model.estimates.r_values
+    # Get high quality components
+    high_quality_components = session.load_accepted_components()
 
     # Process time window
     time_victim_crossing = int(time_victim_crossing * fps)
@@ -112,8 +130,7 @@ def process_session(row, fps, window, plot_example=False, axes=None):
 
     # Get most active components
     DF_F_Z_scored_selected, selected_ids = get_most_active_components(
-        DF_F_Z_scored, 'tech_plots/threshold_plots', cohort=cohort, session=session, animal=mouse_id, plot_example=plot_example, ax=axes['histogram']
-    )
+        DF_F_Z_scored, f'tech_plots/threshold_plots{suffix}', cohort=cohort, session=session, animal=mouse_id, plot_example=plot_example, ax=axes['histogram'], suffix=suffix)
 
     quality_filter = np.isin(selected_ids, high_quality_components)
     print(f"Selected {len(selected_ids)} components")
@@ -123,7 +140,7 @@ def process_session(row, fps, window, plot_example=False, axes=None):
     sum_dff_not_selected = sum_dff[~np.isin(np.arange(len(sum_dff)), selected_ids)]
 
     # Plot heatmaps for selected components
-    filename = f'tech_plots/heatmaps/{cohort}/{session}/{mouse_id}_heatmap.png'
+    filename = f'tech_plots/heatmaps/{cohort}/{session}/{mouse_id}_heatmap{suffix}.png'
     # Create a directory for the cohort and session
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     plot_heatmap(DF_F_Z_scored_selected[quality_filter], filename, ax=None, window_to_use=window, FPS=fps, animal=mouse_id, day_of_helping=row['DayofHelping'])
@@ -151,24 +168,17 @@ def process_session(row, fps, window, plot_example=False, axes=None):
     if selected_ids.size == 0:
         return np.nan, np.nan, np.nan
 
-    #TODO: Filter out low quality for all metrics/data
-    # Get onlt liberation cells that are selected and also in high_quality_components
-    
-
     return ({
         'selected_ids': selected_ids[mask][quality_filter] if selected_ids.size > 0 else np.nan,
         'response_score': response_score[quality_filter] if selected_ids.size > 0 else np.nan,
-        'snr': snr[selected_ids][mask][quality_filter] if selected_ids.size > 0 else np.nan,
-        'sptl_corr': sptl_corr[selected_ids][mask][quality_filter] if selected_ids.size > 0 else np.nan,
         'num_liberation_cells': len(selected_ids[mask][quality_filter]),
         'percent_liberation_cells': (len(selected_ids[mask][quality_filter]) / len(high_quality_components)) * 100 if total_num_components > 0 else np.nan
     }, sum_dff_selected, sum_dff_not_selected)
 
-def main():
+def main(shuffle=False):
     # Setup
     fig, axes = setup_plot()
     data = load_and_preprocess_data('data/session_file_MiniscopeCW_all_Moises_latest_liberation_cells.csv')
-    
     # Create output directories
     os.makedirs('tech_plots/threshold_plots', exist_ok=True)
     
@@ -186,47 +196,57 @@ def main():
 
     # Process each session
     for idx, row in tqdm(data.iterrows(), total=len(data)):
+        print('Plotting index', random_idx, ', Current index:', idx)
         fps = row['FPS (CI downsampled)']
         window = 45 if fps == 20 else WINDOW
 
         # Plot example if random index
         plot_example = int(idx) == int(random_idx)
         
-        result, sum_dff_selected, sum_dff_not_selected = process_session(row, fps, window, plot_example=plot_example, axes=axes)
+        row_results, sum_dff_selected, sum_dff_not_selected = process_session(row, fps, window, shuffle=shuffle, plot_example=plot_example, axes=axes)
                 
-        if result is not np.nan:
+        if row_results is not np.nan:
             # Update metadata
             for key in ['Cohort', 'Mouse', 'Session', 'DayofHelping', 'CNMFE Model Path']:
-                metadata[key.replace('CNMFE Model Path', 'Model Path')].extend([row[key]] * len(result['selected_ids']))
+                metadata[key.replace('CNMFE Model Path', 'Model Path')].extend([row[key]] * len(row_results['selected_ids']))
                         
-            metadata['Component ID'].extend(result['selected_ids'])
-            metadata['Reg ID'].extend(range(len(result['selected_ids'])))  # Placeholder, update if needed
-            metadata['Response Score'].extend(result['response_score'])
-            metadata['SNR'].extend(result['snr'])
-            metadata['Spatial Correlation'].extend(result['sptl_corr'])
+            metadata['Component ID'].extend(row_results['selected_ids'])
+            metadata['Reg ID'].extend(range(len(row_results['selected_ids'])))  # Placeholder, update if needed
+            metadata['Response Score'].extend(row_results['response_score'])
+            metadata['SNR'].extend(row_results['snr'])
+            metadata['Spatial Correlation'].extend(row_results['sptl_corr'])
             
             # Update data with liberation cell information
-            data.loc[data.index == row.name, 'Num of liberation cells'] = result['num_liberation_cells']
-            data.loc[data.index == row.name, '% of liberation cells'] = result['percent_liberation_cells']
+            col_name_1 = 'Num of liberation cells' if not shuffle else 'Num of shuffled liberation cells'
+            data.loc[data.index == row.name, col_name_1] = row_results['num_liberation_cells']
+            col_name_2 = '% of liberation cells' if not shuffle else '% of shuffled liberation cells'
+            data.loc[data.index == row.name, col_name_2] = row_results['percent_liberation_cells']
             
             # Update sum of components with mean values
             sum_components['selected'].append(np.mean(sum_dff_selected))
             sum_components['not_selected'].append(np.mean(sum_dff_not_selected))
 
+    # Convert metadata to DataFrame and save to CSV
+    suffix = '_shuffled' if shuffle else ''
+
     # Create and save metadata DataFrame
     metadata_df = pd.DataFrame(metadata)
     metadata_df['Group'] = pd.cut(metadata_df['Response Score'], 
-                                  bins=[-np.inf, -0.5, 0.5, np.inf],
+                                  bins=[-np.inf, -0.33, 0.33, np.inf],
                                   labels=['Pre-responsive', 'Mixed', 'Post-responsive'])
     metadata_df['Index'] = range(len(metadata_df))
-    metadata_df.to_csv('processed-data/metadata_cross_comp.csv', index=False)
-    
+
+    metadata_df.to_csv(f'processed-data/metadata_cross_comp{suffix}.csv', index=False)
+
     # Update data with normalized liberation cells
-    data['Normalized liberation cells'] = data['Num of liberation cells'] / data['Ca Imaging Length(s)']
-    sum_normalized = data.groupby('Mouse')['Normalized liberation cells'].sum()
+    col_name_3 = 'Normalized liberation cells'
+    if shuffle:
+        col_name_3 += '_shuffled'
+    data[col_name_3] = data['Num of liberation cells'] / data['Ca Imaging Length(s)']
+    sum_normalized = data.groupby('Mouse')[col_name_3].sum()
     data = data.join(sum_normalized, on='Mouse', rsuffix='_sum')
-    data['Normalized liberation cells'] = (data['Normalized liberation cells'] / data['Normalized liberation cells_sum']) * 100
-    data = data.drop(columns=['Normalized liberation cells_sum'])
+    data[col_name_3] = (data[col_name_3] / data[f'{col_name_3}_sum']) * 100
+    data = data.drop(columns=[f'{col_name_3}_sum'])
     
     # # Remove rows with NaN values
     # data = data.dropna(subset=['Num of liberation cells', '% of liberation cells', 'Normalized liberation cells'])
@@ -237,8 +257,8 @@ def main():
 
     plot_boxplots(sum_components['selected'], sum_components['not_selected'], axes['boxplots'], '', ('Selected', 'Not selected'), 'Sum of $\\Delta F/F$ values in the window')
 
-    order = [0, 1, 2, 3, 4, 'RECNvlCtx', 'REMNvlCtx', 'REMHBTD']
-    sns.barplot(x='DayofHelping', y='% of liberation cells', data=data, 
+    order = [1, 2, 3, 4, 'RECNvlCtx', 'REMNvlCtx', 'REMHBTD']
+    sns.barplot(x='DayofHelping', y=col_name_2, data=data, 
                 fill=False, capsize=0.1, err_kws={'linewidth': 1.5}, color='black', ax=axes['components'], order=order)
     sns.swarmplot(x='DayofHelping', y='% of liberation cells', data=data, 
                   hue='Mouse', size=8, palette='Set1', dodge=True, alpha=0.7, 
@@ -258,10 +278,11 @@ def main():
 
     # Save results
     data.to_csv('data/session_file_MiniscopeCW_all_Moises_latest_liberation_cells.csv', index=False)
-    plt.savefig('tech_plots/overview_figure_liberation_cells_extraction.pdf')
+
+    plt.savefig(f'tech_plots/overview_figure_liberation_cells_extraction{suffix}.pdf')
     # Also save as PNG
-    plt.savefig('tech_plots/overview_figure_liberation_cells_extraction.png')
+    plt.savefig(f'tech_plots/overview_figure_liberation_cells_extraction{suffix}.png')
     plt.close(fig)
 
 if __name__ == "__main__":
-    main()
+    main(shuffle=False)

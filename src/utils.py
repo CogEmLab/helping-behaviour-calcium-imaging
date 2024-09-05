@@ -26,6 +26,13 @@ logging.basicConfig(filename='app.log', level=logging.INFO, format='%(asctime)s 
 ############################################################################################################
 # core functions
 
+def shuffle_signal(DF_F_Z_scored):
+    """Cut each cell signal into pieces of 3 seconds bins (90 frames), mix the pieces order, and reconstruct the signal."""
+    num_bins = int(DF_F_Z_scored.shape[1] / 90)
+    idx = np.arange(num_bins)
+    np.random.shuffle(idx)
+    return np.concatenate([DF_F_Z_scored[:, i*90:(i+1)*90] for i in idx], axis=1)
+
 def smooth_and_shrink_label(label, smooth_sigma=1, shrink_pixels=1):
     """
     Smooth and shrink a binary label.
@@ -57,10 +64,63 @@ def calculate_binary_behaviors(annotations, unique_behaviors, npy_data):
             binary_behaviors[behavior][start:end] = 1
     return binary_behaviors
 
-import numpy as np
-from scipy.spatial.distance import cdist
+def compute_correlations(positions, DFF_z_scored, threshold, 
+                         distance_metric='euclidean', correlation_method='pearson'):
+    """
+    Compute correlations and related metrics from the model and DFF data.
 
-def compute_correlations(estimates_spatial, DFF_z_scored, img_dims, threshold, 
+    Parameters:
+        estimates_spatial (np.array): Spatial estimates from the model.
+        DFF_z_scored (np.array): Z-scored delta F/F values.
+        img_dims (tuple): Dimensions of the image.
+        threshold (float): Threshold for the adjacency matrix.
+        distance_metric (str): Metric to use for distance calculation. Default is 'euclidean'.
+        correlation_method (str): Method to use for correlation calculation. Default is 'pearson'.
+
+    Returns:
+        tuple: Contains the following elements:
+            - distances (np.array): Distance matrix between components (in pixels).
+            - cross_correlation (np.array): Cross-correlation matrix.
+            - correlated_pairs (tuple): Indices of highly correlated components.
+    """
+
+    original_idx = DFF_z_scored[:, 0].astype(int)
+
+    DFF_z_scored = DFF_z_scored[:, 1:]
+
+    # Input validation
+    if not isinstance(DFF_z_scored, np.ndarray):
+        raise TypeError("DFF_z_scored must be numpy array")
+    if DFF_z_scored is None or np.isnan(DFF_z_scored).any():
+        return None, None, None
+    
+    # Calculate pairwise distances between component centers
+    try:
+        distances = cdist(positions, positions, metric=distance_metric)
+    except Exception as e:
+        print(f"Error calculating distances: {e}")
+        return None, None, None
+
+    # Calculate cross-correlation and adjacency matrix
+    try:
+        if correlation_method == 'pearson':
+            cross_correlation = np.corrcoef(DFF_z_scored)
+        else:
+            raise ValueError("Unsupported correlation method")
+    except Exception as e:
+        print(f"Error calculating correlations: {e}")
+        return None, None, None
+
+    adjacency_matrix = (cross_correlation > threshold)
+    adjacency_matrix = np.tril(adjacency_matrix, k=-1)
+
+    # Identify highly correlated components
+    correlated_pairs = np.where(adjacency_matrix)
+    correlated_pairs = (original_idx[correlated_pairs[0]], original_idx[correlated_pairs[1]])
+
+    return distances, cross_correlation, adjacency_matrix, correlated_pairs
+
+def compute_correlations_old(estimates_spatial, DFF_z_scored, img_dims, threshold, 
                          distance_metric='euclidean', correlation_method='pearson'):
     """
     Compute correlations and related metrics from the model and DFF data.
@@ -110,6 +170,7 @@ def compute_correlations(estimates_spatial, DFF_z_scored, img_dims, threshold,
         print(f"Error calculating correlations: {e}")
         return None, None, None
 
+
     adjacency_matrix = (cross_correlation > threshold)
     adjacency_matrix = np.tril(adjacency_matrix, k=-1)
 
@@ -123,7 +184,7 @@ def get_values(matrix):
     values_list = lower_triangle_matrix.tolist()
     return values_list
 
-def get_most_active_components(DF_F_Z_scored, path, cohort, session, animal, plot_example=False, ax=None):
+def get_most_active_components(DF_F_Z_scored, path, cohort, session, animal, plot_example=False, ax=None, suffix=None):
     """
     Get the most active components in the DF_F_Z_scored based on k*sigma threshold and save a histogram of the sum of the components with a threshold.
 
@@ -165,13 +226,13 @@ def get_most_active_components(DF_F_Z_scored, path, cohort, session, animal, plo
         print('-----------------------------------')
         print('Plotting example')
         print('-----------------------------------')
-        plot_histogram(dff_sum, threshold, filename, ax=ax)
+        plot_histogram(dff_sum, threshold, filename, ax=ax, suffix=suffix)
     
     # Add cohort, session and mouse_id to the path
     path = os.path.join(path, cohort, session)
     os.makedirs(path, exist_ok=True)
     filename = os.path.join(path, f'histogram_{animal}.png')
-    plot_histogram(dff_sum, threshold, filename)
+    plot_histogram(dff_sum, threshold, filename, suffix=suffix)
     
     return DF_F_Z_scored_selected, selected_ids
 
