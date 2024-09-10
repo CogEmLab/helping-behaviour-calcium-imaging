@@ -5,27 +5,29 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.spatial.distance import cdist
 from collections import defaultdict
 import networkx as nx
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
-from src.utils import get_behaviour_timestamps
 from tqdm import tqdm
 from matplotlib.gridspec import GridSpec
 from typing import Dict, Tuple
-import seaborn as sns
-from scipy.optimize import curve_fit
+import seaborn as snsaccepted_components
 from tifffile import imread
-from src.plotting import plot_boxplots
+from src.plotting import plot_boxplots, plot_correlated_traces, plot_cross_correlation_matrix, plot_distance_matrix
+from src.utils import get_values, compute_correlations, build_graph, save_matrix
+import seaborn as sns
+from src.session_loader import Session
 
 # Constants
 SESSION_FILE = 'data/session_file_MiniscopeCW_all_Moises_latest_liberation_cells.csv'
 METADATA_FILE = 'processed-data/metadata_cross_comp_updated.csv'
 ANNOTATIONS_DIR = 'annotations'
 IMG_DIMS = (400, 640)
-THRESHOLD = 0.7
-FIG_SIZE = (25, 15)
+THRESHOLD = 0.42
+FIG_SIZE = (30, 15)
 GRID_SPEC = (3, 6)
+SESSION_ORDER = ['HBTD1', 'HBTD2', 'HBTD3', 'HBTD4', 'HBTD5', 'HBTD6', 'RECNvlCtx', 'Stranger', 'Toy', 'Empty', 'Pool', 'REMNvlCtx', 'REMHBTD']
+DAYS_OF_HELPING_ORDER = [0, 1, 2, 3, 4, 'RECNvlCtx', 'REMNvlCtx', 'REMHBTD']
 
 def setup_plot() -> Tuple[plt.Figure, Dict[str, plt.Axes]]:
     """Set up the plot with a specific style and grid layout."""
@@ -60,218 +62,117 @@ def setup_plot() -> Tuple[plt.Figure, Dict[str, plt.Axes]]:
     
     return fig, axes
 
-def load_data(model_path, annotations_path):
-    """Loads npy data and annotations based on the session row information."""
-    npy_path = model_path.replace('.hdf5', '_Dff_z_scored.npy').replace('cnmfe_model', 'npy_data')
-    try:
-        npy_data = np.load(npy_path)
-        model = load_CNMF(model_path)
-        annotations = pd.read_csv(annotations_path.replace('_regrouped', '_manual_annotations'))
-        return model, npy_data, annotations
-    except Exception as e:
-        print(f"Error loading data: {e}")
-        return None, None, None
-    
-def plot_traces(ax, DFF_z_scored, distances, highly_correlated_components, behaviour_timestamps):
-    """
-    Plot the traces of highly correlated components on a provided axis.
-
-    Parameters:
-        ax (matplotlib.axes.Axes): The axis to plot on.
-        DFF_z_scored (np.array): Z-scored delta F/F values.
-        distances (np.array): Distance matrix between components.
-        highly_correlated_components (tuple): Indices of highly correlated components.
-        behaviour_timestamps (dict): Dictionary containing behaviour names as keys and timestamps as values.
-        animal_id (str): Identifier for the animal (used in saving the plot).
-        model_path (str): Path to the model (used in constructing the save path).
-
-    Returns:
-        None
-    """
-    n_to_plot = min(8, len(highly_correlated_components[0]))
-
-    # Generate a color palette based on the number of behaviours
-    color_set = sns.color_palette('husl', len(behaviour_timestamps))
-
-    for i in range(n_to_plot):
-        idx1, idx2 = highly_correlated_components[0][i], highly_correlated_components[1][i]
-        distance = distances[idx1, idx2]
-
-        # Plot behavior spans
-        for j, (behaviour, timestamps) in enumerate(behaviour_timestamps.items()):
-            for k, timestamp in enumerate(timestamps):
-                ax.axvspan(timestamp[0], timestamp[1], label=behaviour if i == 0 and k == 0 else None, color=color_set[j], alpha=0.3)
-
-        # Plot traces
-        ax.plot(DFF_z_scored[idx1] + 10*i, color='k', alpha=0.7)
-        ax.plot(DFF_z_scored[idx2] + 10*i, alpha=0.6)
-        ax.text(10, 10*i + 5, f'Distance: {distance:.2f}', fontsize=12)
-
-    ax.legend()
-
-def process_session(session_df, idx, row, plot, axes):
+def process_session(session_df: pd.DataFrame, row: pd.Series, plot: bool, axes: Dict[str, plt.Axes]) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray, pd.DataFrame]:
     """Processes a session to calculate mean correlations and return a DataFrame."""
-    cohort, session, animal_id, model_path = row['Cohort'], row['Session'], row['Mouse'], row['CNMFE Model Path']
-    day_of_helping = row['DayofHelping']
 
-    annotations_filename = row['ManualAnnotationSide']
-    annotations_path = os.path.join(ANNOTATIONS_DIR, row['Cohort'], row['Session'], f'{annotations_filename}.csv')
+    session = Session(row)
 
-    model, DFF_z_scored, annotations = load_data(model_path, annotations_path)
-    if annotations is None:
-        return pd.DataFrame(), None, None, None, None, session_df
+    pnr = session.load_pnr_image()
+    session.get_neuron_labels()
+    dff_signal = session.load_dff_signal()
+    accepted_components = session.load_accepted_components()
+    accepted_dff_signal = session.filter_dff_signal(dff_signal, accepted_components)
+    # Create a mapping from original indices to new indices
+    component_mapping = {orig: new for new, orig in enumerate(accepted_components)}
 
-    pnr_path = row['Peak-to-Noise Ratio Path']
-    pnr = imread(pnr_path)
+    neuron_positions = session.neuron_positions[accepted_components]
 
-    unique_behaviours = annotations['Behavior'].unique()
-    all_behaviour_timestamps = {behaviour: get_behaviour_timestamps(annotations, behaviour) for behaviour in unique_behaviours}
-
-    session_metadata = metadata_df[(metadata_df['Cohort'] == cohort) & (metadata_df['Session'] == session) & (metadata_df['Mouse'] == animal_id)]
-
-    accepted_components = model.estimates.idx_components
-    liberation_cells_ids = session_metadata['Component ID']
-
-    D, D_val, cross_correlation, corr_comps, G, pccs = compute_correlations(model, DFF_z_scored, accepted_components)
-    __, D_val_lib, __, corr_comps_lib, __, pccs_lib = compute_correlations(model, DFF_z_scored, np.intersect1d(liberation_cells_ids, accepted_components))
+    distances, correlation_matrix, adjacency_matrix, correlated_pairs = compute_correlations(neuron_positions, accepted_dff_signal, THRESHOLD)
     
-    corr_comps_unique = np.unique(np.concatenate(corr_comps))
+    __ = session.load_liberation_metadata('processed-data/metadata_cross_comp_updated.csv')
+    liberation_cells_ids = session.get_liberation_cells_ids()
+    correlated_pairs_new = []
+    correlated_pairs_not_lib = []
+    correlated_pairs_lib_to_all = []
+    correlated_pairs_only_lib = []
+    liberation_cell_ids_mapped = None
 
-    # Check that corr_comps_unique is not empty
-    if len(corr_comps_unique) == 0:
-        return (pd.DataFrame(), None, None, None, None, session_df)
+    if liberation_cells_ids is not None and len(liberation_cells_ids) > 2:
+        liberation_cells_set = set(liberation_cells_ids)
 
-    percentage_of_liberation_cells = len(corr_comps_lib) / len(corr_comps_unique) * 100
+        for pair in zip(correlated_pairs[0], correlated_pairs[1]):
+            cell1, cell2 = pair
 
-    # Update the session DataFrame with the percentage of liberation cells in highly correlated components
-    session_df.at[idx, '% of liberation cells in highly correlated components'] = percentage_of_liberation_cells
+            correlated_pairs_new.append((component_mapping[cell1], component_mapping[cell2]))
+            if cell1 in liberation_cells_set and cell2 in liberation_cells_set:
+                correlated_pairs_only_lib.append((component_mapping[cell1], component_mapping[cell2]))
+            elif cell1 in liberation_cells_set or cell2 in liberation_cells_set:
+                correlated_pairs_lib_to_all.append((component_mapping[cell1], component_mapping[cell2]))
+            else:
+                correlated_pairs_not_lib.append((component_mapping[cell1], component_mapping[cell2]))
 
-    # TODO: Check how many of these are liberation cells; plot vienn diagram with that information
+        cross_correlation_liberation_only = np.corrcoef(session.filter_dff_signal(dff_signal, liberation_cells_ids)[:, 1:])
+        liberation_cell_ids_mapped = {component_mapping[i] for i in liberation_cells_ids}
+    else:
+        correlated_pairs_new = [(component_mapping[cell1], component_mapping[cell2]) for cell1, cell2 in zip(correlated_pairs[0], correlated_pairs[1])]
+        cross_correlation_liberation_only = None
 
-    if plot:
-        axes['image-example'].imshow(pnr, cmap='viridis')
-        axes['image-example'].set_title(f'Peak-to-Noise Ratio', fontsize=16)
+    if liberation_cells_ids is not None and len(liberation_cells_ids) > 2 and len(correlated_pairs[0]) > 0:
+        unique_cells_correlated_lib = len(set(cell1 for pair in correlated_pairs_only_lib for cell1 in pair))
+        unique_cells_correlated_no_lib = len(set(cell1 for pair in correlated_pairs_not_lib for cell1 in pair))
+        session_df.at[session_df.index[session_df['Session'] == session.session].tolist()[0], '% of liberation cells in highly correlated components'] = unique_cells_correlated_lib / session.number_of_liberation_cells
+        # Percentage of non-liberation cells in highly correlated components
+        session_df.at[session_df.index[session_df['Session'] == session.session].tolist()[0], '% of other cells in highly correlated components'] = unique_cells_correlated_no_lib / (session.number_of_accepted_components - session.number_of_liberation_cells)
+    # Create a graph from the adjacency matrix
+    position_dict, G, colors, labels = build_graph(session, component_mapping, neuron_positions, adjacency_matrix, liberation_cells_ids)
 
-        # Plot the cross-correlation matrix
-        axes['cross-correlation-matrix'].imshow(cross_correlation, aspect='equal')
-        axes['cross-correlation-matrix'].set_title('Cross-correlation matrix')
+    save_matrix(session, correlation_matrix, f'cross_correlation_matrix_{str(session.animal_id)}', plot_cross_correlation_matrix)
+    save_matrix(session, distances, f'distance_matrix_{str(session.animal_id)}', plot_distance_matrix)
+    
+    if plot:          
+        # Plot graph on image_example axis, overlay with PNR image
+        # axes['image-example'].imshow(pnr, cmap='viridis')
+        nx.draw_networkx_labels(G, pos=position_dict, ax=axes['image-example'], labels=labels, font_size=8, font_color='black')
+        # colors = ['white' if c == 'black' else c for c in colors]
+        nx.draw(G, pos=position_dict, node_size=50, node_color=colors, ax=axes['image-example'], edge_color='black', node_shape='*')
+        axes['image-example'].set_title('Graph example, animal: ' + str(session.animal_id) + ', session: ' + session.session)
+
+        # Plot the cross-correlation matrix, sort the values before plotting
+        plot_cross_correlation_matrix(axes['cross-correlation-matrix'], correlation_matrix, 'Cross-correlation matrix, animal: ' + str(session.animal_id) + ', session: ' + session.session)
 
         # Plot the distance matrix
-        axes['distance-matrix'].imshow(D, cmap='viridis')
-        axes['distance-matrix'].set_title('Distance matrix')
+        plot_distance_matrix(axes['distance-matrix'], distances, 'Distance matrix, animal: ' + str(session.animal_id) + ', session: ' + session.session)
 
         # Plot the traces of highly correlated components
-        plot_traces(axes['traces-example'], DFF_z_scored, D, corr_comps, all_behaviour_timestamps)
-        axes['traces-example'].set_title('Traces of highly correlated components')    
-        
-        # Plot the correlation vs distance plot
-        axes['correlation-vs-distance'].scatter(D_val, pccs, alpha=0.5, s=1, c='k')
-        axes['correlation-vs-distance'].set_xlabel('Distance (px)')
-        axes['correlation-vs-distance'].set_ylabel('Pearson correlation coefficient')
-        axes['correlation-vs-distance'].set_ylim(-1, 1)
-        axes['correlation-vs-distance'].set_title(f'Correlation vs distance, {session}')
-
-        # # take only positive values
-        # pccs_pos, D_val_pos = zip(*[(p, d) for p, d in zip(pccs, D_val) if p > 0])
-
-        # # fit exponential curve
-        # def exponential(x, a, b, c):
-        #     return a * np.exp(-b * x) + c
-        
-        # popt, pcov = curve_fit(exponential, D_val_pos, pccs_pos)
-        # print('Fitted parameters:', popt)
-
-        # # Plot the exponential fit
-        # x = np.linspace(0, 400, 100)
-        # y = exponential(x, *popt)
-
-        # axes['correlation-vs-distance'].plot(x, y, '--', label='fit: a=%5.3f, b=%5.3f, c=%5.3f' % tuple(popt))
-        # axes['correlation-vs-distance'].legend()
-
+        plot_correlated_traces(axes['traces-example'], accepted_dff_signal, correlated_pairs_new, distances=distances)
+        axes['traces-example'].set_title('Traces of highly correlated components')
+        axes['traces-example'].axvline(session.victim_lib_timecode * session.calcium_fps, color='k', linestyle='dashed', linewidth=2, label='Victim crossing')
 
     results = {
-        'Cohort': cohort,
-        'Session': session,
-        'Mouse': animal_id,
-        'DayOfHelping': day_of_helping,
+        'Cohort': session.cohort,
+        'Session': session.session,
+        'Mouse': session.animal_id,
+        'DayOfHelping': session.day_of_helping,
+        'Latency (min)': session.latency,
+        'Final outcome': session.final_outcome,
+        'Session outcome': session.session_outcome,
         'Average degree (all)': round(np.mean([d for _, d in G.degree()]), 2),
-        # 'Average degree (liberation cells)': round(np.mean([d for _, d in G_liberation.degree()]), 2) if len(G_liberation) > 0 else 0,
-        'Average distance (px)': round(np.mean(D_val), 2),
-        'Number of correlated pairs (all)': len(corr_comps[0]),
-        # 'Percentage of liberation cells': round(percentage_of_liberation_cells, 2),
-        # 'Number of correlated pairs (liberation cells)': len(highly_correlated_components_liberation[0]),
+        'Average distance (px)': round(np.mean(get_values(distances)), 2),
+        'Number of correlated pairs (all)': len(correlated_pairs[0]),
+        'Number of correlated pairs (lib to all)': len(correlated_pairs_lib_to_all),
+        'Number of correlated pairs (only lib)': len(correlated_pairs_only_lib),
         'Clustering coefficient (all)': round(nx.average_clustering(G), 2),
-        # 'Clustering coefficient (liberation cells)': round(nx.average_clustering(G_liberation), 2) if len(G_liberation) > 0 else 0,
+        'Clustering coefficient (lib)': round(nx.average_clustering(G.subgraph(list(liberation_cell_ids_mapped))), 2) if liberation_cell_ids_mapped is not None else None,
+        'Global Efficiency (all)': round(nx.global_efficiency(G), 2),
+        'Global Efficiency (lib)': round(nx.global_efficiency(G.subgraph(list(liberation_cell_ids_mapped))), 2) if liberation_cell_ids_mapped is not None else None,
+        'Density (all)': round(nx.density(G), 2),
+        'Density (lib)': round(nx.density(G.subgraph(list(liberation_cell_ids_mapped))), 2) if liberation_cell_ids_mapped is not None else None,
+        'Has liberation cells': liberation_cells_ids is not None and len(liberation_cells_ids) > 0
     }
 
-    return (pd.DataFrame(results, index=[0]), pccs, pccs_lib, D_val, D_val_lib, session_df)
+    correlation_values = get_values(correlation_matrix)
+    correlation_liberation_only_values = get_values(cross_correlation_liberation_only) if cross_correlation_liberation_only is not None else None
 
-def compute_correlations(model, DFF_z_scored, accepted_components):
-    """
-    Compute correlations and related metrics from the model and DFF data.
-
-    Parameters:
-        model: The model containing the estimates.
-        DFF_z_scored (np.array): Z-scored delta F/F values.
-        accepted_components: List or array of accepted components.
-
-    Returns:
-        distances (np.array): Distance matrix between components.
-        distance_values (np.array): Values extracted from the distance matrix.
-        cross_correlation (np.array): Cross-correlation matrix.
-        highly_correlated_components (tuple): Indices of highly correlated components.
-        G (networkx.Graph): Graph constructed from adjacency matrix.
-        correlation_values (np.array): Values extracted from the cross-correlation matrix.
-    """
-
-    # Validate input data
-    if DFF_z_scored is None or np.isnan(DFF_z_scored).any():
-        return None, None, None, None, None, None
-
-    # Compute binary activity map and centers of mass (coms)
-    A_binary = np.stack([
-        np.where(model.estimates.A[:, i].toarray().reshape(IMG_DIMS, order='F') > 0, i + 1, 0)
-        for i in range(DFF_z_scored.shape[0])
-    ], axis=0)
-    coms = np.array([np.mean(np.where(A_binary[i] > 0), axis=1) for i in range(A_binary.shape[0])])
-
-    # Calculate pairwise distances between component centers
-    distances = cdist(coms, coms)
-
-    # Calculate cross-correlation and adjacency matrix
-    cross_correlation = np.corrcoef(DFF_z_scored)
-    adjacency_matrix = (cross_correlation > THRESHOLD)
-    np.fill_diagonal(adjacency_matrix, 0)
-    adjacency_matrix = np.tril(adjacency_matrix, k=-1)
-
-    # Identify highly correlated components
-    highly_correlated_components = np.where(adjacency_matrix)
-
-    # Construct a graph from the adjacency matrix
-    G = nx.from_numpy_array(adjacency_matrix)
-
-    # Filter results based on accepted components
-    accepted_components = np.array(accepted_components)
-    distances = distances[np.ix_(accepted_components, accepted_components)]
-    cross_correlation = cross_correlation[np.ix_(accepted_components, accepted_components)]
-
-    # Filter highly correlated components based on accepted components
-    highly_correlated_components_accepted = (np.array([i for i in highly_correlated_components[0] if i in accepted_components]), np.array([i for i in highly_correlated_components[1] if i in accepted_components]))
-
-    # Construct a graph from the filtered adjacency matrix
-    filtered_adjacency_matrix = adjacency_matrix[np.ix_(accepted_components, accepted_components)]
-    G = nx.from_numpy_array(filtered_adjacency_matrix)
-
-    # Extract values for distances and correlations
-    distance_values = get_values(distances)
-    correlation_values = get_values(cross_correlation)
-
-    return distances, distance_values, cross_correlation, highly_correlated_components_accepted, G, correlation_values
-
-def get_values(matrix):
-    lower_triangle_matrix = matrix[np.tril_indices(matrix.shape[0], k=-1)]
-    values_list = lower_triangle_matrix.tolist()
-    return values_list
+    # Instead of plotting these values here, sample random 40 of them and return
+    n_samples = 50
+    distances_values = get_values(distances)
+    correlations_values = get_values(correlation_matrix)
+    sample_idx = np.random.choice(len(distances_values), n_samples, replace=False)
+    
+    sampled_distances = distances_values[sample_idx]
+    sampled_correlations = correlations_values[sample_idx.astype(int)]
+    
+    return (pd.DataFrame(results, index=[0]), correlation_values, correlation_liberation_only_values, sampled_distances, sampled_correlations, session_df)
 
 def main():
     fig, axes = setup_plot()
@@ -280,56 +181,75 @@ def main():
     session_df = pd.read_csv(SESSION_FILE)
     session_df = session_df[~session_df['Session'].str.contains('Hab')]
     # Filter out only Mar_2024 cohort
-    session_df = session_df[session_df['Cohort'] == 'Mar_2024']
-    # session_df = session_df[session_df['Session'] == 'HBTD6']
+    # session_df = session_df[session_df['Cohort'] == 'Jan_2024']
+    # session_df = session_df[session_df['Session'] == 'HBTD3']
 
-    # Add new column with % of liberation cells in highly correlated components
+    # Add new columns
     session_df['% of liberation cells in highly correlated components'] = np.nan
+    session_df['% of other cells in highly correlated components'] = np.nan
 
     # Reindex the DataFrame
     session_df = session_df.reset_index(drop=True)
 
     correlation_values_accepted = []
     correlation_values_accepted_lib = []
-    D = []
-    D_lib = []
+
+    sampled_distances_all, sampled_correlations_all = [], []
+
     all_data = pd.DataFrame()
 
     # Get random index for plotting 
     idx = np.random.randint(0, len(session_df))
-    print('Random index:', idx)
     for i, row in tqdm(session_df.iterrows()):
-        print('Processing session:', i, row['Session'])
         if i == idx:
+            print('Plotting session with index:', i)
             plot=True
-            print('Plotting session:', row['Session'])
         else:
             plot=False
 
-        corr_data, pccs, pccs_lib, dist_accepted, dist_accepted_lib, session_df = process_session(session_df, i, row, plot, axes)
+        corr_data, pccs, pccs_lib, sampled_distances, sampled_correlations, session_df = process_session(session_df, row, plot, axes)
+        
         if not corr_data.empty:
+            # Add correlation data to the DataFrame
             all_data = pd.concat([all_data, corr_data], ignore_index=True)
-            if pccs is not None and dist_accepted is not None:
+            sampled_correlations_all.extend(sampled_correlations)
+            sampled_distances_all.extend(sampled_distances)
+            if pccs is not None:
                 correlation_values_accepted.extend(pccs)
-                D.extend(dist_accepted)
-            if pccs_lib is not None and dist_accepted_lib is not None:
+            if pccs_lib is not None:
                 correlation_values_accepted_lib.extend(pccs_lib)
-                D_lib.extend(dist_accepted_lib)
-    assert len(correlation_values_accepted) == len(D)
 
     # Plot the clustering coefficient over days
-    sns.barplot(x='Session', y='Clustering coefficient (all)', data=all_data, ax=axes['clustering-coefficient-over-days'])
+    sns.barplot(x='Session', y='Clustering coefficient (all)', data=all_data, ax=axes['clustering-coefficient-over-days'], fill=False, 
+                capsize=0.1, err_kws={'linewidth': 1.5}, color='black', order=SESSION_ORDER)
+    sns.swarmplot(x='Session', y='Clustering coefficient (all)', data=all_data, hue='Mouse', size=8,
+                    palette='Set1', dodge=True, alpha=0.7, ax=axes['clustering-coefficient-over-days'], order=SESSION_ORDER, linewidth=1, legend=False)
+    
     axes['clustering-coefficient-over-days'].set_title('Clustering coefficient over days')
 
     # Plot the clustering coefficient over days of helping
-    sns.barplot(x='DayOfHelping', y='Clustering coefficient (all)', data=all_data, ax=axes['clustering-coefficient-over-days-of-helping'])
+    sns.barplot(x='DayOfHelping', y='Clustering coefficient (all)', data=all_data, ax=axes['clustering-coefficient-over-days-of-helping'], fill=False,
+                capsize=0.1, err_kws={'linewidth': 1.5}, color='black', order=DAYS_OF_HELPING_ORDER)
+    sns.swarmplot(x='DayOfHelping', y='Clustering coefficient (all)', data=all_data, hue='Mouse', size=8,
+                    palette='Set1', dodge=True, alpha=0.7, ax=axes['clustering-coefficient-over-days-of-helping'], order=DAYS_OF_HELPING_ORDER, linewidth=1, legend=False)
+    
     axes['clustering-coefficient-over-days-of-helping'].set_title('Clustering coefficient over days of helping')
+        
+    # Plot the correlation vs distance plot
+    axes['correlation-vs-distance'].scatter(sampled_distances_all, sampled_correlations_all, alpha=0.5, s=1, c='k')
+    axes['correlation-vs-distance'].set_xlabel('Distance (px)')
+    axes['correlation-vs-distance'].set_ylabel('Pearson correlation coefficient')
+    axes['correlation-vs-distance'].set_ylim(-1, 1)
+    axes['correlation-vs-distance'].set_title(f'Correlation vs distance')
+
+    df = pd.DataFrame({'Label': 'All cells', 'PCC': correlation_values_accepted})
+    df_lib = pd.DataFrame({'Label': 'Liberation cells', 'PCC': correlation_values_accepted_lib})
+    # Concatenate the two dataframes
+    df = pd.concat([df, df_lib], ignore_index=True)
 
     # Plot histogram of PCC values for all accepted components and liberation cells
-    sns.histplot(correlation_values_accepted, ax=axes['pcc-distribution'], label='All components', color='k', bins=50, fill=False, alpha=0.5)
-    sns.histplot(correlation_values_accepted_lib, ax=axes['pcc-distribution'], label='Liberation cells', color='r', bins=50, fill=False, alpha=0.5)
-    axes['pcc-distribution'].set_title('PCC distribution')
-    axes['pcc-distribution'].legend()
+    sns.histplot(data=df, x='PCC', hue='Label', ax=axes['pcc-distribution'], bins=100, common_norm=False, stat='density', fill=False, alpha=0.5, palette={'All cells': 'black', 'Liberation cells': 'tab:red'}, kde=False)
+    axes['pcc-distribution'].set_xlim(-1, 1)
 
     # Plot cumulative distribution of PCC values for all accepted components and liberation cells
     sns.ecdfplot(correlation_values_accepted, ax=axes['pcc-cumulative-distribution'], label='All components', color='k')
@@ -338,19 +258,22 @@ def main():
     axes['pcc-cumulative-distribution'].legend()
 
     # Remove NaN values
-    session_df = session_df.dropna(subset=['% of liberation cells in highly correlated components'])
-    print(session_df.head())
+    session_df = session_df.dropna(subset=['% of liberation cells in highly correlated components', '% of other cells in highly correlated components'])
+    
     # plot 2 boxplots: one for % of liberation cells in highly correlated components, and one for just % of liberation cells
-    plot_boxplots(session_df['% of liberation cells in highly correlated components'].values, session_df['% of liberation cells'].values, axes['lib-cells-percentage'], '', ('Correlated cells', 'All cells'), 'Percentage of liberation cells')
+    plot_boxplots(session_df['% of liberation cells in highly correlated components'].values, session_df['% of other cells in highly correlated components'].values, axes['lib-cells-percentage'], '', ('Liberation cells', 'Other cells'), 'Percentage of correlated components')
 
     # Finalize plot
     for ax in axes.values():
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
+        ax.tick_params(axis='x', labelsize=12)
+        ax.tick_params(axis='y', labelsize=12)
 
     all_data.to_csv('processed-data/functional_connectivity.csv', index=False)
 
     # Save the plot
+    plt.tight_layout()
     plt.savefig('tech_plots/functional_connectivity.pdf')
 
 if __name__ == "__main__":
