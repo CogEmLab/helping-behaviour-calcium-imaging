@@ -4,7 +4,6 @@ import numpy as np
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from tifffile import imread
 from src.utils import get_behaviour_timestamps, smooth_and_shrink_label
-from scipy import ndimage
 
 class Session:
     def __init__(self, data_row):
@@ -18,7 +17,9 @@ class Session:
         self.animal_id = data_row['Mouse']
         self.sex = data_row['Sex']
         self.session_length = data_row['Ca Imaging Length(s)']
+        self.latency = data_row['LatencyMinConverted']
         self.session_outcome = data_row['Session Outcome']
+        self.final_outcome = data_row['Final Outcome']
         self.calcium_fps = data_row['FPS (CI downsampled)']
         self.victim_lib_timecode = data_row['TimeVictimHeadCrossing(s)']
         self.day_of_helping = data_row['DayofHelping']
@@ -36,7 +37,7 @@ class Session:
         self.dff_path = self.model_path.replace('.hdf5', '_Dff_z_scored.npy').replace('cnmfe_model', 'npy_data')
         
         # Construct the accepted components path
-        output_dir = os.path.dirname(self.model_path)
+        output_dir = os.path.dirname(self.dff_path)
         self.accepted_components_path = os.path.join(output_dir, 'accepted_components_{}.npy'.format(os.path.basename(self.model_path).replace('.hdf5', '')))
         
         self.caiman_model = None
@@ -105,7 +106,7 @@ class Session:
             )
             
             # Create an index array to pad the dff_signal with
-            indices = np.arange(1, self.number_of_components_total + 1).reshape(-1, 1)
+            indices = np.arange(0, self.number_of_components_total).reshape(-1, 1)
             
             # Concatenate the index array with the DFF signal array
             dff_signal_padded = np.hstack((indices, dff_signal))
@@ -127,7 +128,7 @@ class Session:
         component_list = np.array(component_list)
         
         # Get the index column from the padded DFF signal
-        indices = dff_signal_padded[:, 0]
+        indices = dff_signal_padded[:, 0].astype(int)
         
         # Create a mask to filter rows where the index is in the component_list
         mask = np.isin(indices, component_list)
@@ -136,7 +137,7 @@ class Session:
         filtered_dff_signal = dff_signal_padded[mask, :]
         
         # Remove the index column after filtering (if you want just the DFF data)
-        filtered_dff_signal = filtered_dff_signal[:, 1:]
+        # filtered_dff_signal = filtered_dff_signal[:, 1:]
         
         return filtered_dff_signal
 
@@ -225,12 +226,6 @@ class Session:
         if self.caiman_model is None or pnr_image is None:
             print("Model or PNR image not available. Cannot generate neuron labels.")
             return None
-
-        # Get the accepted components
-        accepted_components = self.load_accepted_components()
-        if accepted_components is None or len(accepted_components) == 0:
-            print("No accepted components found. Cannot generate neuron labels.")
-            return None
         
         # Initialize the label matrix efficiently
         A_labels = np.zeros(img_shape, dtype=int)
@@ -238,7 +233,7 @@ class Session:
         # Precompute reshaped components outside the loop
         A_reshaped = self.caiman_model.estimates.A.toarray().reshape((*img_shape, -1), order='F')
 
-        for i, comp in enumerate(accepted_components):
+        for i, comp in enumerate(range(A_reshaped.shape[-1])):
             label = (A_reshaped[..., comp] > 0).astype(int)
             if smooth_sigma > 0 or shrink_pixels > 0:
                 label = smooth_and_shrink_label(label, smooth_sigma=smooth_sigma, shrink_pixels=shrink_pixels)
@@ -257,13 +252,22 @@ class Session:
         :param labels: Labeled image or binary mask.
         :return: List of centroid positions (row, col) for each neuron.
         """
-        return np.array(ndimage.center_of_mass(labels, labels, range(1, np.max(labels) + 1)))
+        positions = []
+        for label in range(1, np.max(labels) + 1):
+            mask = labels == label
+            rows, cols = np.where(mask)
+            centroid_row = np.mean(rows)
+            centroid_col = np.mean(cols)
+            positions.append((centroid_row, centroid_col))
+        return np.array(positions)
 
     def load_annotations(self):
         """Load annotations."""
         if not os.path.exists(self.annotations_path):
-            print(f"Warning: Annotations file not found at {self.annotations_path}")
-            return None
+            self.annotations_path = self.annotations_path.replace('_regrouped.csv', '_manual_annotations.csv')
+            if not os.path.exists(self.annotations_path):
+                print(f"Warning: Annotations file not found at {self.annotations_path}")
+                return None
         try:
             annotations_table = pd.read_csv(self.annotations_path)
             unique_behaviours = annotations_table['Behavior'].unique()
@@ -272,6 +276,7 @@ class Session:
         except Exception as e:
             print(f"Error loading annotations: {str(e)}")
             return None
+
 
     def get_liberation_cells_ids(self):
         """

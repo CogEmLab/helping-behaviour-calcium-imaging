@@ -179,9 +179,103 @@ def compute_correlations_old(estimates_spatial, DFF_z_scored, img_dims, threshol
 
     return distances, cross_correlation, adjacency_matrix, correlated_pairs
 
-def get_values(matrix):
-    lower_triangle_matrix = matrix[np.tril_indices(matrix.shape[0], k=-1)]
-    values_list = lower_triangle_matrix.tolist()
+def save_matrix(session, matrix, filename_base, plot_func):
+    """Save the matrix to a PNG and EPS file in the figures directory.
+
+    Parameters:
+        matrix (np.array): Matrix to be saved.
+        filename_base (str): Base of the filename, without extension.
+        plot_func (function): Function to plot the matrix.
+    """
+    cohort_dir = os.path.join("figures", filename_base.split("_")[0], session.cohort)
+    session_dir = os.path.join(cohort_dir, session.session)
+    os.makedirs(session_dir, exist_ok=True)
+
+    png_filename = os.path.join(session_dir, f"{filename_base}.png")
+    eps_filename = os.path.join(session_dir, f"{filename_base}.eps")
+
+    for filename in [png_filename, eps_filename]:
+        fig, ax = plt.subplots(figsize=(8, 6))
+        plot_func(ax, matrix)
+        fig.savefig(filename, dpi=300)
+        plt.close()
+
+def build_graph(session, component_mapping, neuron_positions, adjacency_matrix, liberation_cells_ids, suffix=None):
+    """Build and plot a graph from the adjacency matrix.
+
+    Parameters:
+        session (Session): Session object containing information about the session.
+        component_mapping (dict): Mapping between component IDs and neuron IDs.
+        neuron_positions (list of tuples): List of (x, y) positions of neurons.
+        adjacency_matrix (np.array): Adjacency matrix representing the graph.
+        liberation_cells_ids (list): List of IDs of liberation cells.
+        suffix (str): Optional suffix to add to the filename.
+
+    Returns:
+        tuple: Contains the following elements:
+            - position_dict (dict): Mapping between node IDs and their positions.
+            - G (nx.Graph): Graph object representing the graph.
+            - colors (list): List of colors (white or red) for each node.
+            - labels (dict): Mapping between node IDs and their labels.
+    """
+    # Create a graph from the adjacency matrix
+    G = nx.from_numpy_array(adjacency_matrix)
+    
+    # Create a mapping from node IDs to their positions
+    position_dict = {i: (y, x) for i, (x, y) in enumerate(neuron_positions)}
+    
+    # Create a list of colors (white or red) for each node
+    colors = ['black'] * len(neuron_positions)
+    
+    # Create a mapping between node IDs and their labels
+    labels = {}
+    
+    # If liberation cells are present, highlight them
+    if liberation_cells_ids is not None:
+        liberation_cell_ids_mapped = {component_mapping[i] for i in liberation_cells_ids}
+        colors = ['red' if i in liberation_cell_ids_mapped else 'black' for i in range(len(neuron_positions))]
+        labels.update({i: str(i) for i in liberation_cell_ids_mapped})
+
+        # Compare number of 'red' color to the number of liberation cells in session.number_of_liberation_cells;
+        # if not matching print out
+        if len(liberation_cell_ids_mapped) != session.number_of_liberation_cells:
+            print(f'Number of cells in {session.session} does not match number of cells in Liberation Data')
+    
+    # Plot the graph
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+    nx.draw(G, pos=position_dict, node_size=100, node_color=colors, ax=ax)
+    
+    # Save the figure
+    output_dir = os.path.join('figures', 'graphs', session.cohort, session.session)
+    os.makedirs(output_dir, exist_ok=True)
+    filename_png = os.path.join(output_dir, f'graph_{str(session.animal_id)}{suffix}.png')
+    filename_eps = os.path.join(output_dir, f'graph_{str(session.animal_id)}{suffix}.eps')
+    plt.savefig(filename_png, dpi=300)
+    plt.savefig(filename_eps, format='eps')
+    plt.close()
+    
+    return position_dict, G, colors, labels
+
+def get_values(matrix: np.ndarray) -> np.ndarray:
+    """
+    Get the values from the lower triangle of a matrix.
+
+    Parameters
+    ----------
+    matrix : np.ndarray
+        The input matrix.
+
+    Returns
+    -------
+    values_list : np.ndarray
+        The values from the lower triangle of the matrix.
+    """
+    # Use the tril function from numpy to get the lower triangle of the matrix.
+    lower_triangle_matrix = np.tril(matrix, k=-1)
+    
+    # Use the flatten function to flatten the lower triangle matrix into a 1D array.
+    values_list = lower_triangle_matrix.flatten()
+    
     return values_list
 
 def get_most_active_components(DF_F_Z_scored, path, cohort, session, animal, plot_example=False, ax=None, suffix=None):

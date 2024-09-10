@@ -5,61 +5,153 @@ from matplotlib.cm import ScalarMappable
 from scipy import stats
 import seaborn as sns
 
+def plot_matrix(matrix, ax=None, title='', xlabel='', ylabel='', cbar_label='', cmap='viridis', vmin=None, vmax=None, aspect='auto', xticks=None, xticklabels=None, yticks=None, yticklabels=None, save_path=None, cbar=True):
+    """
+    General function to plot a matrix as a heatmap.
+
+    Parameters
+    ----------
+    matrix : numpy array
+        The matrix to be plotted.
+    ax : matplotlib axis, optional
+        The axis to plot on. If None, a new figure and axis are created.
+    title : str
+        The title of the plot.
+    xlabel : str
+        The label for the x-axis.
+    ylabel : str
+        The label for the y-axis.
+    cbar_label : str
+        The label for the colorbar.
+    cmap : str
+        The colormap to use for the heatmap.
+    vmin, vmax : float, optional
+        Minimum and maximum values for the heatmap color scaling.
+    aspect : str
+        Aspect ratio of the plot.
+    xticks : list, optional
+        X-axis tick locations.
+    xticklabels : list, optional
+        Labels for the x-axis ticks.
+    yticks : list, optional
+        Y-axis tick locations.
+    yticklabels : list, optional
+        Labels for the y-axis ticks.
+    save_path : str, optional
+        If provided, saves the figure to the specified path.
+    cbar : bool, optional
+        If True, plots a colorbar.
+    
+    Returns
+    -------
+    ax : matplotlib axis
+        The axis with the heatmap plotted on it.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(10, 8))
+    else:
+        fig = ax.get_figure()
+
+    # Plot the heatmap
+    im = ax.imshow(matrix, aspect=aspect, cmap=cmap, vmin=vmin, vmax=vmax)
+    
+    # Add colorbar
+    if cbar:
+        cbar = plt.colorbar(im, ax=ax)
+        if cbar_label:
+            cbar.set_label(cbar_label, rotation=270, labelpad=15)
+
+    # Set title and labels
+    ax.set_title(title, fontsize=16)
+    ax.set_xlabel(xlabel, fontsize=12)
+    ax.set_ylabel(ylabel, fontsize=12)
+
+    # Set x and y ticks
+    if xticks is not None:
+        ax.set_xticks(xticks)
+    if xticklabels is not None:
+        ax.set_xticklabels(xticklabels)
+    if yticks is not None:
+        ax.set_yticks(yticks)
+    if yticklabels is not None:
+        ax.set_yticklabels(yticklabels)
+
+    # Turn off the top and right spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    if save_path:
+        fig.savefig(save_path)
+        if save_path.endswith('.png'):
+            eps_path = save_path.replace('.png', '.eps')
+            fig.savefig(eps_path, format='eps')
+        plt.close(fig)
+    
+    return ax
+
 def plot_correlated_traces(ax, traces, component_pairs, distances=None, annotations=None, color_palette='husl', n_to_plot=8, vertical_shift=10, line_alpha=0.7, text_offset=5):
     """
     Plot paired traces with optional annotations and distances.
 
-    Parameters:
-        ax (matplotlib.axes.Axes): The axis to plot on.
-        traces (numpy.ndarray): 2D array where each row is a trace to be plotted.
-        component_pairs (tuple): Tuple of two lists/arrays, each containing indices of components to be paired for plotting.
-        distances (numpy.ndarray, optional): 2D distance matrix between components. Defaults to None.
-        annotations (dict, optional): Dictionary with annotation names as keys and list of tuples (start, end) as values. Defaults to None.
-        color_palette (str, optional): Name of the Seaborn color palette to use for annotations. Defaults to 'husl'.
-        n_to_plot (int, optional): Number of component pairs to plot. Defaults to 8.
-        vertical_shift (int, optional): Vertical shift to apply between successive traces. Defaults to 10.
-        line_alpha (float, optional): Alpha transparency for the trace lines. Defaults to 0.7.
-        text_offset (int, optional): Offset for the distance text. Defaults to 5.
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axis to plot on.
+    traces : numpy.ndarray
+        2D array where each row is a trace to be plotted; 1st row are real indecies in the original array.
+    component_pairs : tuple
+        Tuple of two lists/arrays, each containing indices of components to be paired for plotting.
+    distances : numpy.ndarray, optional
+        2D distance matrix between components. Defaults to None.
+    annotations : dict, optional
+        Dictionary with annotation names as keys and list of tuples (start, end) as values. Defaults to None.
+    color_palette : str, optional
+        Name of the Seaborn color palette to use for annotations. Defaults to 'husl'.
+    n_to_plot : int, optional
+        Number of component pairs to plot. Defaults to 8.
+    vertical_shift : int, optional
+        Vertical shift to apply between successive traces. Defaults to 10.
+    line_alpha : float, optional
+        Alpha transparency for the trace lines. Defaults to 0.7.
 
-    Returns:
-        None
+    Returns
+    -------
+    None
     """
     n_to_plot = min(n_to_plot, len(component_pairs))
 
     # Generate a color palette based on the number of annotations
-    color_set = None
+    colors = None
     if annotations is not None:
-        color_set = sns.color_palette(color_palette, len(annotations))
+        colors = sns.color_palette(color_palette, len(annotations))
 
+    # Plot annotations (if provided)
+    if annotations is not None and colors is not None:
+        for j, (annotation, timestamps) in enumerate(annotations.items()):
+            for start, end in timestamps:
+                ax.axvspan(start, end, label=annotation, color=colors[j], alpha=0.3)
+
+    # Plot the paired traces
     for i, (idx1, idx2) in enumerate(component_pairs[:n_to_plot]):
-        distance_text = f'Distance: {distances[idx1, idx2]:.2f}' if distances is not None else None
+        ax.plot(traces[idx1, 1:] + vertical_shift * i, color='k', alpha=line_alpha)
+        ax.plot(traces[idx2, 1:] + vertical_shift * i, color='tab:blue', alpha=line_alpha)
 
-        # Plot annotations (if provided)
-        if annotations is not None and color_set is not None:
-            for j, (annotation, timestamps) in enumerate(annotations.items()):
-                for start, end in timestamps:
-                    ax.axvspan(start, end, label=annotation if i == 0 else None, color=color_set[j], alpha=0.3)
+        # Add distance if provided
+        if distances is not None:
+            distance = distances[idx1, idx2]
+            ax.text(10, vertical_shift * i + text_offset, f'Distance between cell {int(idx1)} and cell {int(idx2)}: {distance:.2f}', fontsize=12)
 
-        # Plot the paired traces
-        ax.plot(traces[idx1] + vertical_shift * i, color='k', alpha=line_alpha)
-        ax.plot(traces[idx2] + vertical_shift * i, alpha=line_alpha)
-
-        # Add distance text (if provided)
-        if distance_text is not None:
-            ax.text(10, vertical_shift * i + text_offset, distance_text, fontsize=12)
-
-    if annotations is not None:
-        ax.legend()
-        
-def plot_random_traces(DF_F_Z_scored, num_traces=10, snr=None, ax=None):
+def plot_random_traces(DF_F_Z_scored, num_traces=10, fps=30, snr=None, ax=None, filename=None):
     """
     Plot random calcium traces from the detrended and z-scored data.
     Optionally color traces by SNR.
     
     :param DF_F_Z_scored: numpy array of detrended and z-scored calcium traces
     :param num_traces: number of traces to plot, defaults to 10
+    :param fps: frames per second, defaults to 20
     :param snr: optional, signal-to-noise ratio values for each component
     :param ax: optional, matplotlib axis object; if None, a new plot is created
+    :param filename: optional, path to save the image to; if given, the image is saved in png and eps formats
     :return: matplotlib axis with the plotted traces
     """
     # Set bigger font size for better readability
@@ -95,7 +187,7 @@ def plot_random_traces(DF_F_Z_scored, num_traces=10, snr=None, ax=None):
     ax.spines['right'].set_visible(False)
 
     ax.set_title(f'Random {num_traces} Detrended and Z-scored Calcium Traces')
-    ax.set_xlabel('Time (frames)')
+    ax.set_xlabel('Time (s)')
     ax.set_ylabel('Z-scored ΔF/F + offset')
     
     # Add colorbar if SNR is provided
@@ -105,8 +197,20 @@ def plot_random_traces(DF_F_Z_scored, num_traces=10, snr=None, ax=None):
         cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.2)
         cbar.set_label('SNR')
 
+    # Set xticks to be in seconds
+    tick_locs = np.linspace(0, DF_F_Z_scored.shape[1], 10, endpoint=False).astype(int)
+    ax.set_xticks(tick_locs)
+    ax.set_xticklabels([f'{int(tick/fps):d}' for tick in tick_locs])
+
+    # Remove y ticks
+    ax.set_yticks([])
+
     plt.tight_layout()
 
+    if filename is not None:
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
+        plt.savefig(str(filename).replace('.png', '.eps'), dpi=300, bbox_inches='tight')
+    
     return ax
 
 
@@ -165,74 +269,78 @@ def plot_histogram(values, threshold, filename, ax=None, suffix=None):
     ax.spines['right'].set_visible(False)
 
     if save:
-        fig.savefig(f"{filename}_{suffix}.png", dpi=300)
+        fig.savefig(f"{filename}{suffix}.png", dpi=300)
         filename = filename.replace('.png', '.eps')
-        fig.savefig(f"{filename}_{suffix}.eps", dpi=300)
+        fig.savefig(f"{filename}{suffix}.eps", dpi=300)
         plt.close(fig)
 
     return ax
 
-    
-def plot_heatmap(DF_F_Z_scored, filename, ax, window_to_use, FPS, animal, day_of_helping):
-    '''
-    Function to plot the heatmap of the DF_F_Z_scored of selected components matrix.
+def plot_heatmap(matrix, title=None, xlabel='Time (s)', aligned=True, filename=None, ax=None, window_to_use=None, FPS=None, animal=None, day_of_helping=None, cbar=True, victim_crossing_line=True):
+    """
+    Plot the heatmap of a matrix with custom settings.
 
-    Parameters:
-        DF_F_Z_scored (np.array): The matrix of the selected components.
-        ax (matplotlib.axis): The axis to plot the heatmap on.
-        window_to_use (int): The window to use for the heatmap.
-        FPS (int): The frames per second of the calcium recording.
-        animal (str): The animal ID.
-        day_of_helping (str): The day of helping.
-    
-    Returns:
-        ax (matplotlib.axis): The axis with the heatmap plotted on it.
-    '''
-
+    Parameters
+    ----------
+    matrix : np.ndarray
+        The matrix to be plotted.
+    title : str, optional
+        The title of the plot. If None, use a default title.
+    xlabel : str, optional
+        The label for the x-axis. If None, use a default label.
+    aligned : bool, optional
+        If True, center the time axis around 0. If False, don't do it.
+    filename : str, optional
+        The filename to save the plot to. If None, don't save the plot.
+    ax : matplotlib.axes.Axes, optional
+        The axis to plot on. If None, create a new figure and axis.
+    window_to_use : int, optional
+        The window to use for the x-axis. If None, use half of the matrix size.
+    FPS : int, optional
+        The frames per second. If None, use 30.
+    animal : int, optional
+        The animal ID. If None, don't add it to the title.
+    day_of_helping : int, optional
+        The day of helping. If None, don't add it to the title.
+    cbar : bool, optional
+        If True, include the colorbar. If False, don't include it.
+    victim_crossing_line : bool, optional
+        If True, add a vertical line for victim crossing. If False, don't add it.
+    """
     if ax is None:
-        save = True
-        fig, ax = plt.subplots(figsize=(10, 8)) # Create a figure and axis if not provided, size 10x8 (width x height)
+        fig, ax = plt.subplots()
+
+    if window_to_use is None:
+        window_to_use = int(np.floor(matrix.shape[1] / 2 / FPS))
+
+    if title is None:
+        title = f'Heatmap of selected components, animal {animal}, day of helping {day_of_helping}'
+
+    if aligned:
+        xticks = [0, window_to_use * FPS, 2 * window_to_use * FPS]
+        xticklabels = [-window_to_use, 0, window_to_use]
     else:
-        save = False
-        fig = ax.get_figure()
+        xticks = np.linspace(0, matrix.shape[1], 4)
+        xticklabels = [int(tick / FPS) for tick in xticks]
 
-    # Plot the heatmap of the DF_F_Z_scored and add a colorbar
-    # print('DF_F_Z_scored:', DF_F_Z_scored.shape)
-    im = ax.imshow(DF_F_Z_scored, aspect='auto', cmap='viridis', vmin=-5, vmax=5)
-    cbar = plt.colorbar(im, ax=ax)
-    cbar.set_label('$\\Delta F/F (Z-scored)$', rotation=270, labelpad=15)
+    ax = plot_matrix(
+        matrix=matrix,
+        ax=ax,
+        title=title,
+        xlabel=xlabel,
+        cbar_label='$\\Delta F/F (Z-scored)$' if cbar else None,
+        vmin=-5,
+        vmax=5,
+        xticks=xticks,
+        xticklabels=xticklabels,
+        save_path=filename,
+        cbar=cbar
+    )
 
-    # Span the center of the plot for the victim crossing time
-    ax.axvline(window_to_use * FPS, color='black', linestyle='dashed', linewidth=2, label='Victim crossing')
-
-    # Add ticks labels for the x-axis from -30 sec to 30 sec
-    ax.set_xticks([0, window_to_use * FPS, 2 * window_to_use * FPS])
-    ax.set_xticklabels([-window_to_use, 0, window_to_use])
-
-    # Remove ticks on y-axis
-    ax.set_yticks([])
-    ax.set_yticklabels([])
-
-    # Add labels and title
-    ax.set_title(f'Heatmap of selected components, animal {animal}, day of helping {day_of_helping}')
-    ax.set_xlabel('Time (s) centered around victim crossing')  # Add x-label
-
-    # Turn off the top and right spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-
-    if save:
-        fig.savefig(f"{filename}")
-        filename = filename.replace('.png', '.eps')
-        fig.savefig(f"{filename}.eps", format='eps')
-        plt.close(fig)
-
+    if victim_crossing_line:
+        ax.axvline(window_to_use * FPS, color='black', linestyle='dashed', linewidth=2, label='Victim crossing')
     return ax
 
-
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy import stats
 
 def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), ylabel='Y-axis Label'):
     '''
@@ -305,3 +413,40 @@ def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), yla
 
     return ax
 
+def plot_cross_correlation_matrix(axes, correlation_matrix, title='Cross-correlation matrix', save_path=None):
+    """
+    Plot a sorted cross-correlation matrix of the dF/F signals of the components.
+    """
+    # Sort the correlation matrix
+    sorted_correlation_matrix = correlation_matrix[:, np.argsort(-correlation_matrix[0])]
+    sorted_correlation_matrix = sorted_correlation_matrix[np.argsort(-sorted_correlation_matrix[:, 0]), :]
+
+    ax = plot_matrix(
+        matrix=sorted_correlation_matrix,
+        ax=axes,
+        title=title,
+        cbar_label='Correlation value',
+        aspect='equal', save_path=save_path, vmin=-1, vmax=1
+    )
+    return ax
+
+def plot_distance_matrix(axes, distances, title='Distance matrix', save_path=None):
+    """
+    Plot a distance matrix using the generalized plot_matrix function.
+
+    Parameters
+    ----------
+    axes : matplotlib axes object
+        The axes to plot on.
+    distances : numpy array
+        The distance matrix to plot.
+    title : str, optional
+        The title of the plot. Default is 'Distance matrix'.
+    """
+    plot_matrix(
+        matrix=distances,
+        ax=axes,
+        title=title,
+        aspect='equal',
+        cbar_label='Distance', save_path=save_path
+    )
