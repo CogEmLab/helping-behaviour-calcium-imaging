@@ -43,8 +43,6 @@ class Session:
         # Initialize other attributes
         self.caiman_model = None
         self.liberation_cells_ids = None
-        self.response_scores = None
-        self.lib_cells_groups = None
         self.snr_values = None 
         self.pnr_image_dims = None  # To store dimensions of the PNR image
         self.neuron_labels = None
@@ -184,23 +182,7 @@ class Session:
                 f"Mismatch in liberation cells: expected all liberation cells to be in accepted components, "
                 f"but some were not."
             )
-
-            # Extract response score and group
-            response_scores = filtered_metadata['Response Score'].values
-            groups = filtered_metadata['Group'].values
-
-            assert len(response_scores) == len(self.liberation_cells_ids), (
-                f"Mismatch in number of response scores: expected {len(self.liberation_cells_ids)}, "
-                f"but got {len(response_scores)}."
-            )
-            assert len(groups) == len(self.liberation_cells_ids), (
-                f"Mismatch in number of groups: expected {len(self.liberation_cells_ids)}, "
-                f"but got {len(groups)}."
-            )
-
-            self.response_scores = response_scores
-            self.lib_cells_groups = groups
-
+            
             return filtered_metadata
 
         except pd.errors.EmptyDataError:
