@@ -40,12 +40,13 @@ class Session:
         output_dir = os.path.dirname(self.dff_path)
         self.accepted_components_path = os.path.join(output_dir, 'accepted_components_{}.npy'.format(os.path.basename(self.model_path).replace('.hdf5', '')))
         
+        # Initialize other attributes
         self.caiman_model = None
         self.liberation_cells_ids = None
+        self.response_scores = None
+        self.lib_cells_groups = None
         self.snr_values = None 
         self.pnr_image_dims = None  # To store dimensions of the PNR image
-
-        # New attributes
         self.neuron_labels = None
         self.neuron_positions = None
 
@@ -165,13 +166,40 @@ class Session:
                 print(f"Warning: No liberation metadata found for Cohort: {self.cohort}, Mouse: {self.animal_id}, Session: {self.session}")
                 return None
 
-            self.liberation_cells_ids = filtered_metadata['Component ID'].tolist()
+            self.liberation_cells_ids = list(set(filtered_metadata['Component ID']))
+            assert len(self.liberation_cells_ids) == len(filtered_metadata), (
+                f"Duplicated liberation cells found in the metadata file: expected {len(filtered_metadata)}, "
+                f"but got {len(self.liberation_cells_ids)}."
+            )
 
             # Assert that the number of liberation cells matches the expected total
             assert len(self.liberation_cells_ids) == self.number_of_liberation_cells, (
                 f"Mismatch in number of liberation cells: expected {self.number_of_liberation_cells}, "
                 f"but got {len(self.liberation_cells_ids)}."
             )
+
+            # Assert that the liberation cells are a subset of accepted components
+            accepted_components = self.load_accepted_components()
+            assert set(self.liberation_cells_ids).issubset(accepted_components), (
+                f"Mismatch in liberation cells: expected all liberation cells to be in accepted components, "
+                f"but some were not."
+            )
+
+            # Extract response score and group
+            response_scores = filtered_metadata['Response Score'].values
+            groups = filtered_metadata['Group'].values
+
+            assert len(response_scores) == len(self.liberation_cells_ids), (
+                f"Mismatch in number of response scores: expected {len(self.liberation_cells_ids)}, "
+                f"but got {len(response_scores)}."
+            )
+            assert len(groups) == len(self.liberation_cells_ids), (
+                f"Mismatch in number of groups: expected {len(self.liberation_cells_ids)}, "
+                f"but got {len(groups)}."
+            )
+
+            self.response_scores = response_scores
+            self.lib_cells_groups = groups
 
             return filtered_metadata
 
@@ -182,6 +210,7 @@ class Session:
         except Exception as e:
             print(f"Error occurred while loading liberation metadata: {str(e)}")
         return None
+
 
     def load_accepted_components(self):
         """Load accepted components and assert the number matches the expected count."""
@@ -282,9 +311,9 @@ class Session:
         """
         Get the liberation cell IDs for this session.
         
-        :return: List of liberation cell IDs or None if not loaded yet
+        :return: Set of liberation cell IDs or None if not loaded yet
         """
-        return self.liberation_cells_ids
+        return set(self.liberation_cells_ids) if self.liberation_cells_ids is not None else None
     
     def get_snr_values(self):
         """
