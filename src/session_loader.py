@@ -4,7 +4,7 @@ import numpy as np
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from tifffile import imread
 from src.utils import get_behaviour_timestamps, smooth_and_shrink_label
-from typing import Dict, Tuple, List, Set
+from typing import Set
 
 class Session:
     def __init__(self, data_row):

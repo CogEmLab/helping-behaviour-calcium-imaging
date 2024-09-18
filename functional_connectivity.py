@@ -8,9 +8,9 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import seaborn as sns
 from src.plotting import *
-from src.utils import get_values, compute_correlations, build_graph
 from src.session_loader import Session
 from src.functional_connectivity_utils import *
+import networkx as nx
 
 # Load the configuration
 config = load_config('tech_docs/functional_connectivity_config.yaml')
@@ -234,8 +234,7 @@ def main():
         ylim=(-1, 1),
         fit_type='exponential',
         perform_test=True,
-        save_path=os.path.join('figures', 'functional_connectivity', 'general', 'pcc_vs_distance.png'),
-        perform_test=True
+        save_path=os.path.join('figures', 'functional_connectivity', 'general', 'pcc_vs_distance.png')
     )
 
     # Plot histogram of PCC values for all accepted components and Liberation cells

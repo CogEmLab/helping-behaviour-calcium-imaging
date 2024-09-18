@@ -3,12 +3,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
-from typing import Dict, Tuple, List, Set
-import seaborn as sns
-from src.plotting import plot_boxplots, plot_correlated_traces, plot_cross_correlation_matrix, plot_distance_matrix, plot_values_over_days
-from src.utils import get_values, compute_correlations, build_graph
-from src.session_loader import Session
+from typing import Dict, Tuple, List
+from src.plotting import plot_correlated_traces, plot_cross_correlation_matrix, plot_distance_matrix
 import yaml
+from scipy.spatial.distance import cdist
+import networkx as nx
 
 def setup_plot(fig_size: Tuple[float, float] = (12, 9),
                grid_spec: Tuple[int, int] = (3, 6)) -> Tuple[plt.Figure, Dict[str, plt.Axes]]:
