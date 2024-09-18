@@ -4,6 +4,113 @@ from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
 from scipy import stats
 import seaborn as sns
+import os
+
+def plot_scatter(
+    x, 
+    y, 
+    ax, 
+    title='', 
+    xlabel='', 
+    ylabel='', 
+    alpha=0.5, 
+    s=1, 
+    c='k', 
+    xlim=None, 
+    ylim=None, 
+    fit_type=None,   # 'linear' or 'exponential', or None for no fit
+    perform_test=False, # If True, perform statistical test (Pearson correlation)
+    filename=None # If present, save to both png and eps
+):
+    """
+    Generalized function to plot a scatter plot (e.g., correlation vs distance),
+    with optional linear or exponential fit and statistical test.
+
+    Parameters
+    ----------
+    x : array-like
+        X values for the scatter plot.
+    y : array-like
+        Y values for the scatter plot.
+    ax : matplotlib axis object
+        The axis to plot on.
+    title : str, optional
+        The title of the plot. Default is an empty string.
+    xlabel : str, optional
+        The label for the x-axis. Default is an empty string.
+    ylabel : str, optional
+        The label for the y-axis. Default is an empty string.
+    alpha : float, optional
+        The transparency level of the points. Default is 0.5.
+    s : float, optional
+        The size of the points. Default is 1.
+    c : color, optional
+        The color of the points. Default is 'k' (black).
+    xlim : tuple, optional
+        Limits for the x-axis. Default is None.
+    ylim : tuple, optional
+        Limits for the y-axis. Default is None.
+    fit_type : str, optional
+        Type of fit to apply: 'linear', 'exponential', or None for no fit.
+    perform_test : bool, optional
+        If True, perform a statistical test (Pearson correlation) and display results.
+    filename : str, optional
+        If present, save to both png and eps with the given filename.
+
+    Returns
+    -------
+    ax : matplotlib axis
+        The axis with the scatter plot and optional fit.
+    """
+    
+    # Plot the scatter plot
+    ax.scatter(x, y, alpha=alpha, s=s, c=c)
+
+    # Set title and labels
+    ax.set_title(title, fontsize=16)
+    ax.set_xlabel(xlabel, fontsize=12)
+    ax.set_ylabel(ylabel, fontsize=12)
+
+    # Set axis limits if provided
+    if xlim is not None:
+        ax.set_xlim(xlim)
+    if ylim is not None:
+        ax.set_ylim(ylim)
+
+    # Turn off the top and right spines for clean aesthetics
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    # If a fit type is specified, perform and plot the fit
+    if fit_type == 'linear':
+        # Perform linear fit
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+        fit_line = slope * np.array(x) + intercept
+        ax.plot(x, fit_line, color='red', label=f'Linear fit (r={r_value:.2f}, p={p_value:.2e})')
+        ax.legend()
+
+    elif fit_type == 'exponential':
+        # Exponential fit: y = a * exp(b * x)
+        # We take the logarithm of y for linearization: log(y) = log(a) + b * x
+        log_y = np.log(y)
+        mask = np.isfinite(log_y)  # Filter non-finite values
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x[mask], log_y[mask])
+        fit_line = np.exp(slope * np.array(x) + intercept)
+        ax.plot(x, fit_line, color='green', label=f'Exponential fit (r={r_value:.2f}, p={p_value:.2e})')
+        ax.legend()
+
+    # Perform Pearson correlation as a statistical test if required
+    if perform_test:
+        corr_coef, p_value = stats.pearsonr(x, y)
+        # Update the title with test results
+        ax.set_title(f"{title} (r={corr_coef:.2f}, p={p_value:.2e})")
+
+    if filename is not None:
+        # Save the plot to both png and eps
+        plt.savefig(filename + '.png', dpi=300)
+        plt.savefig(filename + '.eps')
+
+    return ax
 
 def plot_matrix(matrix, ax=None, title='', xlabel='', ylabel='', cbar_label='', cmap='viridis', vmin=None, vmax=None, aspect='auto', xticks=None, xticklabels=None, yticks=None, yticklabels=None, save_path=None, cbar=True):
     """
@@ -53,7 +160,7 @@ def plot_matrix(matrix, ax=None, title='', xlabel='', ylabel='', cbar_label='', 
         fig = ax.get_figure()
 
     # Plot the heatmap
-    im = ax.imshow(matrix, aspect=aspect, cmap=cmap, vmin=vmin, vmax=vmax)
+    im = ax.imshow(matrix, aspect=aspect, cmap=cmap, interpolation=None, rasterized=True, vmin=vmin, vmax=vmax)
     
     # Add colorbar
     if cbar:
@@ -81,12 +188,62 @@ def plot_matrix(matrix, ax=None, title='', xlabel='', ylabel='', cbar_label='', 
     ax.spines['right'].set_visible(False)
 
     if save_path:
-        fig.savefig(save_path)
+        # Create directory if it doesn't exist yet
+        save_dir = os.path.dirname(save_path)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        fig.savefig(save_path, bbox_inches='tight')
         if save_path.endswith('.png'):
             eps_path = save_path.replace('.png', '.eps')
-            fig.savefig(eps_path, format='eps')
+            fig.savefig(eps_path, format='eps', bbox_inches='tight')
         plt.close(fig)
     
+    return ax
+
+def plot_cross_correlation_matrix(axes, correlation_matrix, title='Cross-correlation matrix', cbar_label='Correlation value', aspect='equal', save_path=None, vmin=-1, vmax=1, cmap='bwr', cbar=True, xticks=None, yticks=None):
+    """
+    Plot a sorted cross-correlation matrix of the dF/F signals of the components.
+    """
+    # Sort the correlation matrix
+    sorted_correlation_matrix = correlation_matrix[:, np.argsort(-correlation_matrix[0])]
+    sorted_correlation_matrix = sorted_correlation_matrix[np.argsort(-sorted_correlation_matrix[:, 0]), :]
+
+    ax = plot_matrix(
+        matrix=sorted_correlation_matrix,
+        ax=axes,
+        title=title,
+        cbar_label=cbar_label,
+        aspect=aspect,
+        save_path=save_path,
+        vmin=vmin,
+        vmax=vmax,
+        cmap=cmap,
+        cbar=cbar,
+        xticks=xticks,
+        yticks=yticks)
+    
+    return ax
+
+def plot_distance_matrix(axes, distances, title='Distance matrix', aspect='equal', cbar_label='Distance', save_path=None, vmin=None, vmax=None, cmap='viridis', cbar=True, xticks=None, yticks=None):
+    """
+    Plot a distance matrix using the generalized plot_matrix function.
+
+    """
+    ax = plot_matrix(
+        matrix=distances,
+        ax=axes,
+        title=title,
+        aspect=aspect,
+        cbar_label=cbar_label,
+        save_path=save_path,
+        vmin=vmin,
+        vmax=vmax,
+        cmap=cmap,
+        cbar=cbar,
+        xticks=xticks,
+        yticks=yticks
+    )
+
     return ax
 
 def plot_correlated_traces(ax, traces, component_pairs, distances=None, annotations=None, color_palette='husl', n_to_plot=8, vertical_shift=10, line_alpha=0.7, text_offset=5):
@@ -413,40 +570,66 @@ def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), yla
 
     return ax
 
-def plot_cross_correlation_matrix(axes, correlation_matrix, title='Cross-correlation matrix', save_path=None):
+def plot_values_over_days(data, x_column, y_column, ax=None, order=None, title=None, hue_column=None, figsize=(10, 6), filename=None):
     """
-    Plot a sorted cross-correlation matrix of the dF/F signals of the components.
+    Plot values as a bar plot over days with optional swarm plot overlay and save the figure.
+    
+    Parameters:
+    - data: pandas DataFrame containing the data
+    - x_column: str, name of the column to use for x-axis (e.g., 'Session', 'DayOfHelping')
+    - y_column: str, name of the column to plot on y-axis
+    - ax: matplotlib axis object to plot on (optional)
+    - order: list, optional, specifying the order of x-axis categories
+    - title: str, optional, title for the plot
+    - hue_column: str, optional, name of the column to use for color-coding points in the swarm plot
+    - figsize: tuple, optional, figure size if creating a new figure
+    - filename: str, optional, if provided, the figure will be saved with this name (without extension)
+    
+    Returns:
+    - fig: matplotlib figure object
+    - ax: matplotlib axis object
     """
-    # Sort the correlation matrix
-    sorted_correlation_matrix = correlation_matrix[:, np.argsort(-correlation_matrix[0])]
-    sorted_correlation_matrix = sorted_correlation_matrix[np.argsort(-sorted_correlation_matrix[:, 0]), :]
+    # Create a new figure if ax is not provided
+    if ax is None:
+        fig, ax = plt.subplots(figsize=figsize)
+    else:
+        fig = ax.figure
 
-    ax = plot_matrix(
-        matrix=sorted_correlation_matrix,
-        ax=axes,
-        title=title,
-        cbar_label='Correlation value',
-        aspect='equal', save_path=save_path, vmin=-1, vmax=1
-    )
-    return ax
+    # Bar plot
+    sns.barplot(x=x_column, y=y_column, data=data, ax=ax, fill=False, 
+                capsize=0.1, err_kws={'linewidth': 1.5}, color='black', order=order)
+    
+    # Swarm plot (if hue_column is provided)
+    if hue_column:
+        sns.swarmplot(x=x_column, y=y_column, data=data, hue=hue_column, size=8,
+                      palette='Set1', dodge=True, alpha=0.7, ax=ax, order=order, linewidth=1)
+        ax.legend(title=hue_column, bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    # Set title
+    if title:
+        ax.set_title(title)
+    else:
+        ax.set_title(f'{y_column} over {x_column}')
+    
+    # Adjust x-axis labels if needed
+    plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+    
+    # Remove top and right spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    
+    # Adjust layout to prevent cutting off labels
+    fig.tight_layout()
+    
+    # Save the figure if filename is provided
+    if filename:
+        # Save as PNG
+        fig.savefig(f"{filename}.png", dpi=300, bbox_inches='tight')
+        print(f"Figure saved as {filename}.png")
+        
+        # Save as EPS
+        fig.savefig(f"{filename}.eps", format='eps', bbox_inches='tight')
+        print(f"Figure saved as {filename}.eps")
+    
 
-def plot_distance_matrix(axes, distances, title='Distance matrix', save_path=None):
-    """
-    Plot a distance matrix using the generalized plot_matrix function.
-
-    Parameters
-    ----------
-    axes : matplotlib axes object
-        The axes to plot on.
-    distances : numpy array
-        The distance matrix to plot.
-    title : str, optional
-        The title of the plot. Default is 'Distance matrix'.
-    """
-    plot_matrix(
-        matrix=distances,
-        ax=axes,
-        title=title,
-        aspect='equal',
-        cbar_label='Distance', save_path=save_path
-    )
+    return fig, ax

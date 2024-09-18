@@ -5,138 +5,127 @@ import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from collections import defaultdict
-import networkx as nx
-from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from tqdm import tqdm
-from matplotlib.gridspec import GridSpec
-from typing import Dict, Tuple
-import seaborn as snsaccepted_components
-from tifffile import imread
-from src.plotting import plot_boxplots, plot_correlated_traces, plot_cross_correlation_matrix, plot_distance_matrix
-from src.utils import get_values, compute_correlations, build_graph, save_matrix
 import seaborn as sns
+from src.plotting import *
+from src.utils import get_values, compute_correlations, build_graph
 from src.session_loader import Session
+from src.functional_connectivity_utils import *
 
-# Constants
-SESSION_FILE = 'data/session_file_MiniscopeCW_all_Moises_latest_liberation_cells.csv'
-METADATA_FILE = 'processed-data/metadata_cross_comp_updated.csv'
-ANNOTATIONS_DIR = 'annotations'
-IMG_DIMS = (400, 640)
-THRESHOLD = 0.42
-FIG_SIZE = (30, 15)
-GRID_SPEC = (3, 6)
-SESSION_ORDER = ['HBTD1', 'HBTD2', 'HBTD3', 'HBTD4', 'HBTD5', 'HBTD6', 'RECNvlCtx', 'Stranger', 'Toy', 'Empty', 'Pool', 'REMNvlCtx', 'REMHBTD']
-DAYS_OF_HELPING_ORDER = [0, 1, 2, 3, 4, 'RECNvlCtx', 'REMNvlCtx', 'REMHBTD']
+# Load the configuration
+config = load_config('tech_docs/functional_connectivity_config.yaml')
 
-def setup_plot() -> Tuple[plt.Figure, Dict[str, plt.Axes]]:
-    """Set up the plot with a specific style and grid layout."""
-    plt.style.use('seaborn-v0_8-talk')
-    fig = plt.figure(figsize=FIG_SIZE)
-    gs = GridSpec(*GRID_SPEC, figure=fig)
-    
-    # Set larger font sizes
-    plt.rcParams.update({
-        'font.size': 14,          # General font size
-        'axes.titlesize': 18,     # Font size for axes titles
-        'axes.labelsize': 16,     # Font size for axes labels
-        'xtick.labelsize': 14,    # Font size for x-axis tick labels
-        'ytick.labelsize': 14,    # Font size for y-axis tick labels
-        'legend.fontsize': 14,    # Font size for legend
-        'figure.titlesize': 20    # Font size for figure title
-    })
+# Access the configuration values
+SESSION_FILE = config['session_file']
+METADATA_FILE = config['metadata_file']
+ANNOTATIONS_DIR = config['annotations_dir']
 
-    axes = {
-        'cross-correlation-matrix': fig.add_subplot(gs[0, 0]),
-        'distance-matrix': fig.add_subplot(gs[1, 0]),
-        'correlation-vs-distance': fig.add_subplot(gs[2, 0]),
-        'image-example': fig.add_subplot(gs[0:2, 1:3]),
-        'traces-example': fig.add_subplot(gs[0:2, 3:5]),
-        'clustering-coefficient-over-days': fig.add_subplot(gs[2, 1:3]),
-        'clustering-coefficient-over-days-of-helping': fig.add_subplot(gs[2, 3:5]),
-        'lib-cells-percentage': fig.add_subplot(gs[0, 5]),
-        'pcc-distribution': fig.add_subplot(gs[1, 5]),
-        'pcc-cumulative-distribution': fig.add_subplot(gs[2, 5])
-    }
+IMG_DIMS = tuple(config['img_dims'])
+THRESHOLD = config['threshold']
+FIG_SIZE = tuple(config['fig_size'])
+GRID_SPEC = tuple(config['grid_spec'])
+SESSION_ORDER = config['session_order']
+DAYS_OF_HELPING_ORDER = config['days_of_helping_order']
 
-    
-    return fig, axes
-
-def process_session(session_df: pd.DataFrame, row: pd.Series, plot: bool, axes: Dict[str, plt.Axes]) -> Tuple[pd.DataFrame, np.ndarray, np.ndarray, pd.DataFrame]:
+def process_session(session_df, row, plot, axes, METADATA_FILE):
     """Processes a session to calculate mean correlations and return a DataFrame."""
 
+    # Create a session object
     session = Session(row)
 
+    # Load the data
     pnr = session.load_pnr_image()
     session.get_neuron_labels()
     dff_signal = session.load_dff_signal()
     accepted_components = session.load_accepted_components()
     accepted_dff_signal = session.filter_dff_signal(dff_signal, accepted_components)
+    neuron_positions = session.neuron_positions[list(accepted_components)]
+
+    # Load the metadata for liberation components
+    metadata = session.load_liberation_metadata(METADATA_FILE)
+    if metadata is not None:
+        liberation_cells_ids = session.get_liberation_cells_ids() # old indexing
+    else:
+        liberation_cells_ids = None
+
+    # Get the timecode of the victim liberation
+    victim_lib_timecode = parse_victim_lib_timecode(session.victim_lib_timecode)
+    border = int((victim_lib_timecode * session.calcium_fps) - 15 * session.calcium_fps) if victim_lib_timecode is not None else None #* The formula calculates a time point 15 seconds before the victim liberation time, converted to frame numbers in the calcium imaging data.
+
     # Create a mapping from original indices to new indices
     component_mapping = {orig: new for new, orig in enumerate(accepted_components)}
 
-    neuron_positions = session.neuron_positions[accepted_components]
-
-    distances, correlation_matrix, adjacency_matrix, correlated_pairs = compute_correlations(neuron_positions, accepted_dff_signal, THRESHOLD)
+    # Compute correlations
+    distances, correlation_matrix, adjacency_matrix, correlated_pairs = compute_correlations(neuron_positions, accepted_dff_signal[:,:border], THRESHOLD) #* Returns correlated pairs indexed according to old scheme before filtering
     
-    __ = session.load_liberation_metadata('processed-data/metadata_cross_comp_updated.csv')
-    liberation_cells_ids = session.get_liberation_cells_ids()
     correlated_pairs_new = []
-    correlated_pairs_not_lib = []
     correlated_pairs_lib_to_all = []
     correlated_pairs_only_lib = []
     liberation_cell_ids_mapped = None
 
     if liberation_cells_ids is not None and len(liberation_cells_ids) > 2:
-        liberation_cells_set = set(liberation_cells_ids)
 
         for pair in zip(correlated_pairs[0], correlated_pairs[1]):
-            cell1, cell2 = pair
+            cell1, cell2 = pair # old indexing
 
-            correlated_pairs_new.append((component_mapping[cell1], component_mapping[cell2]))
-            if cell1 in liberation_cells_set and cell2 in liberation_cells_set:
-                correlated_pairs_only_lib.append((component_mapping[cell1], component_mapping[cell2]))
-            elif cell1 in liberation_cells_set or cell2 in liberation_cells_set:
-                correlated_pairs_lib_to_all.append((component_mapping[cell1], component_mapping[cell2]))
-            else:
-                correlated_pairs_not_lib.append((component_mapping[cell1], component_mapping[cell2]))
+            correlated_pairs_new.append((component_mapping[cell1], component_mapping[cell2])) # from old to new; for plotting purposes only
+            if cell1 in liberation_cells_ids and cell2 in liberation_cells_ids:
+                correlated_pairs_only_lib.append((cell1, cell2))
+            if cell1 in liberation_cells_ids:
+                correlated_pairs_lib_to_all.append((cell1, cell2))
+            elif cell2 in liberation_cells_ids:
+                correlated_pairs_lib_to_all.append((cell2, cell1))
 
-        cross_correlation_liberation_only = np.corrcoef(session.filter_dff_signal(dff_signal, liberation_cells_ids)[:, 1:])
-        liberation_cell_ids_mapped = {component_mapping[i] for i in liberation_cells_ids}
+        cross_correlation_liberation_only = np.corrcoef(session.filter_dff_signal(dff_signal, liberation_cells_ids)[:, 1:border])
+        liberation_cell_ids_mapped = {component_mapping[i] for i in liberation_cells_ids} # new indexing, to e used for graphs only
     else:
         correlated_pairs_new = [(component_mapping[cell1], component_mapping[cell2]) for cell1, cell2 in zip(correlated_pairs[0], correlated_pairs[1])]
         cross_correlation_liberation_only = None
 
-    if liberation_cells_ids is not None and len(liberation_cells_ids) > 2 and len(correlated_pairs[0]) > 0:
-        unique_cells_correlated_lib = len(set(cell1 for pair in correlated_pairs_only_lib for cell1 in pair))
-        unique_cells_correlated_no_lib = len(set(cell1 for pair in correlated_pairs_not_lib for cell1 in pair))
-        session_df.at[session_df.index[session_df['Session'] == session.session].tolist()[0], '% of liberation cells in highly correlated components'] = unique_cells_correlated_lib / session.number_of_liberation_cells
-        # Percentage of non-liberation cells in highly correlated components
-        session_df.at[session_df.index[session_df['Session'] == session.session].tolist()[0], '% of other cells in highly correlated components'] = unique_cells_correlated_no_lib / (session.number_of_accepted_components - session.number_of_liberation_cells)
-    # Create a graph from the adjacency matrix
-    position_dict, G, colors, labels = build_graph(session, component_mapping, neuron_positions, adjacency_matrix, liberation_cells_ids)
 
-    save_matrix(session, correlation_matrix, f'cross_correlation_matrix_{str(session.animal_id)}', plot_cross_correlation_matrix)
-    save_matrix(session, distances, f'distance_matrix_{str(session.animal_id)}', plot_distance_matrix)
-    
+    # Filter out response scores and identities for unique cells participating in correlations
+    if metadata is not None:
+        correlated_liberation_cells_lib_to_all = set({pair[0] for pair in correlated_pairs_lib_to_all})
+
+        assert correlated_liberation_cells_lib_to_all.issubset(liberation_cells_ids)
+
+        filtered_response_scores_lib_to_all = metadata.loc[metadata['Component ID'].isin(correlated_liberation_cells_lib_to_all), 'Response Score'].values
+        filtered_identities_lib_to_all = metadata.loc[metadata['Component ID'].isin(correlated_liberation_cells_lib_to_all), 'Group'].values
+        
+        correlated_liberation_cells_only_lib = set({cell for pair in correlated_pairs_only_lib for cell in pair})
+        assert correlated_liberation_cells_only_lib.issubset(liberation_cells_ids)
+
+        filtered_response_scores_only_lib = metadata.loc[metadata['Component ID'].isin(correlated_liberation_cells_only_lib), 'Response Score'].values
+        filtered_identities_only_lib = metadata.loc[metadata['Component ID'].isin(correlated_liberation_cells_only_lib), 'Group'].values
+
+        avg_response_score_lib_to_all = filtered_response_scores_lib_to_all.mean()
+        identity_counts_lib_to_all = pd.Series(filtered_identities_lib_to_all).value_counts().to_dict()
+        
+        avg_response_score_only_lib = filtered_response_scores_only_lib.mean()
+        identity_counts_only_lib = pd.Series(filtered_identities_only_lib).value_counts().to_dict()
+
+    # Create a graph from the adjacency matrix
+    position_dict, G, colors, labels = build_graph(session, neuron_positions, adjacency_matrix, liberation_cell_ids_mapped)
+
+    fig_filename = f"{session.animal_id}_{session.session}_cross_correlation_matrix.png"
+    fig_path = os.path.join(f"figures", "cross-correlations", session.cohort, session.session, fig_filename)
+    plot_cross_correlation_matrix(
+        None, correlation_matrix,
+        title=f"Cross-correlation matrix, animal: {session.animal_id}, session: {session.session}",
+        save_path=fig_path, vmin=-0.5, vmax=0.5
+    )
+
+    fig_filename = f"{session.animal_id}_{session.session}_distance_matrix.png"
+    fig_path = os.path.join(f"figures", "distances", session.cohort, session.session, fig_filename)
+    plot_distance_matrix(
+        None, distances,
+        title=f"Distance matrix, animal: {session.animal_id}, session: {session.session}",
+        save_path=fig_path,
+    )
+
     if plot:          
         # Plot graph on image_example axis, overlay with PNR image
-        # axes['image-example'].imshow(pnr, cmap='viridis')
-        nx.draw_networkx_labels(G, pos=position_dict, ax=axes['image-example'], labels=labels, font_size=8, font_color='black')
-        # colors = ['white' if c == 'black' else c for c in colors]
-        nx.draw(G, pos=position_dict, node_size=50, node_color=colors, ax=axes['image-example'], edge_color='black', node_shape='*')
-        axes['image-example'].set_title('Graph example, animal: ' + str(session.animal_id) + ', session: ' + session.session)
-
-        # Plot the cross-correlation matrix, sort the values before plotting
-        plot_cross_correlation_matrix(axes['cross-correlation-matrix'], correlation_matrix, 'Cross-correlation matrix, animal: ' + str(session.animal_id) + ', session: ' + session.session)
-
-        # Plot the distance matrix
-        plot_distance_matrix(axes['distance-matrix'], distances, 'Distance matrix, animal: ' + str(session.animal_id) + ', session: ' + session.session)
-
-        # Plot the traces of highly correlated components
-        plot_correlated_traces(axes['traces-example'], accepted_dff_signal, correlated_pairs_new, distances=distances)
-        axes['traces-example'].set_title('Traces of highly correlated components')
-        axes['traces-example'].axvline(session.victim_lib_timecode * session.calcium_fps, color='k', linestyle='dashed', linewidth=2, label='Victim crossing')
+        plot_session_example(axes, session, pnr, accepted_dff_signal, distances, correlation_matrix, correlated_pairs_new, position_dict, G, colors, labels)
 
     results = {
         'Cohort': session.cohort,
@@ -147,53 +136,49 @@ def process_session(session_df: pd.DataFrame, row: pd.Series, plot: bool, axes: 
         'Final outcome': session.final_outcome,
         'Session outcome': session.session_outcome,
         'Average degree (all)': round(np.mean([d for _, d in G.degree()]), 2),
+        'Average degree (lib)': round(np.mean([d for _, d in G.subgraph(list(liberation_cell_ids_mapped)).degree()]), 2) if liberation_cell_ids_mapped is not None else None,
         'Average distance (px)': round(np.mean(get_values(distances)), 2),
         'Number of correlated pairs (all)': len(correlated_pairs[0]),
-        'Number of correlated pairs (lib to all)': len(correlated_pairs_lib_to_all),
-        'Number of correlated pairs (only lib)': len(correlated_pairs_only_lib),
+        'Number of correlated pairs (lib -> all)': len(correlated_pairs_lib_to_all),
+        'Number of correlated pairs (lib -> lib)': len(correlated_pairs_only_lib),
         'Clustering coefficient (all)': round(nx.average_clustering(G), 2),
         'Clustering coefficient (lib)': round(nx.average_clustering(G.subgraph(list(liberation_cell_ids_mapped))), 2) if liberation_cell_ids_mapped is not None else None,
         'Global Efficiency (all)': round(nx.global_efficiency(G), 2),
         'Global Efficiency (lib)': round(nx.global_efficiency(G.subgraph(list(liberation_cell_ids_mapped))), 2) if liberation_cell_ids_mapped is not None else None,
         'Density (all)': round(nx.density(G), 2),
         'Density (lib)': round(nx.density(G.subgraph(list(liberation_cell_ids_mapped))), 2) if liberation_cell_ids_mapped is not None else None,
-        'Has liberation cells': liberation_cells_ids is not None and len(liberation_cells_ids) > 0
+        'Has liberation cells': liberation_cells_ids is not None and len(liberation_cells_ids) > 0,
+        'Average response score (lib -> all)': avg_response_score_lib_to_all if metadata is not None else None,
+        'Average response score (lib -> lib)': avg_response_score_only_lib if metadata is not None else None,
     }
+
+    # Add identity counts to results
+    if metadata is not None:
+        for identity, count in identity_counts_lib_to_all.items():
+            results[f'Number of {identity} cells in correlations (lib -> all)'] = count
+        for identity, count in identity_counts_only_lib.items():
+            results[f'Number of {identity} cells in correlations (lib -> lib)'] = count
 
     correlation_values = get_values(correlation_matrix)
     correlation_liberation_only_values = get_values(cross_correlation_liberation_only) if cross_correlation_liberation_only is not None else None
 
     # Instead of plotting these values here, sample random 40 of them and return
-    n_samples = 50
-    distances_values = get_values(distances)
-    correlations_values = get_values(correlation_matrix)
-    sample_idx = np.random.choice(len(distances_values), n_samples, replace=False)
-    
-    sampled_distances = distances_values[sample_idx]
-    sampled_correlations = correlations_values[sample_idx.astype(int)]
+    sampled_distances, sampled_correlations = sample_values(get_values(distances), correlation_values)
     
     return (pd.DataFrame(results, index=[0]), correlation_values, correlation_liberation_only_values, sampled_distances, sampled_correlations, session_df)
 
 def main():
-    fig, axes = setup_plot()
+    fig, axes = setup_plot(FIG_SIZE, GRID_SPEC)
     global metadata_df
     metadata_df = pd.read_csv(METADATA_FILE)
     session_df = pd.read_csv(SESSION_FILE)
     session_df = session_df[~session_df['Session'].str.contains('Hab')]
-    # Filter out only Mar_2024 cohort
-    # session_df = session_df[session_df['Cohort'] == 'Jan_2024']
-    # session_df = session_df[session_df['Session'] == 'HBTD3']
-
-    # Add new columns
-    session_df['% of liberation cells in highly correlated components'] = np.nan
-    session_df['% of other cells in highly correlated components'] = np.nan
+    session_df = session_df[session_df['Mouse'] != 7964]
 
     # Reindex the DataFrame
     session_df = session_df.reset_index(drop=True)
 
-    correlation_values_accepted = []
-    correlation_values_accepted_lib = []
-
+    correlation_values_accepted, correlation_values_accepted_lib = [], []
     sampled_distances_all, sampled_correlations_all = [], []
 
     all_data = pd.DataFrame()
@@ -207,7 +192,7 @@ def main():
         else:
             plot=False
 
-        corr_data, pccs, pccs_lib, sampled_distances, sampled_correlations, session_df = process_session(session_df, row, plot, axes)
+        corr_data, pccs, pccs_lib, sampled_distances, sampled_correlations, session_df = process_session(session_df, row, plot, axes, METADATA_FILE)
         
         if not corr_data.empty:
             # Add correlation data to the DataFrame
@@ -220,31 +205,42 @@ def main():
                 correlation_values_accepted_lib.extend(pccs_lib)
 
     # Plot the clustering coefficient over days
-    sns.barplot(x='Session', y='Clustering coefficient (all)', data=all_data, ax=axes['clustering-coefficient-over-days'], fill=False, 
-                capsize=0.1, err_kws={'linewidth': 1.5}, color='black', order=SESSION_ORDER)
-    sns.swarmplot(x='Session', y='Clustering coefficient (all)', data=all_data, hue='Mouse', size=8,
-                    palette='Set1', dodge=True, alpha=0.7, ax=axes['clustering-coefficient-over-days'], order=SESSION_ORDER, linewidth=1, legend=False)
-    
-    axes['clustering-coefficient-over-days'].set_title('Clustering coefficient over days')
-
+    plot_values_over_days(all_data, 'Session', 'Clustering coefficient (all)', ax=axes['clustering-coefficient-over-days'], order=SESSION_ORDER, hue_column='Mouse')
     # Plot the clustering coefficient over days of helping
-    sns.barplot(x='DayOfHelping', y='Clustering coefficient (all)', data=all_data, ax=axes['clustering-coefficient-over-days-of-helping'], fill=False,
-                capsize=0.1, err_kws={'linewidth': 1.5}, color='black', order=DAYS_OF_HELPING_ORDER)
-    sns.swarmplot(x='DayOfHelping', y='Clustering coefficient (all)', data=all_data, hue='Mouse', size=8,
-                    palette='Set1', dodge=True, alpha=0.7, ax=axes['clustering-coefficient-over-days-of-helping'], order=DAYS_OF_HELPING_ORDER, linewidth=1, legend=False)
+    plot_values_over_days(all_data, 'DayOfHelping', 'Clustering coefficient (all)', ax=axes['clustering-coefficient-over-days-of-helping'], order=DAYS_OF_HELPING_ORDER, hue_column='Mouse')
     
-    axes['clustering-coefficient-over-days-of-helping'].set_title('Clustering coefficient over days of helping')
-        
-    # Plot the correlation vs distance plot
-    axes['correlation-vs-distance'].scatter(sampled_distances_all, sampled_correlations_all, alpha=0.5, s=1, c='k')
-    axes['correlation-vs-distance'].set_xlabel('Distance (px)')
-    axes['correlation-vs-distance'].set_ylabel('Pearson correlation coefficient')
-    axes['correlation-vs-distance'].set_ylim(-1, 1)
-    axes['correlation-vs-distance'].set_title(f'Correlation vs distance')
+    # Plot correlation vs distance
+    plot_scatter(
+        sampled_distances_all,
+        sampled_correlations_all,
+        axes['correlation-vs-distance'],
+        title='Correlation vs distance',
+        alpha=0.5,
+        s=1,
+        c='k',
+        ylim=(-1, 1),
+        fit_type='exponential',
+        perform_test=True
+    )
 
+    # Plot correlation vs distance (separate figure)
+    plot_scatter(
+        sampled_distances_all,
+        sampled_correlations_all,
+        None,
+        title='Correlation vs distance',
+        xlabel='Distance (px)',
+        ylabel='Pearson correlation coefficient',
+        ylim=(-1, 1),
+        fit_type='exponential',
+        perform_test=True,
+        save_path=os.path.join('figures', 'functional_connectivity', 'general', 'pcc_vs_distance.png'),
+        perform_test=True
+    )
+
+    # Plot histogram of PCC values for all accepted components and Liberation cells
     df = pd.DataFrame({'Label': 'All cells', 'PCC': correlation_values_accepted})
     df_lib = pd.DataFrame({'Label': 'Liberation cells', 'PCC': correlation_values_accepted_lib})
-    # Concatenate the two dataframes
     df = pd.concat([df, df_lib], ignore_index=True)
 
     # Plot histogram of PCC values for all accepted components and liberation cells
@@ -256,12 +252,6 @@ def main():
     sns.ecdfplot(correlation_values_accepted_lib, ax=axes['pcc-cumulative-distribution'], label='Liberation cells', color='r')
     axes['pcc-cumulative-distribution'].set_title('PCC cumulative distribution')
     axes['pcc-cumulative-distribution'].legend()
-
-    # Remove NaN values
-    session_df = session_df.dropna(subset=['% of liberation cells in highly correlated components', '% of other cells in highly correlated components'])
-    
-    # plot 2 boxplots: one for % of liberation cells in highly correlated components, and one for just % of liberation cells
-    plot_boxplots(session_df['% of liberation cells in highly correlated components'].values, session_df['% of other cells in highly correlated components'].values, axes['lib-cells-percentage'], '', ('Liberation cells', 'Other cells'), 'Percentage of correlated components')
 
     # Finalize plot
     for ax in axes.values():
@@ -275,6 +265,6 @@ def main():
     # Save the plot
     plt.tight_layout()
     plt.savefig('tech_plots/functional_connectivity.pdf')
-
+ 
 if __name__ == "__main__":
     main()

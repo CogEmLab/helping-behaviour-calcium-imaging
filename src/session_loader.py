@@ -4,6 +4,7 @@ import numpy as np
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from tifffile import imread
 from src.utils import get_behaviour_timestamps, smooth_and_shrink_label
+from typing import Dict, Tuple, List, Set
 
 class Session:
     def __init__(self, data_row):
@@ -115,22 +116,19 @@ class Session:
             print(f"Error loading DFF signal: {str(e)}")
             return None
 
-    def filter_dff_signal(self, dff_signal_padded, component_list):
+    def filter_dff_signal(self, dff_signal_padded: np.ndarray, component_set: Set[int]) -> np.ndarray:
         """
-        Filter the DFF signal to include only the rows corresponding to the provided component list.
+        Filter the DFF signal to include only the rows corresponding to the provided component set.
         
         :param dff_signal_padded: The DFF signal matrix padded with an index column
-        :param component_list: List of component indices to retain (either accepted components or liberation components)
+        :param component_set: Set of component indices to retain (either accepted components or liberation components)
         :return: Filtered DFF signal matrix containing only the needed components
         """
-        # Ensure the component_list is a numpy array
-        component_list = np.array(component_list)
-        
         # Get the index column from the padded DFF signal
         indices = dff_signal_padded[:, 0].astype(int)
         
-        # Create a mask to filter rows where the index is in the component_list
-        mask = np.isin(indices, component_list)
+        # Create a mask to filter rows where the index is in the component_set
+        mask = np.isin(indices, list(component_set))
         
         # Apply the mask to filter the DFF signal
         filtered_dff_signal = dff_signal_padded[mask, :]
@@ -182,7 +180,7 @@ class Session:
                 f"Mismatch in liberation cells: expected all liberation cells to be in accepted components, "
                 f"but some were not."
             )
-            
+
             return filtered_metadata
 
         except pd.errors.EmptyDataError:
@@ -197,10 +195,10 @@ class Session:
     def load_accepted_components(self):
         """Load accepted components and assert the number matches the expected count."""
         if self.caiman_model is not None:
-            accepted_components = self.caiman_model.estimates.idx_components
+            accepted_components = set(self.caiman_model.estimates.idx_components)
         elif os.path.exists(self.accepted_components_path):
             try:
-                accepted_components = np.load(self.accepted_components_path)
+                accepted_components = set(np.load(self.accepted_components_path))
             except Exception as e:
                 print(f"Error loading accepted components: {str(e)}")
                 return None
