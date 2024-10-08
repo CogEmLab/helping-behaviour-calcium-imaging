@@ -44,6 +44,7 @@ EXCLUDED_SESSIONS = ['Hab1', 'Hab2', 'Hab3', 'Toy', 'Pool', 'Empty']
 WINDOW = 30 # seconds
 
 def process_session(row, WINDOW, random=False, plot_example=False, axes=None):
+    #TODO: also check the column "excluded", if it is there, remove this session from the analysis
     '''
     window given in seconds and full
     '''
@@ -69,7 +70,7 @@ def process_session(row, WINDOW, random=False, plot_example=False, axes=None):
     # Get start and end of the window
     start, end = generate_event_window(WINDOW, session_loader.victim_lib_timecode, session_loader.calcium_fps)
     logging.info('Using window size of {} seconds for data with FPS of {}'.format(WINDOW, session_loader.calcium_fps))
-    
+
     # Ensure indices are within bounds
     if start < 0 or end > DF_F_Z_scored.shape[1]:
         logging.warning(f"Skipping session {session_loader.session} with victim liberation timecode {session_loader.victim_lib_timecode}")
@@ -180,7 +181,7 @@ def main(random=False):
 
     # If random mode of processing is True, set respective suffix to save all results
     if random:
-        event_type = 'Random Event'
+        event_type = 'Random'
         suffix = '_random'
     else:
         event_type = 'Liberation'
@@ -231,10 +232,8 @@ def main(random=False):
             metadata['Sum of activity'].extend(row_results['sum_dff_selected'])
 
             # Update session file with liberation cell information
-            col_name_1 = 'Num of liberation cells' if not random else 'Num of random event cells'
-            session_file.loc[session_file.index == row.name, col_name_1] = row_results['num_liberation_cells']
-            col_name_2 = '% of liberation cells' if not random else '% of random event cells'
-            session_file.loc[session_file.index == row.name, col_name_2] = row_results['percent_liberation_cells']
+            session_file.loc[session_file.index == row.name, f'Num of {event_type} cells'] = row_results['num_liberation_cells']
+            session_file.loc[session_file.index == row.name, f'% of {event_type} cells'] = row_results['percent_liberation_cells']
             
             # Update sum of components with mean values for control plotting
             sum_components['selected'].append(np.mean(sum_dff_selected))
@@ -267,26 +266,25 @@ def main(random=False):
     
     # Save metadata to CSV
     current_datetime = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    metadata_df_path = f'processed-data/{os.path.basename(__file__)[:-3]}_{current_datetime}_metadata_cross_comp{suffix}.csv'
+    metadata_df_path = f'processed-data/METADATA_{event_type}_{os.path.basename(__file__)[:-3]}_{current_datetime}.csv'
     metadata_df.to_csv(metadata_df_path, index=False)
 
-    # Update session file with normalized liberation cells
-    col_name_3 = 'Normalized components' if not random else 'Normalized random event components'
+    # # Update session file with normalized liberation cells
+    # col_name_3 = 'Normalized components' if not random else 'Normalized random event components'
 
-    # Normalize using the save formula K_d = \frac{n_d}{\sum_{i}^S n_{i}} \times 100 (($n_{d}$) is normalized number of components in day)
-    session_file[col_name_3] = session_file[col_name_1] / session_file['Ca Imaging Length(s)']
+    # # Normalize using the save formula K_d = \frac{n_d}{\sum_{i}^S n_{i}} \times 100 (($n_{d}$) is normalized number of components in day)
+    # session_file[col_name_3] = session_file[col_name_1] / session_file['Ca Imaging Length(s)']
 
-    # K_d = \frac{n_d}{\sum_{i}^S n_{i}} \times 100 implementation
-    sum_normalized = session_file.groupby('Mouse')[col_name_3].sum()
-    session_file = session_file.join(sum_normalized, on='Mouse', rsuffix='_sum')
-    session_file[col_name_3] = (session_file[col_name_3] / session_file[f'{col_name_3}_sum']) * 100
+    # # K_d = \frac{n_d}{\sum_{i}^S n_{i}} \times 100 implementation
+    # sum_normalized = session_file.groupby('Mouse')[col_name_3].sum()
+    # session_file = session_file.join(sum_normalized, on='Mouse', rsuffix='_sum')
+    # session_file[col_name_3] = (session_file[col_name_3] / session_file[f'{col_name_3}_sum']) * 100
 
-    # Remove the sum of normalized components
-    session_file = session_file.drop(columns=[f'{col_name_3}_sum'])
+    # # Remove the sum of normalized components
+    # session_file = session_file.drop(columns=[f'{col_name_3}_sum'])
 
     # Add new column to session file "{EVENT} Associated Cells Metadata Path" if it doesn't exist yet. If it does, overwrite it with the currect path. Replace Event with Liberation if suffix = '', otherwise with Random Event
-    event_name = 'Liberation' if suffix == '' else 'Random Event'
-    col_name = f'{event_name} Associated Cells Metadata Path'
+    col_name = f'{event_type} Associated Cells Metadata Path'
     if col_name not in session_file.columns:
         session_file[col_name] = ''
     session_file[col_name] = metadata_df_path #The metadata path is common for all sessions, however, it is better to make it easier to work with the loader
@@ -297,7 +295,7 @@ def main(random=False):
     # Plot boxplots to show the difference between selected and not selected cells in terms of sum of the activity in the window
     plot_boxplots(sum_components['selected'], sum_components['not_selected'], axes['boxplots'], '', ('Selected', 'Not selected'), 'Sum of $\\Delta F/F$ values in the window')
     # Plot the values over days for each mouse
-    plot_values_over_days(session_file, 'DayofHelping', col_name_2, ax=axes['components'], order=[1, 2, 3, 4, '5+', 'Stranger', 'RECNvlCtx', 'REMNvlCtx', 'REMHBTD'], title='Liberation Cells', hue_column='Mouse', filename=None)
+    plot_values_over_days(session_file, 'DayofHelping', f'% of {event_type} cells', ax=axes['components'], order=[1, 2, 3, 4, '5+', 'Stranger', 'RECNvlCtx', 'REMNvlCtx', 'REMHBTD'], title='Liberation Cells', hue_column='Mouse', filename=None)
 
     # Save the figure
     plt.tight_layout()
@@ -308,4 +306,4 @@ def main(random=False):
     plt.savefig(f'tech_plots/OVERVIEW_FIGURE_{os.path.basename(__file__)[:-3]}_{current_datetime}{suffix}.png')
 
 if __name__ == "__main__":
-    main(random=False)
+    main(random=True)

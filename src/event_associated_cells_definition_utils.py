@@ -48,7 +48,7 @@ def sample_random_event_cells(signal, session_loader, fps, window, plot_example=
     for i in range(n_iterations):
         # Randomly select a time point within the valid range, ensuring the event window fits within the session
         session_length = session_loader.session_length  # Get total session length (in seconds or frames)
-        time_victim_crossing = np.random.randint(window * 2, session_length - window * 2)
+        time_victim_crossing = np.random.randint(window, session_length - window)
         
         start, end = generate_event_window(total_expected_duration_seconds=window, event_timestamp=time_victim_crossing, fps=fps)
         # Extract the data within the specified time window from the pre-loaded DF_F_Z_scored
@@ -183,14 +183,14 @@ def load_and_preprocess_session_file(dir_path, event_type):
     # Convert Mouse column to str with 4 digits
     session_file['Mouse'] = session_file['Mouse'].astype(str).str.zfill(4)
 
-    # Add columns to save the number of event associatedcells and their percentage
-    columns_to_add = [
-        f'Num of {event_type} cells',
-        f'% of {event_type} cells'
-    ]
+    # # Add columns to save the number of event associatedcells and their percentage
+    # columns_to_add = [
+    #     f'Num of {event_type} cells',
+    #     f'% of {event_type} cells'
+    # ]
 
-    for column in columns_to_add:
-        session_file[column] = np.nan
+    # for column in columns_to_add:
+    #     session_file[column] = np.nan
 
     return session_file
 

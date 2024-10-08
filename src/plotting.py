@@ -667,10 +667,10 @@ def plot_heatmap(matrix, title=None, xlabel='Time (s)', aligned=True, filename=N
 
     if title is None:
         title = f'Heatmap of selected components, animal {animal}, day of helping {day_of_helping}'
-
+    
     if aligned:
-        xticks = [0, window_to_use * FPS, 2 * window_to_use * FPS]
-        xticklabels = [-window_to_use, 0, window_to_use]
+        xticks = [0, int(window_to_use * FPS / 2), int(window_to_use * FPS)]
+        xticklabels = [-int(window_to_use / 2), 0, int(window_to_use / 2)]
     else:
         xticks = np.linspace(0, matrix.shape[1], 4)
         xticklabels = [int(tick / FPS) for tick in xticks]
@@ -690,7 +690,7 @@ def plot_heatmap(matrix, title=None, xlabel='Time (s)', aligned=True, filename=N
     )
 
     if victim_crossing_line:
-        ax.axvline(window_to_use * FPS, color='black', linestyle='dashed', linewidth=2, label='Victim crossing')
+        ax.axvline(int((window_to_use * FPS) / 2), color='black', linestyle='dashed', linewidth=2, label='Victim crossing')
     return ax
 
 

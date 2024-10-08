@@ -29,7 +29,7 @@ class Session:
         self.path_to_pnr = data_row['Peak-to-Noise Ratio Path']
         self.number_of_components_total = data_row['Total Components']
         self.number_of_accepted_components = data_row['Num Accepted']
-        self.number_of_liberation_cells = data_row['Num of liberation cells']
+        self.number_of_liberation_cells = None
 
         # Construct the annotations path
         annotations_filename = data_row['ManualAnnotationSide']
