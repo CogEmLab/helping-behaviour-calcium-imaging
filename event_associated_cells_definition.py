@@ -41,6 +41,7 @@ import datetime
 FIG_SIZE = (30, 12)
 GRID_SPEC = (2, 4)
 EXCLUDED_SESSIONS = ['Hab1', 'Hab2', 'Hab3', 'Toy', 'Pool', 'Empty']
+WINDOW = 30 # seconds
 
 def process_session(row, WINDOW, random=False, plot_example=False, axes=None):
     '''
@@ -132,8 +133,8 @@ def process_session(row, WINDOW, random=False, plot_example=False, axes=None):
     print("Calculating response scores")
     print(DF_F_Z_scored_selected.shape)
     
-    pre_response = np.absolute(np.sum(DF_F_Z_scored_selected[:, :], axis=1)) # Add absolute value getting out of the bounds
-    post_response = np.absolute(np.sum(DF_F_Z_scored_selected[:, :], axis=1))
+    pre_response = np.absolute(np.sum(DF_F_Z_scored_selected[:, :int((WINDOW*session_loader.calcium_fps) / 2)], axis=1)) # Add absolute value getting out of the bounds
+    post_response = np.absolute(np.sum(DF_F_Z_scored_selected[:, int((WINDOW*session_loader.calcium_fps) / 2):], axis=1))
     total_response = np.add(pre_response, post_response)
 
     # Remove components with zero total response
@@ -202,7 +203,7 @@ def main(random=False):
         # Plot example if random index
         plot_example = int(i) == int(random_idx_to_plot) # boolian flag to define whether to plot the example
         
-        row_results, sum_dff_selected, sum_dff_not_selected = process_session(row, random=random, plot_example=plot_example, axes=axes)  # Get the results
+        row_results, sum_dff_selected, sum_dff_not_selected = process_session(row, WINDOW, random=random, plot_example=plot_example, axes=axes)  # Get the results
                 
         if row_results is not np.nan:
             # Update metadata

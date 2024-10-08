@@ -215,7 +215,7 @@ def generate_event_window(total_expected_duration_seconds, event_timestamp, fps)
     """
 
     # Total expected duration in frames
-    total_expected_duration_frames = int(total_expected_duration_seconds / fps) # in frames
+    total_expected_duration_frames = int(total_expected_duration_seconds * fps) # in frames
 
     # Convert the event timestamp to frames
     time_victim_crossing = int(event_timestamp * fps) # in frames
