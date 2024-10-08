@@ -7,3 +7,5 @@ exp
 tech_plots
 test_viz
 tech_docs
+src/__pycache__
+src/.ipynb_checkpoints

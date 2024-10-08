@@ -1,0 +1,512 @@
+2024-07-26 11:24:12,844 - INFO - Processing filename: dHPC-SSCW-052024-HAB01_2024-05-30-15-38-40_video.tiff
+2024-07-26 11:24:12,844 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-152754/dHPC-SSCW-052024-HAB01_2024-05-30-15-38-40_video.tiff
+2024-07-26 11:24:12,848 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-152754
+2024-07-26 11:24:12,848 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-152754/dHPC-SSCW-052024-HAB01_2024-05-30-15-38-40_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-152754
+2024-07-26 11:24:12,848 - INFO - Frame rate: 60
+2024-07-26 11:24:12,848 - INFO - Downsample time: True
+2024-07-26 11:24:12,848 - INFO - Time downsampling factor: 0.5
+2024-07-26 11:30:53,771 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-152754/dHPC-SSCW-052024-HAB01_2024-05-30-15-38-40_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-152754/dHPC-SSCW-052024-HAB01_2024-05-30-15-38-40_video.tiff
+2024-07-26 11:30:54,002 - INFO - Processing filename: Moises_B6J_8474_F_HAB01_2024-05-30-15-54-00_video.tiff
+2024-07-26 11:30:54,002 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-154619/Moises_B6J_8474_F_HAB01_2024-05-30-15-54-00_video.tiff
+2024-07-26 11:30:54,005 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-154619
+2024-07-26 11:30:54,005 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-154619/Moises_B6J_8474_F_HAB01_2024-05-30-15-54-00_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-154619
+2024-07-26 11:30:54,005 - INFO - Frame rate: 60
+2024-07-26 11:30:54,005 - INFO - Downsample time: True
+2024-07-26 11:30:54,005 - INFO - Time downsampling factor: 0.5
+2024-07-26 11:41:00,639 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-154619/Moises_B6J_8474_F_HAB01_2024-05-30-15-54-00_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-154619/Moises_B6J_8474_F_HAB01_2024-05-30-15-54-00_video.tiff
+2024-07-26 11:41:00,889 - INFO - Processing filename: Moises_B6J_8472_M_ImageCheck_2024-05-30-13-52-16_video.tiff
+2024-07-26 11:41:00,889 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-ImageCheck_20240530-131902/Moises_B6J_8472_M_ImageCheck_2024-05-30-13-52-16_video.tiff
+2024-07-26 11:41:00,894 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-ImageCheck_20240530-131902
+2024-07-26 11:41:00,894 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-ImageCheck_20240530-131902/Moises_B6J_8472_M_ImageCheck_2024-05-30-13-52-16_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-ImageCheck_20240530-131902
+2024-07-26 11:41:00,894 - INFO - Frame rate: 60
+2024-07-26 11:41:00,894 - INFO - Downsample time: True
+2024-07-26 11:41:00,894 - INFO - Time downsampling factor: 0.5
+2024-07-26 11:48:04,769 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-ImageCheck_20240530-131902/Moises_B6J_8472_M_ImageCheck_2024-05-30-13-52-16_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-ImageCheck_20240530-131902/Moises_B6J_8472_M_ImageCheck_2024-05-30-13-52-16_video.tiff
+2024-07-26 11:48:05,029 - INFO - Processing filename: Moises_B6J_8472_M_HAB2_2024-05-31-14-43-01_video.tiff
+2024-07-26 11:48:05,029 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-02HAB02/dHPC-SSCW-052024-HAB2_20240531-143249/Moises_B6J_8472_M_HAB2_2024-05-31-14-43-01_video.tiff
+2024-07-26 11:48:05,032 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-02HAB02/dHPC-SSCW-052024-HAB2_20240531-143249
+2024-07-26 11:48:05,032 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-02HAB02/dHPC-SSCW-052024-HAB2_20240531-143249/Moises_B6J_8472_M_HAB2_2024-05-31-14-43-01_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-02HAB02/dHPC-SSCW-052024-HAB2_20240531-143249
+2024-07-26 11:48:05,032 - INFO - Frame rate: 60
+2024-07-26 11:48:05,032 - INFO - Downsample time: True
+2024-07-26 11:48:05,032 - INFO - Time downsampling factor: 0.5
+2024-07-26 12:03:21,654 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-02HAB02/dHPC-SSCW-052024-HAB2_20240531-143249/Moises_B6J_8472_M_HAB2_2024-05-31-14-43-01_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-02HAB02/dHPC-SSCW-052024-HAB2_20240531-143249/Moises_B6J_8472_M_HAB2_2024-05-31-14-43-01_video.tiff
+2024-07-26 12:03:21,983 - INFO - Processing filename: Moises_B6J_8472_M_HAB03_2024-06-01-15-32-17_video.tiff
+2024-07-26 12:03:21,983 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-152509/Moises_B6J_8472_M_HAB03_2024-06-01-15-32-17_video.tiff
+2024-07-26 12:03:21,986 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-152509
+2024-07-26 12:03:21,986 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-152509/Moises_B6J_8472_M_HAB03_2024-06-01-15-32-17_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-152509
+2024-07-26 12:03:21,986 - INFO - Frame rate: 60
+2024-07-26 12:03:21,986 - INFO - Downsample time: True
+2024-07-26 12:03:21,986 - INFO - Time downsampling factor: 0.5
+2024-07-26 12:12:02,997 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-152509/Moises_B6J_8472_M_HAB03_2024-06-01-15-32-17_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-152509/Moises_B6J_8472_M_HAB03_2024-06-01-15-32-17_video.tiff
+2024-07-26 12:12:03,199 - INFO - Processing filename: Moises_B6J_8476_F_HAB03_2024-06-01-15-46-19_video.tiff
+2024-07-26 12:12:03,199 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-154010/Moises_B6J_8476_F_HAB03_2024-06-01-15-46-19_video.tiff
+2024-07-26 12:12:03,203 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-154010
+2024-07-26 12:12:03,203 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-154010/Moises_B6J_8476_F_HAB03_2024-06-01-15-46-19_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-154010
+2024-07-26 12:12:03,203 - INFO - Frame rate: 60
+2024-07-26 12:12:03,203 - INFO - Downsample time: True
+2024-07-26 12:12:03,203 - INFO - Time downsampling factor: 0.5
+2024-07-26 12:19:43,341 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-154010/Moises_B6J_8476_F_HAB03_2024-06-01-15-46-19_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-154010/Moises_B6J_8476_F_HAB03_2024-06-01-15-46-19_video.tiff
+2024-07-26 12:19:43,678 - INFO - Processing filename: Moises_B6J_8472_M_04HBT01_2024-06-03-12-06-12_video.tiff
+2024-07-26 12:19:43,742 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-120123/Moises_B6J_8472_M_04HBT01_2024-06-03-12-06-12_video.tiff
+2024-07-26 12:19:43,772 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-120123
+2024-07-26 12:19:43,833 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-120123/Moises_B6J_8472_M_04HBT01_2024-06-03-12-06-12_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-120123
+2024-07-26 12:19:43,869 - INFO - Frame rate: 60
+2024-07-26 12:19:43,870 - INFO - Downsample time: True
+2024-07-26 12:19:43,871 - INFO - Time downsampling factor: 0.5
+2024-07-26 12:51:43,694 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-120123/Moises_B6J_8472_M_04HBT01_2024-06-03-12-06-12_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-120123/Moises_B6J_8472_M_04HBT01_2024-06-03-12-06-12_video.tiff
+2024-07-26 12:51:48,980 - INFO - Processing filename: Moises_B6J_8476_F_04HBT01_2024-06-03-12-37-47_video.tiff
+2024-07-26 12:51:48,980 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-122914/Moises_B6J_8476_F_04HBT01_2024-06-03-12-37-47_video.tiff
+2024-07-26 12:51:48,984 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-122914
+2024-07-26 12:51:48,984 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-122914/Moises_B6J_8476_F_04HBT01_2024-06-03-12-37-47_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-122914
+2024-07-26 12:51:48,984 - INFO - Frame rate: 60
+2024-07-26 12:51:48,984 - INFO - Downsample time: True
+2024-07-26 12:51:48,984 - INFO - Time downsampling factor: 0.5
+2024-07-26 13:04:56,750 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-122914/Moises_B6J_8476_F_04HBT01_2024-06-03-12-37-47_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-122914/Moises_B6J_8476_F_04HBT01_2024-06-03-12-37-47_video.tiff
+2024-07-26 13:04:57,147 - INFO - Processing filename: Moises_B6J_8472_M_05HBT02_2024-06-04-16-01-43_video.tiff
+2024-07-26 13:04:57,147 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-155853/Moises_B6J_8472_M_05HBT02_2024-06-04-16-01-43_video.tiff
+2024-07-26 13:04:57,149 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-155853
+2024-07-26 13:04:57,149 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-155853/Moises_B6J_8472_M_05HBT02_2024-06-04-16-01-43_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-155853
+2024-07-26 13:04:57,149 - INFO - Frame rate: 60
+2024-07-26 13:04:57,149 - INFO - Downsample time: True
+2024-07-26 13:04:57,149 - INFO - Time downsampling factor: 0.5
+2024-07-26 13:08:32,747 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-155853/Moises_B6J_8472_M_05HBT02_2024-06-04-16-01-43_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-155853/Moises_B6J_8472_M_05HBT02_2024-06-04-16-01-43_video.tiff
+2024-07-26 13:08:32,901 - INFO - Processing filename: Moises_B6J_8476_F_05HBT02_2024-06-04-16-15-16_video.tiff
+2024-07-26 13:08:32,901 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-161123/Moises_B6J_8476_F_05HBT02_2024-06-04-16-15-16_video.tiff
+2024-07-26 13:08:32,904 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-161123
+2024-07-26 13:08:32,904 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-161123/Moises_B6J_8476_F_05HBT02_2024-06-04-16-15-16_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-161123
+2024-07-26 13:08:32,904 - INFO - Frame rate: 60
+2024-07-26 13:08:32,904 - INFO - Downsample time: True
+2024-07-26 13:08:32,904 - INFO - Time downsampling factor: 0.5
+2024-07-26 13:16:56,865 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-161123/Moises_B6J_8476_F_05HBT02_2024-06-04-16-15-16_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-161123/Moises_B6J_8476_F_05HBT02_2024-06-04-16-15-16_video.tiff
+2024-07-26 13:16:57,100 - INFO - Processing filename: Moises_B6J_8472_M_06HBT03_2024-06-05-17-13-10_video.tiff
+2024-07-26 13:16:57,100 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-170959/Moises_B6J_8472_M_06HBT03_2024-06-05-17-13-10_video.tiff
+2024-07-26 13:16:57,105 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-170959
+2024-07-26 13:16:57,105 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-170959/Moises_B6J_8472_M_06HBT03_2024-06-05-17-13-10_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-170959
+2024-07-26 13:16:57,105 - INFO - Frame rate: 60
+2024-07-26 13:16:57,105 - INFO - Downsample time: True
+2024-07-26 13:16:57,105 - INFO - Time downsampling factor: 0.5
+2024-07-26 13:22:22,588 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-170959/Moises_B6J_8472_M_06HBT03_2024-06-05-17-13-10_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-170959/Moises_B6J_8472_M_06HBT03_2024-06-05-17-13-10_video.tiff
+2024-07-26 13:22:22,719 - INFO - Processing filename: Moises_B6J_8476_F_06HBT03_2024-06-05-17-27-21_video.tiff
+2024-07-26 13:22:22,719 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-172012/Moises_B6J_8476_F_06HBT03_2024-06-05-17-27-21_video.tiff
+2024-07-26 13:22:22,723 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-172012
+2024-07-26 13:22:22,723 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-172012/Moises_B6J_8476_F_06HBT03_2024-06-05-17-27-21_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-172012
+2024-07-26 13:22:22,723 - INFO - Frame rate: 60
+2024-07-26 13:22:22,723 - INFO - Downsample time: True
+2024-07-26 13:22:22,723 - INFO - Time downsampling factor: 0.5
+2024-07-26 13:26:27,212 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-172012/Moises_B6J_8476_F_06HBT03_2024-06-05-17-27-21_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-172012/Moises_B6J_8476_F_06HBT03_2024-06-05-17-27-21_video.tiff
+2024-07-26 13:26:27,414 - INFO - Processing filename: Moises_B6J_8472_M_07HBT04_2024-06-06-11-20-08_video.tiff
+2024-07-26 13:26:27,414 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-111707/Moises_B6J_8472_M_07HBT04_2024-06-06-11-20-08_video.tiff
+2024-07-26 13:26:27,420 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-111707
+2024-07-26 13:26:27,420 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-111707/Moises_B6J_8472_M_07HBT04_2024-06-06-11-20-08_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-111707
+2024-07-26 13:26:27,420 - INFO - Frame rate: 60
+2024-07-26 13:26:27,420 - INFO - Downsample time: True
+2024-07-26 13:26:27,420 - INFO - Time downsampling factor: 0.5
+2024-07-26 13:33:01,239 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-111707/Moises_B6J_8472_M_07HBT04_2024-06-06-11-20-08_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-111707/Moises_B6J_8472_M_07HBT04_2024-06-06-11-20-08_video.tiff
+2024-07-26 13:33:01,454 - INFO - Processing filename: Moises_B6J_8476_F_07HBT04_2024-06-06-11-32-22_video.tiff
+2024-07-26 13:33:01,454 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-112844/Moises_B6J_8476_F_07HBT04_2024-06-06-11-32-22_video.tiff
+2024-07-26 13:33:01,456 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-112844
+2024-07-26 13:33:01,456 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-112844/Moises_B6J_8476_F_07HBT04_2024-06-06-11-32-22_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-112844
+2024-07-26 13:33:01,456 - INFO - Frame rate: 60
+2024-07-26 13:33:01,456 - INFO - Downsample time: True
+2024-07-26 13:33:01,456 - INFO - Time downsampling factor: 0.5
+2024-07-26 14:04:55,510 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-112844/Moises_B6J_8476_F_07HBT04_2024-06-06-11-32-22_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-112844/Moises_B6J_8476_F_07HBT04_2024-06-06-11-32-22_video.tiff
+2024-07-26 14:04:58,666 - INFO - Processing filename: Moises_B6J_8476_F_08HBT05_2024-06-07-15-52-06_video.tiff
+2024-07-26 14:04:58,666 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-153716/Moises_B6J_8476_F_08HBT05_2024-06-07-15-52-06_video.tiff
+2024-07-26 14:04:58,669 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-153716
+2024-07-26 14:04:58,669 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-153716/Moises_B6J_8476_F_08HBT05_2024-06-07-15-52-06_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-153716
+2024-07-26 14:04:58,669 - INFO - Frame rate: 60
+2024-07-26 14:04:58,669 - INFO - Downsample time: True
+2024-07-26 14:04:58,669 - INFO - Time downsampling factor: 0.5
+2024-07-26 16:37:40,403 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-153716/Moises_B6J_8476_F_08HBT05_2024-06-07-15-52-06_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-153716/Moises_B6J_8476_F_08HBT05_2024-06-07-15-52-06_video.tiff
+2024-07-26 16:37:46,189 - INFO - Processing filename: Moises_B6J_8472_M_08HBT05_2024-06-07-16-21-40_video.tiff
+2024-07-26 16:37:46,190 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-161051/Moises_B6J_8472_M_08HBT05_2024-06-07-16-21-40_video.tiff
+2024-07-26 16:37:46,193 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-161051
+2024-07-26 16:37:46,194 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-161051/Moises_B6J_8472_M_08HBT05_2024-06-07-16-21-40_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-161051
+2024-07-26 16:37:46,194 - INFO - Frame rate: 60
+2024-07-26 16:37:46,194 - INFO - Downsample time: True
+2024-07-26 16:37:46,195 - INFO - Time downsampling factor: 0.5
+2024-07-26 16:55:11,910 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-161051/Moises_B6J_8472_M_08HBT05_2024-06-07-16-21-40_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-161051/Moises_B6J_8472_M_08HBT05_2024-06-07-16-21-40_video.tiff
+2024-07-26 16:55:12,074 - INFO - Processing filename: Moises_B6J_8472_M_09HBT06_2024-06-08-15-59-31_video.tiff
+2024-07-26 16:55:12,074 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-155645/Moises_B6J_8472_M_09HBT06_2024-06-08-15-59-31_video.tiff
+2024-07-26 16:55:12,077 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-155645
+2024-07-26 16:55:12,078 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-155645/Moises_B6J_8472_M_09HBT06_2024-06-08-15-59-31_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-155645
+2024-07-26 16:55:12,078 - INFO - Frame rate: 60
+2024-07-26 16:55:12,078 - INFO - Downsample time: True
+2024-07-26 16:55:12,078 - INFO - Time downsampling factor: 0.5
+2024-07-26 17:18:35,626 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-155645/Moises_B6J_8472_M_09HBT06_2024-06-08-15-59-31_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-155645/Moises_B6J_8472_M_09HBT06_2024-06-08-15-59-31_video.tiff
+2024-07-26 17:18:35,907 - INFO - Processing filename: Moises_B6J_8476_F_09HBT06_2024-06-08-16-15-22_video.tiff
+2024-07-26 17:18:35,907 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-161104/Moises_B6J_8476_F_09HBT06_2024-06-08-16-15-22_video.tiff
+2024-07-26 17:18:35,910 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-161104
+2024-07-26 17:18:35,910 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-161104/Moises_B6J_8476_F_09HBT06_2024-06-08-16-15-22_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-161104
+2024-07-26 17:18:35,910 - INFO - Frame rate: 60
+2024-07-26 17:18:35,910 - INFO - Downsample time: True
+2024-07-26 17:18:35,910 - INFO - Time downsampling factor: 0.5
+2024-07-26 17:38:25,555 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-161104/Moises_B6J_8476_F_09HBT06_2024-06-08-16-15-22_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-161104/Moises_B6J_8476_F_09HBT06_2024-06-08-16-15-22_video.tiff
+2024-07-26 17:38:25,780 - INFO - Processing filename: Moises_B6J_8472_M_10RecNvlCtx_2024-06-10-16-08-47_video.tiff
+2024-07-26 17:38:25,781 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-160328/Moises_B6J_8472_M_10RecNvlCtx_2024-06-10-16-08-47_video.tiff
+2024-07-26 17:38:25,784 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-160328
+2024-07-26 17:38:25,784 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-160328/Moises_B6J_8472_M_10RecNvlCtx_2024-06-10-16-08-47_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-160328
+2024-07-26 17:38:25,784 - INFO - Frame rate: 60
+2024-07-26 17:38:25,784 - INFO - Downsample time: True
+2024-07-26 17:38:25,784 - INFO - Time downsampling factor: 0.5
+2024-07-26 17:58:28,336 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-160328/Moises_B6J_8472_M_10RecNvlCtx_2024-06-10-16-08-47_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-160328/Moises_B6J_8472_M_10RecNvlCtx_2024-06-10-16-08-47_video.tiff
+2024-07-26 17:58:28,504 - INFO - Processing filename: Moises_B6J_8476_F_10RecNvlCtx_2024-06-10-16-22-11_video.tiff
+2024-07-26 17:58:28,504 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-161804/Moises_B6J_8476_F_10RecNvlCtx_2024-06-10-16-22-11_video.tiff
+2024-07-26 17:58:28,508 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-161804
+2024-07-26 17:58:28,508 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-161804/Moises_B6J_8476_F_10RecNvlCtx_2024-06-10-16-22-11_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-161804
+2024-07-26 17:58:28,508 - INFO - Frame rate: 60
+2024-07-26 17:58:28,508 - INFO - Downsample time: True
+2024-07-26 17:58:28,508 - INFO - Time downsampling factor: 0.5
+2024-07-26 18:15:48,265 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-161804/Moises_B6J_8476_F_10RecNvlCtx_2024-06-10-16-22-11_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-161804/Moises_B6J_8476_F_10RecNvlCtx_2024-06-10-16-22-11_video.tiff
+2024-07-26 18:15:48,417 - INFO - Processing filename: Moises_B6J_8472_M_11Stranger_2024-06-11-12-41-07_video.tiff
+2024-07-26 18:15:48,417 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-123635/Moises_B6J_8472_M_11Stranger_2024-06-11-12-41-07_video.tiff
+2024-07-26 18:15:48,420 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-123635
+2024-07-26 18:15:48,420 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-123635/Moises_B6J_8472_M_11Stranger_2024-06-11-12-41-07_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-123635
+2024-07-26 18:15:48,420 - INFO - Frame rate: 60
+2024-07-26 18:15:48,420 - INFO - Downsample time: True
+2024-07-26 18:15:48,421 - INFO - Time downsampling factor: 0.5
+2024-07-26 20:58:31,191 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-123635/Moises_B6J_8472_M_11Stranger_2024-06-11-12-41-07_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-123635/Moises_B6J_8472_M_11Stranger_2024-06-11-12-41-07_video.tiff
+2024-07-26 20:58:36,516 - INFO - Processing filename: Moises_B6J_8476_F_11Stranger_2024-06-11-13-17-25_video.tiff
+2024-07-26 20:58:36,517 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-131309/Moises_B6J_8476_F_11Stranger_2024-06-11-13-17-25_video.tiff
+2024-07-26 20:58:36,520 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-131309
+2024-07-26 20:58:36,521 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-131309/Moises_B6J_8476_F_11Stranger_2024-06-11-13-17-25_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-131309
+2024-07-26 20:58:36,521 - INFO - Frame rate: 60
+2024-07-26 20:58:36,521 - INFO - Downsample time: True
+2024-07-26 20:58:36,521 - INFO - Time downsampling factor: 0.5
+2024-07-26 22:12:57,674 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-131309/Moises_B6J_8476_F_11Stranger_2024-06-11-13-17-25_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-131309/Moises_B6J_8476_F_11Stranger_2024-06-11-13-17-25_video.tiff
+2024-07-26 22:12:57,856 - INFO - Processing filename: Moises_B6J_8472_M_12Toy_2024-06-13-12-23-22_video.tiff
+2024-07-26 22:12:57,856 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-121909/Moises_B6J_8472_M_12Toy_2024-06-13-12-23-22_video.tiff
+2024-07-26 22:12:57,859 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-121909
+2024-07-26 22:12:57,859 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-121909/Moises_B6J_8472_M_12Toy_2024-06-13-12-23-22_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-121909
+2024-07-26 22:12:57,859 - INFO - Frame rate: 60
+2024-07-26 22:12:57,859 - INFO - Downsample time: True
+2024-07-26 22:12:57,859 - INFO - Time downsampling factor: 0.5
+2024-07-26 23:54:30,960 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-121909/Moises_B6J_8472_M_12Toy_2024-06-13-12-23-22_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-121909/Moises_B6J_8472_M_12Toy_2024-06-13-12-23-22_video.tiff
+2024-07-26 23:54:35,244 - INFO - Processing filename: Moises_B6J_8476_F_12Toy_2024-06-13-12-47-10_video.tiff
+2024-07-26 23:54:35,244 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-124308/Moises_B6J_8476_F_12Toy_2024-06-13-12-47-10_video.tiff
+2024-07-26 23:54:35,248 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-124308
+2024-07-26 23:54:35,248 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-124308/Moises_B6J_8476_F_12Toy_2024-06-13-12-47-10_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-124308
+2024-07-26 23:54:35,249 - INFO - Frame rate: 60
+2024-07-26 23:54:35,249 - INFO - Downsample time: True
+2024-07-26 23:54:35,249 - INFO - Time downsampling factor: 0.5
+2024-07-27 01:02:10,823 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-124308/Moises_B6J_8476_F_12Toy_2024-06-13-12-47-10_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-124308/Moises_B6J_8476_F_12Toy_2024-06-13-12-47-10_video.tiff
+2024-07-27 01:02:15,468 - INFO - Processing filename: Moises_B6J_8472_M_13Pool_2024-06-13-14-25-09_video.tiff
+2024-07-27 01:02:15,468 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-142126/Moises_B6J_8472_M_13Pool_2024-06-13-14-25-09_video.tiff
+2024-07-27 01:02:15,474 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-142126
+2024-07-27 01:02:15,474 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-142126/Moises_B6J_8472_M_13Pool_2024-06-13-14-25-09_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-142126
+2024-07-27 01:02:15,474 - INFO - Frame rate: 60
+2024-07-27 01:02:15,474 - INFO - Downsample time: True
+2024-07-27 01:02:15,474 - INFO - Time downsampling factor: 0.5
+2024-07-27 01:52:16,655 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-142126/Moises_B6J_8472_M_13Pool_2024-06-13-14-25-09_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-142126/Moises_B6J_8472_M_13Pool_2024-06-13-14-25-09_video.tiff
+2024-07-27 01:52:17,701 - INFO - Processing filename: Moises_B6J_8476_F_13Pool_2024-06-13-14-48-44_video.tiff
+2024-07-27 01:52:17,701 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-144558/Moises_B6J_8476_F_13Pool_2024-06-13-14-48-44_video.tiff
+2024-07-27 01:52:17,704 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-144558
+2024-07-27 01:52:17,705 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-144558/Moises_B6J_8476_F_13Pool_2024-06-13-14-48-44_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-144558
+2024-07-27 01:52:17,705 - INFO - Frame rate: 60
+2024-07-27 01:52:17,705 - INFO - Downsample time: True
+2024-07-27 01:52:17,705 - INFO - Time downsampling factor: 0.5
+2024-07-27 03:21:46,065 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-144558/Moises_B6J_8476_F_13Pool_2024-06-13-14-48-44_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-144558/Moises_B6J_8476_F_13Pool_2024-06-13-14-48-44_video.tiff
+2024-07-27 03:21:49,072 - INFO - Processing filename: dHPC-SSCW-052024-HAB01_2024-05-30-15-38-40_video.tiff
+2024-07-27 03:21:49,072 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-152754/dHPC-SSCW-052024-HAB01_2024-05-30-15-38-40_video.tiff
+2024-07-27 03:21:49,074 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-152754
+2024-07-27 03:21:49,077 - INFO - Processing filename: Moises_B6J_8474_F_HAB01_2024-05-30-15-54-00_video.tiff
+2024-07-27 03:21:49,077 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-154619/Moises_B6J_8474_F_HAB01_2024-05-30-15-54-00_video.tiff
+2024-07-27 03:21:49,080 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-154619
+2024-07-27 03:21:49,086 - INFO - Processing filename: Moises_B6J_8472_M_ImageCheck_2024-05-30-13-52-16_video.tiff
+2024-07-27 03:21:49,086 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-ImageCheck_20240530-131902/Moises_B6J_8472_M_ImageCheck_2024-05-30-13-52-16_video.tiff
+2024-07-27 03:21:49,089 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-ImageCheck_20240530-131902
+2024-07-27 03:21:49,090 - INFO - Processing filename: dHPC-SSCW-052024-HAB01_2024-05-30-15-38-40_video.tiff
+2024-07-27 03:21:49,090 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-152754/dHPC-SSCW-052024-HAB01_2024-05-30-15-38-40_video.tiff
+2024-07-27 03:21:49,090 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-152754
+2024-07-27 03:21:49,090 - INFO - Processing filename: Moises_B6J_8474_F_HAB01_2024-05-30-15-54-00_video.tiff
+2024-07-27 03:21:49,090 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-154619/Moises_B6J_8474_F_HAB01_2024-05-30-15-54-00_video.tiff
+2024-07-27 03:21:49,090 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-HAB01_20240530-154619
+2024-07-27 03:21:49,090 - INFO - Processing filename: Moises_B6J_8472_M_ImageCheck_2024-05-30-13-52-16_video.tiff
+2024-07-27 03:21:49,090 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-ImageCheck_20240530-131902/Moises_B6J_8472_M_ImageCheck_2024-05-30-13-52-16_video.tiff
+2024-07-27 03:21:49,090 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-01HAB01/dHPC-SSCW-052024-ImageCheck_20240530-131902
+2024-07-27 03:21:49,097 - INFO - Processing filename: Moises_B6J_8472_M_HAB2_2024-05-31-14-43-01_video.tiff
+2024-07-27 03:21:49,097 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-02HAB02/dHPC-SSCW-052024-HAB2_20240531-143249/Moises_B6J_8472_M_HAB2_2024-05-31-14-43-01_video.tiff
+2024-07-27 03:21:49,100 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-02HAB02/dHPC-SSCW-052024-HAB2_20240531-143249
+2024-07-27 03:21:49,100 - INFO - Processing filename: Moises_B6J_8472_M_HAB2_2024-05-31-14-43-01_video.tiff
+2024-07-27 03:21:49,100 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-02HAB02/dHPC-SSCW-052024-HAB2_20240531-143249/Moises_B6J_8472_M_HAB2_2024-05-31-14-43-01_video.tiff
+2024-07-27 03:21:49,100 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-02HAB02/dHPC-SSCW-052024-HAB2_20240531-143249
+2024-07-27 03:21:49,104 - INFO - Processing filename: Moises_B6J_8472_M_HAB03_2024-06-01-15-32-17_video.tiff
+2024-07-27 03:21:49,104 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-152509/Moises_B6J_8472_M_HAB03_2024-06-01-15-32-17_video.tiff
+2024-07-27 03:21:49,106 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-152509
+2024-07-27 03:21:49,110 - INFO - Processing filename: Moises_B6J_8476_F_HAB03_2024-06-01-15-46-19_video.tiff
+2024-07-27 03:21:49,110 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-154010/Moises_B6J_8476_F_HAB03_2024-06-01-15-46-19_video.tiff
+2024-07-27 03:21:49,113 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-154010
+2024-07-27 03:21:49,113 - INFO - Processing filename: Moises_B6J_8472_M_HAB03_2024-06-01-15-32-17_video.tiff
+2024-07-27 03:21:49,113 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-152509/Moises_B6J_8472_M_HAB03_2024-06-01-15-32-17_video.tiff
+2024-07-27 03:21:49,113 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-152509
+2024-07-27 03:21:49,113 - INFO - Processing filename: Moises_B6J_8476_F_HAB03_2024-06-01-15-46-19_video.tiff
+2024-07-27 03:21:49,113 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-154010/Moises_B6J_8476_F_HAB03_2024-06-01-15-46-19_video.tiff
+2024-07-27 03:21:49,113 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-03HAB03/dHPC-SSCW-May2024-03HAB03_20240601-154010
+2024-07-27 03:21:49,118 - INFO - Processing filename: Moises_B6J_8472_M_04HBT01_2024-06-03-12-06-12_video.tiff
+2024-07-27 03:21:49,119 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-120123/Moises_B6J_8472_M_04HBT01_2024-06-03-12-06-12_video.tiff
+2024-07-27 03:21:49,121 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-120123
+2024-07-27 03:21:49,123 - INFO - Processing filename: Moises_B6J_8476_F_04HBT01_2024-06-03-12-37-47_video.tiff
+2024-07-27 03:21:49,123 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-122914/Moises_B6J_8476_F_04HBT01_2024-06-03-12-37-47_video.tiff
+2024-07-27 03:21:49,125 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-122914
+2024-07-27 03:21:49,125 - INFO - Processing filename: Moises_B6J_8472_M_04HBT01_2024-06-03-12-06-12_video.tiff
+2024-07-27 03:21:49,125 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-120123/Moises_B6J_8472_M_04HBT01_2024-06-03-12-06-12_video.tiff
+2024-07-27 03:21:49,125 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-120123
+2024-07-27 03:21:49,126 - INFO - Processing filename: Moises_B6J_8476_F_04HBT01_2024-06-03-12-37-47_video.tiff
+2024-07-27 03:21:49,126 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-122914/Moises_B6J_8476_F_04HBT01_2024-06-03-12-37-47_video.tiff
+2024-07-27 03:21:49,126 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-04HBT01/dHPC-SSCW-May2024-04HBT01_20240603-122914
+2024-07-27 03:21:49,130 - INFO - Processing filename: Moises_B6J_8472_M_05HBT02_2024-06-04-16-01-43_video.tiff
+2024-07-27 03:21:49,131 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-155853/Moises_B6J_8472_M_05HBT02_2024-06-04-16-01-43_video.tiff
+2024-07-27 03:21:49,133 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-155853
+2024-07-27 03:21:49,135 - INFO - Processing filename: Moises_B6J_8476_F_05HBT02_2024-06-04-16-15-16_video.tiff
+2024-07-27 03:21:49,135 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-161123/Moises_B6J_8476_F_05HBT02_2024-06-04-16-15-16_video.tiff
+2024-07-27 03:21:49,137 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-161123
+2024-07-27 03:21:49,138 - INFO - Processing filename: Moises_B6J_8472_M_05HBT02_2024-06-04-16-01-43_video.tiff
+2024-07-27 03:21:49,138 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-155853/Moises_B6J_8472_M_05HBT02_2024-06-04-16-01-43_video.tiff
+2024-07-27 03:21:49,138 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-155853
+2024-07-27 03:21:49,138 - INFO - Processing filename: Moises_B6J_8476_F_05HBT02_2024-06-04-16-15-16_video.tiff
+2024-07-27 03:21:49,138 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-161123/Moises_B6J_8476_F_05HBT02_2024-06-04-16-15-16_video.tiff
+2024-07-27 03:21:49,138 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-05HBT02/dHPC-SSCW-May2024-05HBT02_20240604-161123
+2024-07-27 03:21:49,150 - INFO - Processing filename: Moises_B6J_8472_M_06HBT03_2024-06-05-17-13-10_video.tiff
+2024-07-27 03:21:49,150 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-170959/Moises_B6J_8472_M_06HBT03_2024-06-05-17-13-10_video.tiff
+2024-07-27 03:21:49,153 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-170959
+2024-07-27 03:21:49,156 - INFO - Processing filename: Moises_B6J_8476_F_06HBT03_2024-06-05-17-27-21_video.tiff
+2024-07-27 03:21:49,156 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-172012/Moises_B6J_8476_F_06HBT03_2024-06-05-17-27-21_video.tiff
+2024-07-27 03:21:49,158 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-172012
+2024-07-27 03:21:49,158 - INFO - Processing filename: Moises_B6J_8472_M_06HBT03_2024-06-05-17-13-10_video.tiff
+2024-07-27 03:21:49,158 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-170959/Moises_B6J_8472_M_06HBT03_2024-06-05-17-13-10_video.tiff
+2024-07-27 03:21:49,158 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-170959
+2024-07-27 03:21:49,158 - INFO - Processing filename: Moises_B6J_8476_F_06HBT03_2024-06-05-17-27-21_video.tiff
+2024-07-27 03:21:49,158 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-172012/Moises_B6J_8476_F_06HBT03_2024-06-05-17-27-21_video.tiff
+2024-07-27 03:21:49,159 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-06HBT03/dHPC-SSCW-May2024-06HBT03_20240605-172012
+2024-07-27 03:21:49,164 - INFO - Processing filename: Moises_B6J_8472_M_07HBT04_2024-06-06-11-20-08_video.tiff
+2024-07-27 03:21:49,164 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-111707/Moises_B6J_8472_M_07HBT04_2024-06-06-11-20-08_video.tiff
+2024-07-27 03:21:49,171 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-111707
+2024-07-27 03:21:49,176 - INFO - Processing filename: Moises_B6J_8476_F_07HBT04_2024-06-06-11-32-22_video.tiff
+2024-07-27 03:21:49,176 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-112844/Moises_B6J_8476_F_07HBT04_2024-06-06-11-32-22_video.tiff
+2024-07-27 03:21:49,179 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-112844
+2024-07-27 03:21:49,180 - INFO - Processing filename: Moises_B6J_8472_M_07HBT04_2024-06-06-11-20-08_video.tiff
+2024-07-27 03:21:49,180 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-111707/Moises_B6J_8472_M_07HBT04_2024-06-06-11-20-08_video.tiff
+2024-07-27 03:21:49,180 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-111707
+2024-07-27 03:21:49,180 - INFO - Processing filename: Moises_B6J_8476_F_07HBT04_2024-06-06-11-32-22_video.tiff
+2024-07-27 03:21:49,180 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-112844/Moises_B6J_8476_F_07HBT04_2024-06-06-11-32-22_video.tiff
+2024-07-27 03:21:49,180 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-07HBT04/dHPC-SSCW-May2024-07HBT04_20240606-112844
+2024-07-27 03:21:49,184 - INFO - Processing filename: Moises_B6J_8476_F_08HBT05_2024-06-07-15-52-06_video.tiff
+2024-07-27 03:21:49,184 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-153716/Moises_B6J_8476_F_08HBT05_2024-06-07-15-52-06_video.tiff
+2024-07-27 03:21:49,186 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-153716
+2024-07-27 03:21:49,190 - INFO - Processing filename: Moises_B6J_8472_M_08HBT05_2024-06-07-16-21-40_video.tiff
+2024-07-27 03:21:49,190 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-161051/Moises_B6J_8472_M_08HBT05_2024-06-07-16-21-40_video.tiff
+2024-07-27 03:21:49,192 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-161051
+2024-07-27 03:21:49,192 - INFO - Processing filename: Moises_B6J_8476_F_08HBT05_2024-06-07-15-52-06_video.tiff
+2024-07-27 03:21:49,192 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-153716/Moises_B6J_8476_F_08HBT05_2024-06-07-15-52-06_video.tiff
+2024-07-27 03:21:49,192 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-153716
+2024-07-27 03:21:49,192 - INFO - Processing filename: Moises_B6J_8472_M_08HBT05_2024-06-07-16-21-40_video.tiff
+2024-07-27 03:21:49,192 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-161051/Moises_B6J_8472_M_08HBT05_2024-06-07-16-21-40_video.tiff
+2024-07-27 03:21:49,192 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-08HBT05/dHPC-SSCW-May2024-08HBT05_20240607-161051
+2024-07-27 03:21:49,197 - INFO - Processing filename: Moises_B6J_8472_M_09HBT06_2024-06-08-15-59-31_video.tiff
+2024-07-27 03:21:49,197 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-155645/Moises_B6J_8472_M_09HBT06_2024-06-08-15-59-31_video.tiff
+2024-07-27 03:21:49,199 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-155645
+2024-07-27 03:21:49,201 - INFO - Processing filename: Moises_B6J_8476_F_09HBT06_2024-06-08-16-15-22_video.tiff
+2024-07-27 03:21:49,201 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-161104/Moises_B6J_8476_F_09HBT06_2024-06-08-16-15-22_video.tiff
+2024-07-27 03:21:49,204 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-161104
+2024-07-27 03:21:49,204 - INFO - Processing filename: Moises_B6J_8472_M_09HBT06_2024-06-08-15-59-31_video.tiff
+2024-07-27 03:21:49,204 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-155645/Moises_B6J_8472_M_09HBT06_2024-06-08-15-59-31_video.tiff
+2024-07-27 03:21:49,204 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-155645
+2024-07-27 03:21:49,204 - INFO - Processing filename: Moises_B6J_8476_F_09HBT06_2024-06-08-16-15-22_video.tiff
+2024-07-27 03:21:49,204 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-161104/Moises_B6J_8476_F_09HBT06_2024-06-08-16-15-22_video.tiff
+2024-07-27 03:21:49,204 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-09HBT06/dHPC-SSCW-May2024-09HBT06_20240608-161104
+2024-07-27 03:21:49,208 - INFO - Processing filename: Moises_B6J_8472_M_10RecNvlCtx_2024-06-10-16-08-47_video.tiff
+2024-07-27 03:21:49,208 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-160328/Moises_B6J_8472_M_10RecNvlCtx_2024-06-10-16-08-47_video.tiff
+2024-07-27 03:21:49,211 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-160328
+2024-07-27 03:21:49,213 - INFO - Processing filename: Moises_B6J_8476_F_10RecNvlCtx_2024-06-10-16-22-11_video.tiff
+2024-07-27 03:21:49,213 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-161804/Moises_B6J_8476_F_10RecNvlCtx_2024-06-10-16-22-11_video.tiff
+2024-07-27 03:21:49,216 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-161804
+2024-07-27 03:21:49,216 - INFO - Processing filename: Moises_B6J_8472_M_10RecNvlCtx_2024-06-10-16-08-47_video.tiff
+2024-07-27 03:21:49,216 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-160328/Moises_B6J_8472_M_10RecNvlCtx_2024-06-10-16-08-47_video.tiff
+2024-07-27 03:21:49,216 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-160328
+2024-07-27 03:21:49,217 - INFO - Processing filename: Moises_B6J_8476_F_10RecNvlCtx_2024-06-10-16-22-11_video.tiff
+2024-07-27 03:21:49,217 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-161804/Moises_B6J_8476_F_10RecNvlCtx_2024-06-10-16-22-11_video.tiff
+2024-07-27 03:21:49,217 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-10RecNvlCtx/dHPC-SSCW-May2024-10RecNvlCtx_20240610-161804
+2024-07-27 03:21:49,223 - INFO - Processing filename: Moises_B6J_8472_M_11Stranger_2024-06-11-12-41-07_video.tiff
+2024-07-27 03:21:49,223 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-123635/Moises_B6J_8472_M_11Stranger_2024-06-11-12-41-07_video.tiff
+2024-07-27 03:21:49,225 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-123635
+2024-07-27 03:21:49,227 - INFO - Processing filename: Moises_B6J_8476_F_11Stranger_2024-06-11-13-17-25_video.tiff
+2024-07-27 03:21:49,227 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-131309/Moises_B6J_8476_F_11Stranger_2024-06-11-13-17-25_video.tiff
+2024-07-27 03:21:49,230 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-131309
+2024-07-27 03:21:49,231 - INFO - Processing filename: Moises_B6J_8472_M_11Stranger_2024-06-11-12-41-07_video.tiff
+2024-07-27 03:21:49,231 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-123635/Moises_B6J_8472_M_11Stranger_2024-06-11-12-41-07_video.tiff
+2024-07-27 03:21:49,231 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-123635
+2024-07-27 03:21:49,231 - INFO - Processing filename: Moises_B6J_8476_F_11Stranger_2024-06-11-13-17-25_video.tiff
+2024-07-27 03:21:49,231 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-131309/Moises_B6J_8476_F_11Stranger_2024-06-11-13-17-25_video.tiff
+2024-07-27 03:21:49,231 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-11Stranger/dHPC-SSCW-May2024-11Stranger_20240611-131309
+2024-07-27 03:21:49,235 - INFO - Processing filename: Moises_B6J_8472_M_12Toy_2024-06-13-12-23-22_video.tiff
+2024-07-27 03:21:49,235 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-121909/Moises_B6J_8472_M_12Toy_2024-06-13-12-23-22_video.tiff
+2024-07-27 03:21:49,237 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-121909
+2024-07-27 03:21:49,239 - INFO - Processing filename: Moises_B6J_8476_F_12Toy_2024-06-13-12-47-10_video.tiff
+2024-07-27 03:21:49,239 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-124308/Moises_B6J_8476_F_12Toy_2024-06-13-12-47-10_video.tiff
+2024-07-27 03:21:49,241 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-124308
+2024-07-27 03:21:49,241 - INFO - Processing filename: Moises_B6J_8472_M_12Toy_2024-06-13-12-23-22_video.tiff
+2024-07-27 03:21:49,241 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-121909/Moises_B6J_8472_M_12Toy_2024-06-13-12-23-22_video.tiff
+2024-07-27 03:21:49,241 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-121909
+2024-07-27 03:21:49,241 - INFO - Processing filename: Moises_B6J_8476_F_12Toy_2024-06-13-12-47-10_video.tiff
+2024-07-27 03:21:49,242 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-124308/Moises_B6J_8476_F_12Toy_2024-06-13-12-47-10_video.tiff
+2024-07-27 03:21:49,242 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-12Toy/dHPC-SSCW-May2024-12Toy_20240613-124308
+2024-07-27 03:21:49,247 - INFO - Processing filename: Moises_B6J_8472_M_13Pool_2024-06-13-14-25-09_video.tiff
+2024-07-27 03:21:49,247 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-142126/Moises_B6J_8472_M_13Pool_2024-06-13-14-25-09_video.tiff
+2024-07-27 03:21:49,479 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-142126
+2024-07-27 03:21:49,481 - INFO - Processing filename: Moises_B6J_8476_F_13Pool_2024-06-13-14-48-44_video.tiff
+2024-07-27 03:21:49,481 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-144558/Moises_B6J_8476_F_13Pool_2024-06-13-14-48-44_video.tiff
+2024-07-27 03:21:49,482 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-144558
+2024-07-27 03:21:49,482 - INFO - Processing filename: Moises_B6J_8472_M_13Pool_2024-06-13-14-25-09_video.tiff
+2024-07-27 03:21:49,483 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-142126/Moises_B6J_8472_M_13Pool_2024-06-13-14-25-09_video.tiff
+2024-07-27 03:21:49,483 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-142126
+2024-07-27 03:21:49,483 - INFO - Processing filename: Moises_B6J_8476_F_13Pool_2024-06-13-14-48-44_video.tiff
+2024-07-27 03:21:49,483 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-144558/Moises_B6J_8476_F_13Pool_2024-06-13-14-48-44_video.tiff
+2024-07-27 03:21:49,483 - INFO - File already exists: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-13Pool/dHPC-SSCW-May2024-13Pool_20240613-144558
+2024-07-27 03:21:49,509 - INFO - Processing filename: tiff_data_8133_F.tiff
+2024-07-27 03:21:49,509 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-HBT1/Moises_B6J_8133_F_2024-03-14-13-33-42/tiff_data_8133_F.tiff
+2024-07-27 03:21:49,512 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-HBT1/Moises_B6J_8133_F_2024-03-14-13-33-42
+2024-07-27 03:21:49,512 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-HBT1/Moises_B6J_8133_F_2024-03-14-13-33-42/tiff_data_8133_F.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-HBT1/Moises_B6J_8133_F_2024-03-14-13-33-42
+2024-07-27 03:21:49,512 - INFO - Frame rate: 60
+2024-07-27 03:21:49,512 - INFO - Downsample time: True
+2024-07-27 03:21:49,512 - INFO - Time downsampling factor: 0.5
+2024-07-27 04:48:52,516 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-HBT1/Moises_B6J_8133_F_2024-03-14-13-33-42/tiff_data_8133_F.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-HBT1/Moises_B6J_8133_F_2024-03-14-13-33-42/tiff_data_8133_F.tiff
+2024-07-27 04:48:58,816 - INFO - Processing filename: tiff_file_7964_F.tiff
+2024-07-27 04:48:58,816 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-125159/tiff_file_7964_F.tiff
+2024-07-27 04:48:58,819 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-125159
+2024-07-27 04:48:58,820 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-125159/tiff_file_7964_F.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-125159
+2024-07-27 04:48:58,820 - INFO - Frame rate: 60
+2024-07-27 04:48:58,820 - INFO - Downsample time: True
+2024-07-27 04:48:58,820 - INFO - Time downsampling factor: 0.5
+2024-07-27 07:03:37,644 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-125159/tiff_file_7964_F.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-125159/tiff_file_7964_F.tiff
+2024-07-27 07:03:41,902 - INFO - Processing filename: tiff_data_8010_M.tiff
+2024-07-27 07:03:41,902 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-160646/tiff_data_8010_M.tiff
+2024-07-27 07:03:41,906 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-160646
+2024-07-27 07:03:41,906 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-160646/tiff_data_8010_M.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-160646
+2024-07-27 07:03:41,906 - INFO - Frame rate: 60
+2024-07-27 07:03:41,906 - INFO - Downsample time: True
+2024-07-27 07:03:41,906 - INFO - Time downsampling factor: 0.5
+2024-07-27 09:30:21,724 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-160646/tiff_data_8010_M.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Stranger/dHPC-SSCW-032024-Stranger_20240321-160646/tiff_data_8010_M.tiff
+2024-07-27 09:30:25,569 - INFO - Processing completed.
+2024-07-29 13:53:24,448 - INFO - Processing filename: Moises_B6J_8472_M_15REMHBT_2024-07-08-15-21-25_video.tiff
+2024-07-29 13:53:24,456 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-114431/Moises_B6J_8472_M_15REMHBT_2024-07-08-15-21-25_video.tiff
+2024-07-29 13:53:24,459 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-114431
+2024-07-29 13:53:24,460 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-114431/Moises_B6J_8472_M_15REMHBT_2024-07-08-15-21-25_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-114431
+2024-07-29 13:53:24,461 - INFO - Frame rate: 60
+2024-07-29 13:53:24,462 - INFO - Downsample time: True
+2024-07-29 13:53:24,463 - INFO - Time downsampling factor: 0.5
+2024-07-29 14:28:02,235 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-114431/Moises_B6J_8472_M_15REMHBT_2024-07-08-15-21-25_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-114431/Moises_B6J_8472_M_15REMHBT_2024-07-08-15-21-25_video.tiff
+2024-07-29 14:28:05,603 - INFO - Processing filename: Moises_B6J_8476_F_15REMHBT_2024-07-08-11-49-08_video.tiff
+2024-07-29 14:28:05,605 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-120108/Moises_B6J_8476_F_15REMHBT_2024-07-08-11-49-08_video.tiff
+2024-07-29 14:28:05,609 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-120108
+2024-07-29 14:28:05,611 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-120108/Moises_B6J_8476_F_15REMHBT_2024-07-08-11-49-08_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-120108
+2024-07-29 14:28:05,612 - INFO - Frame rate: 60
+2024-07-29 14:28:05,614 - INFO - Downsample time: True
+2024-07-29 14:28:05,615 - INFO - Time downsampling factor: 0.5
+2024-07-29 14:32:58,736 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-120108/Moises_B6J_8476_F_15REMHBT_2024-07-08-11-49-08_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-15REMHBT/dHPC-SSCW-May2024-15REMHBT_20240708-120108/Moises_B6J_8476_F_15REMHBT_2024-07-08-11-49-08_video.tiff
+2024-07-29 14:32:58,944 - INFO - Processing filename: Moises_B6J_8472_M_16REMNvl_2024-07-09-14-47-37_video.tiff
+2024-07-29 14:32:58,945 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-144406/Moises_B6J_8472_M_16REMNvl_2024-07-09-14-47-37_video.tiff
+2024-07-29 14:32:58,948 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-144406
+2024-07-29 14:32:58,948 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-144406/Moises_B6J_8472_M_16REMNvl_2024-07-09-14-47-37_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-144406
+2024-07-29 14:32:58,948 - INFO - Frame rate: 60
+2024-07-29 14:32:58,948 - INFO - Downsample time: True
+2024-07-29 14:32:58,948 - INFO - Time downsampling factor: 0.5
+2024-07-29 14:45:47,073 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-144406/Moises_B6J_8472_M_16REMNvl_2024-07-09-14-47-37_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-144406/Moises_B6J_8472_M_16REMNvl_2024-07-09-14-47-37_video.tiff
+2024-07-29 14:45:47,427 - INFO - Processing filename: Moises_B6J_8476_F_16REMNvl_2024-07-09-15-04-20_video.tiff
+2024-07-29 14:45:47,427 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-150105/Moises_B6J_8476_F_16REMNvl_2024-07-09-15-04-20_video.tiff
+2024-07-29 14:45:47,429 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-150105
+2024-07-29 14:45:47,429 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-150105/Moises_B6J_8476_F_16REMNvl_2024-07-09-15-04-20_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-150105
+2024-07-29 14:45:47,429 - INFO - Frame rate: 60
+2024-07-29 14:45:47,429 - INFO - Downsample time: True
+2024-07-29 14:45:47,429 - INFO - Time downsampling factor: 0.5
+2024-07-29 14:48:55,165 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-150105/Moises_B6J_8476_F_16REMNvl_2024-07-09-15-04-20_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-16REMNvl/dHPC-SSCW-May2024-16REMNvl_20240709-150105/Moises_B6J_8476_F_16REMNvl_2024-07-09-15-04-20_video.tiff
+2024-07-29 14:48:55,287 - INFO - Processing completed.
+2024-07-29 14:58:08,184 - INFO - Processing filename: Moises_B6J_8010_M_Empty_2024-03-26-11-20-26_video.tiff
+2024-07-29 14:58:08,185 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-111450/Moises_B6J_8010_M_Empty_2024-03-26-11-20-26_video.tiff
+2024-07-29 14:58:08,188 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-111450
+2024-07-29 14:58:08,190 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-111450/Moises_B6J_8010_M_Empty_2024-03-26-11-20-26_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-111450
+2024-07-29 14:58:08,193 - INFO - Frame rate: 40
+2024-07-29 14:58:08,194 - INFO - Downsample time: True
+2024-07-29 14:58:08,195 - INFO - Time downsampling factor: 0.75
+2024-07-29 15:00:46,204 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-111450/Moises_B6J_8010_M_Empty_2024-03-26-11-20-26_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-111450/Moises_B6J_8010_M_Empty_2024-03-26-11-20-26_video.tiff
+2024-07-29 15:00:46,306 - INFO - Processing filename: Moises_B6J_7964_F_Empty_2024-03-26-11-33-58_video.tiff
+2024-07-29 15:00:46,306 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-112724/Moises_B6J_7964_F_Empty_2024-03-26-11-33-58_video.tiff
+2024-07-29 15:00:46,310 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-112724
+2024-07-29 15:00:46,310 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-112724/Moises_B6J_7964_F_Empty_2024-03-26-11-33-58_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-112724
+2024-07-29 15:00:46,310 - INFO - Frame rate: 40
+2024-07-29 15:00:46,310 - INFO - Downsample time: True
+2024-07-29 15:00:46,310 - INFO - Time downsampling factor: 0.75
+2024-07-29 15:03:57,428 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-112724/Moises_B6J_7964_F_Empty_2024-03-26-11-33-58_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-112724/Moises_B6J_7964_F_Empty_2024-03-26-11-33-58_video.tiff
+2024-07-29 15:03:57,556 - INFO - Processing filename: Moises_B6J_8133_F_Empty_2024-03-26-11-47-20_video.tiff
+2024-07-29 15:03:57,556 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-114135/Moises_B6J_8133_F_Empty_2024-03-26-11-47-20_video.tiff
+2024-07-29 15:03:57,558 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-114135
+2024-07-29 15:03:57,558 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-114135/Moises_B6J_8133_F_Empty_2024-03-26-11-47-20_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-114135
+2024-07-29 15:03:57,558 - INFO - Frame rate: 40
+2024-07-29 15:03:57,558 - INFO - Downsample time: True
+2024-07-29 15:03:57,558 - INFO - Time downsampling factor: 0.75
+2024-07-29 15:07:39,488 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-114135/Moises_B6J_8133_F_Empty_2024-03-26-11-47-20_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Empty/dHPC-SSCW-032024-Empty_20240326-114135/Moises_B6J_8133_F_Empty_2024-03-26-11-47-20_video.tiff
+2024-07-29 15:07:39,629 - INFO - Processing filename: Moises_B6J_8010_M_Toy_2024-03-22-16-07-34_video.tiff
+2024-07-29 15:07:39,629 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-155942/Moises_B6J_8010_M_Toy_2024-03-22-16-07-34_video.tiff
+2024-07-29 15:07:39,632 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-155942
+2024-07-29 15:07:39,632 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-155942/Moises_B6J_8010_M_Toy_2024-03-22-16-07-34_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-155942
+2024-07-29 15:07:39,632 - INFO - Frame rate: 40
+2024-07-29 15:07:39,632 - INFO - Downsample time: True
+2024-07-29 15:07:39,632 - INFO - Time downsampling factor: 0.75
+2024-07-29 15:11:58,654 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-155942/Moises_B6J_8010_M_Toy_2024-03-22-16-07-34_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-155942/Moises_B6J_8010_M_Toy_2024-03-22-16-07-34_video.tiff
+2024-07-29 15:11:58,777 - INFO - Processing filename: Moises_B6J_7964_F_Toy_2024-03-22-16-20-33_video.tiff
+2024-07-29 15:11:58,778 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-161404/Moises_B6J_7964_F_Toy_2024-03-22-16-20-33_video.tiff
+2024-07-29 15:11:58,780 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-161404
+2024-07-29 15:11:58,780 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-161404/Moises_B6J_7964_F_Toy_2024-03-22-16-20-33_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-161404
+2024-07-29 15:11:58,780 - INFO - Frame rate: 40
+2024-07-29 15:11:58,780 - INFO - Downsample time: True
+2024-07-29 15:11:58,780 - INFO - Time downsampling factor: 0.75
+2024-07-29 15:15:58,315 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-161404/Moises_B6J_7964_F_Toy_2024-03-22-16-20-33_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-161404/Moises_B6J_7964_F_Toy_2024-03-22-16-20-33_video.tiff
+2024-07-29 15:15:58,449 - INFO - Processing filename: Moises_B6J_8133_F_Toy_2024-03-22-16-32-45_video.tiff
+2024-07-29 15:15:58,449 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-162803/Moises_B6J_8133_F_Toy_2024-03-22-16-32-45_video.tiff
+2024-07-29 15:15:58,451 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-162803
+2024-07-29 15:15:58,451 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-162803/Moises_B6J_8133_F_Toy_2024-03-22-16-32-45_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-162803
+2024-07-29 15:15:58,451 - INFO - Frame rate: 40
+2024-07-29 15:15:58,452 - INFO - Downsample time: True
+2024-07-29 15:15:58,452 - INFO - Time downsampling factor: 0.75
+2024-07-29 15:18:26,345 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-162803/Moises_B6J_8133_F_Toy_2024-03-22-16-32-45_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Toy/dHPC-SSCW-032024-Toy_20240322-162803/Moises_B6J_8133_F_Toy_2024-03-22-16-32-45_video.tiff
+2024-07-29 15:18:26,490 - INFO - Processing filename: Moises_B6J_8010_M_Pool_2024-03-25-11-31-24_video.tiff
+2024-07-29 15:18:26,490 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-112607/Moises_B6J_8010_M_Pool_2024-03-25-11-31-24_video.tiff
+2024-07-29 15:18:26,493 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-112607
+2024-07-29 15:18:26,493 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-112607/Moises_B6J_8010_M_Pool_2024-03-25-11-31-24_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-112607
+2024-07-29 15:18:26,493 - INFO - Frame rate: 40
+2024-07-29 15:18:26,493 - INFO - Downsample time: True
+2024-07-29 15:18:26,493 - INFO - Time downsampling factor: 0.75
+2024-07-29 15:20:54,082 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-112607/Moises_B6J_8010_M_Pool_2024-03-25-11-31-24_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-112607/Moises_B6J_8010_M_Pool_2024-03-25-11-31-24_video.tiff
+2024-07-29 15:20:54,185 - INFO - Processing filename: Moises_B6J_7964_F_Pool_2024-03-25-11-42-07_video.tiff
+2024-07-29 15:20:54,185 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-113729/Moises_B6J_7964_F_Pool_2024-03-25-11-42-07_video.tiff
+2024-07-29 15:20:54,188 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-113729
+2024-07-29 15:20:54,189 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-113729/Moises_B6J_7964_F_Pool_2024-03-25-11-42-07_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-113729
+2024-07-29 15:20:54,189 - INFO - Frame rate: 40
+2024-07-29 15:20:54,189 - INFO - Downsample time: True
+2024-07-29 15:20:54,189 - INFO - Time downsampling factor: 0.75
+2024-07-29 15:23:44,883 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-113729/Moises_B6J_7964_F_Pool_2024-03-25-11-42-07_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-113729/Moises_B6J_7964_F_Pool_2024-03-25-11-42-07_video.tiff
+2024-07-29 15:23:44,999 - INFO - Processing filename: Moises_B6J_8133_F_Pool_2024-03-25-11-53-19_video.tiff
+2024-07-29 15:23:44,999 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-114804/Moises_B6J_8133_F_Pool_2024-03-25-11-53-19_video.tiff
+2024-07-29 15:23:45,002 - INFO - Output: data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-114804
+2024-07-29 15:23:45,002 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-114804/Moises_B6J_8133_F_Pool_2024-03-25-11-53-19_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-114804
+2024-07-29 15:23:45,002 - INFO - Frame rate: 40
+2024-07-29 15:23:45,002 - INFO - Downsample time: True
+2024-07-29 15:23:45,003 - INFO - Time downsampling factor: 0.75
+2024-07-29 15:27:36,372 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-114804/Moises_B6J_8133_F_Pool_2024-03-25-11-53-19_video.tiff -> data/Mar_2024/miniscope-dHPC-SSCW-032024/dHPC-SSCW-032024-Pool/dHPC-SSCW-032024-Pool_20240325-114804/Moises_B6J_8133_F_Pool_2024-03-25-11-53-19_video.tiff
+2024-07-29 15:27:36,492 - INFO - Processing completed.
+2024-07-31 11:56:47,989 - INFO - Processing filename: Moises_B6J_8472_M_14Empty_2024-06-14-15-19-56_video.tiff
+2024-07-31 11:56:47,993 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-151419/Moises_B6J_8472_M_14Empty_2024-06-14-15-19-56_video.tiff
+2024-07-31 11:56:47,996 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-151419
+2024-07-31 11:56:47,997 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-151419/Moises_B6J_8472_M_14Empty_2024-06-14-15-19-56_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-151419
+2024-07-31 11:56:47,998 - INFO - Frame rate: 60
+2024-07-31 11:56:47,999 - INFO - Downsample time: True
+2024-07-31 11:56:48,000 - INFO - Time downsampling factor: 0.5
+2024-07-31 12:30:45,965 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-151419/Moises_B6J_8472_M_14Empty_2024-06-14-15-19-56_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-151419/Moises_B6J_8472_M_14Empty_2024-06-14-15-19-56_video.tiff
+2024-07-31 12:30:53,800 - INFO - Processing filename: Moises_B6J_8476_F_14Empty_2024-06-14-15-43-48_video.tiff
+2024-07-31 12:30:53,801 - INFO - Processing input path: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-153720/Moises_B6J_8476_F_14Empty_2024-06-14-15-43-48_video.tiff
+2024-07-31 12:30:53,806 - INFO - Output: data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-153720
+2024-07-31 12:30:53,808 - INFO - Downsampling: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-153720/Moises_B6J_8476_F_14Empty_2024-06-14-15-43-48_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-153720
+2024-07-31 12:30:53,809 - INFO - Frame rate: 60
+2024-07-31 12:30:53,810 - INFO - Downsample time: True
+2024-07-31 12:30:53,811 - INFO - Time downsampling factor: 0.5
+2024-07-31 12:53:06,984 - INFO - Processed: /home/aagafono/linstore/CogEm/Projects/helping_behavior/data/dHPC_miniscope/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-153720/Moises_B6J_8476_F_14Empty_2024-06-14-15-43-48_video.tiff -> data/May_2024/miniscope-dHPC-SSCW-052024/dHPC-SSCW-May2024-14Empty/dHPC-SSCW-May2024-14Empty_20240614-153720/Moises_B6J_8476_F_14Empty_2024-06-14-15-43-48_video.tiff
+2024-07-31 12:53:09,717 - INFO - Processing completed.
