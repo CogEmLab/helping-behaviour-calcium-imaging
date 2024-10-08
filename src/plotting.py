@@ -5,21 +5,97 @@ from matplotlib.cm import ScalarMappable
 from scipy import stats
 import seaborn as sns
 import os
+from scipy.optimize import curve_fit
+from scipy.stats import ks_2samp
+
+def plot_ecdf_with_ks_test(true_values, shuffled_values, ax=None, 
+                           significance_color='r', shuffled_signal_color='grey', 
+                           p_value_threshold=0.05, filename=None):
+    """
+    Plot ECDF for true and shuffled data, perform the Kolmogorov-Smirnov (KS) test, and 
+    display the results with a significance star if the p-value is below the threshold. 
+    Optionally save the plot to a file.
+
+    Parameters
+    ----------
+    true_values : array-like
+        Array of true values for comparison.
+    shuffled_values : array-like
+        Array of shuffled values for comparison.
+    ax : matplotlib axis object, optional
+        The axis to plot on. If None, create a new figure and axis.
+    significance_color : str, optional
+        Color of the significance star (default is 'r' - red).
+    shuffled_signal_color : str, optional
+        Color for the ECDF plot of the shuffled data (default is 'grey').
+    p_value_threshold : float, optional
+        Threshold for statistical significance (default is 0.05).
+    filename : str, optional
+        If provided, the plot will be saved as both PNG and EPS with the given filename.
+    """
+    
+    # Create a new figure and axis if one is not provided
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 6))
+    
+    # Plot ECDF for True and Shuffled values
+    sns.ecdfplot(true_values, ax=ax, label='True', color='k', alpha=0.9)
+    sns.ecdfplot(shuffled_values, ax=ax, label='Shuffled', color=shuffled_signal_color, alpha=0.9)
+
+    # Set axis limits and aesthetics
+    ax.set_xlim(-1, 1)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    # Perform the Kolmogorov-Smirnov test
+    ks_result = ks_2samp(shuffled_values, true_values)
+
+    # Add the KS test results to the plot
+    ax.text(0.05, 0.9, f'stat = {ks_result[0]:.2e}', 
+            transform=ax.transAxes, verticalalignment='top', color='black')
+    
+    # Add the p-value to the plot
+    ax.text(0.05, 0.85, f'p = {ks_result[1]:.2e}', 
+            transform=ax.transAxes, verticalalignment='top', color='black')
+
+    # If the p-value is below the threshold, add a significance star
+    if ks_result[1] < p_value_threshold:
+        ax.text(0.35, 1, ' *', 
+                transform=ax.transAxes, verticalalignment='top', 
+                color=significance_color, fontsize=14)  # Customize the position and size of the star
+
+    # If a filename is provided, save the plot
+    if filename is not None:
+        # Create the directory if it doesn't exist
+        directory = os.path.dirname(filename)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        # Save the plot to both PNG and EPS formats
+        plt.savefig(filename + '.png', dpi=300)
+        plt.savefig(filename + '.eps')
+        plt.close(plt.gcf())  # Close the figure after saving
+    else:
+        return ax
+
+def exp_func(x, a, b):
+            return a * np.exp(b * x)
 
 def plot_scatter(
     x, 
     y, 
-    ax, 
+    ax=None, 
     title='', 
     xlabel='', 
     ylabel='', 
     alpha=0.5, 
     s=1, 
-    c='k', 
+    c='k',  # Color for scatter points
+    significance_color='r',  # Color for significance star only
     xlim=None, 
     ylim=None, 
     fit_type=None,   # 'linear' or 'exponential', or None for no fit
     perform_test=False, # If True, perform statistical test (Pearson correlation)
+    p_value_threshold=0.05,  # Threshold for significance
     filename=None # If present, save to both png and eps
 ):
     """
@@ -32,8 +108,8 @@ def plot_scatter(
         X values for the scatter plot.
     y : array-like
         Y values for the scatter plot.
-    ax : matplotlib axis object
-        The axis to plot on.
+    ax : matplotlib axis object, optional
+        The axis to plot on. If None, create a new figure and axis.
     title : str, optional
         The title of the plot. Default is an empty string.
     xlabel : str, optional
@@ -46,6 +122,8 @@ def plot_scatter(
         The size of the points. Default is 1.
     c : color, optional
         The color of the points. Default is 'k' (black).
+    significance_color : color, optional
+        The color of the significance star only. Default is 'r' (red).
     xlim : tuple, optional
         Limits for the x-axis. Default is None.
     ylim : tuple, optional
@@ -54,6 +132,8 @@ def plot_scatter(
         Type of fit to apply: 'linear', 'exponential', or None for no fit.
     perform_test : bool, optional
         If True, perform a statistical test (Pearson correlation) and display results.
+    p_value_threshold : float, optional
+        Threshold for statistical significance (default is 0.05).
     filename : str, optional
         If present, save to both png and eps with the given filename.
 
@@ -63,19 +143,30 @@ def plot_scatter(
         The axis with the scatter plot and optional fit.
     """
     
+    # Convert x and y to 1D numpy arrays if they are not
+    x = np.array(x).flatten()
+    y = np.array(y).flatten()
+
+    if ax is None:
+        # Create a small figure if ax is not provided
+        fig, ax = plt.subplots(figsize=(8, 8))
+    
     # Plot the scatter plot
     ax.scatter(x, y, alpha=alpha, s=s, c=c)
 
     # Set title and labels
-    ax.set_title(title, fontsize=16)
-    ax.set_xlabel(xlabel, fontsize=12)
-    ax.set_ylabel(ylabel, fontsize=12)
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
 
     # Set axis limits if provided
     if xlim is not None:
         ax.set_xlim(xlim)
     if ylim is not None:
         ax.set_ylim(ylim)
+
+    # Set y ticks to be -1, -0.5, 0, 0.5, 1
+    ax.set_yticks([-1, -0.5, 0, 0.5, 1])
 
     # Turn off the top and right spines for clean aesthetics
     ax.spines['top'].set_visible(False)
@@ -89,28 +180,56 @@ def plot_scatter(
         ax.plot(x, fit_line, color='red', label=f'Linear fit (r={r_value:.2f}, p={p_value:.2e})')
         ax.legend()
 
-    elif fit_type == 'exponential':
-        # Exponential fit: y = a * exp(b * x)
-        # We take the logarithm of y for linearization: log(y) = log(a) + b * x
-        log_y = np.log(y)
-        mask = np.isfinite(log_y)  # Filter non-finite values
-        slope, intercept, r_value, p_value, std_err = stats.linregress(x[mask], log_y[mask])
-        fit_line = np.exp(slope * np.array(x) + intercept)
-        ax.plot(x, fit_line, color='green', label=f'Exponential fit (r={r_value:.2f}, p={p_value:.2e})')
+    if fit_type == 'exponential':
+        # TODO: fix the fitting. it doesn't work.
+        # Perform exponential fit
+        x_nonan = x[np.isfinite(x) & np.isfinite(y)]
+        y_nonan = y[np.isfinite(x) & np.isfinite(y)]
+        popt, pcov = curve_fit(exp_func, x_nonan, y_nonan)
+        fit_line = exp_func(x_nonan, *popt)
+        ax.plot(x_nonan, fit_line, color='red', label=f'Exponential fit (a={popt[0]:.2f}, b={popt[1]:.2f})')
         ax.legend()
 
     # Perform Pearson correlation as a statistical test if required
     if perform_test:
-        corr_coef, p_value = stats.pearsonr(x, y)
-        # Update the title with test results
-        ax.set_title(f"{title} (r={corr_coef:.2f}, p={p_value:.2e})")
+        x_nonan = x[np.isfinite(x) & np.isfinite(y)]
+        y_nonan = y[np.isfinite(x) & np.isfinite(y)]
+        corr_coef, p_value = stats.pearsonr(x_nonan, y_nonan)
+
+        # Prepare the results string, adding a star if p-value is significant
+        significance_star = ''
+        if float(p_value) < p_value_threshold:
+            significance_star = ' *'  # Add a star for significant p-values
+
+        # Display the test results
+        ax.text(
+            0.05, 0.9, 
+            f"r={corr_coef:.2f}, p={p_value:.2e}", 
+            transform=ax.transAxes, 
+            color='black'  # Keep main text black
+        )
+
+        # Display the star next to the text, if applicable
+        if significance_star:
+            ax.text(
+                0.45, 0.9,  # Positioning the star to appear next to the p-value text
+                significance_star, 
+                transform=ax.transAxes, 
+                color=significance_color,  # Use the specified significance color for the star
+                fontsize=14  # You can adjust this size to better match the plot
+            )
 
     if filename is not None:
+        # Create the directory if it doesn't exist
+        directory = os.path.dirname(filename)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
         # Save the plot to both png and eps
         plt.savefig(filename + '.png', dpi=300)
         plt.savefig(filename + '.eps')
-
-    return ax
+        plt.close(plt.gcf()) # make sure to close the figure afterwards
+    else:
+        return ax
 
 def plot_matrix(matrix, ax=None, title='', xlabel='', ylabel='', cbar_label='', cmap='viridis', vmin=None, vmax=None, aspect='auto', xticks=None, xticklabels=None, yticks=None, yticklabels=None, save_path=None, cbar=True):
     """
@@ -246,22 +365,30 @@ def plot_distance_matrix(axes, distances, title='Distance matrix', aspect='equal
 
     return ax
 
-def plot_correlated_traces(ax, traces, component_pairs, distances=None, annotations=None, color_palette='husl', n_to_plot=8, vertical_shift=10, line_alpha=0.7, text_offset=5):
+def plot_correlated_traces(ax=None, traces=None, component_pairs=None, distances=None, correlation_matrix=None, annotations=None, victim_lib_time=None, liberation_cell_ids=None, title=None, color_palette='husl', n_to_plot=6, vertical_shift=10, line_alpha=0.9, line_width=0.5, text_offset=5, filename=None, fps=30):
     """
     Plot paired traces with optional annotations and distances.
 
     Parameters
     ----------
     ax : matplotlib.axes.Axes
-        The axis to plot on.
+        The axis to plot on. If None, a new figure and axis are created.
     traces : numpy.ndarray
         2D array where each row is a trace to be plotted; 1st row are real indecies in the original array.
     component_pairs : tuple
         Tuple of two lists/arrays, each containing indices of components to be paired for plotting.
     distances : numpy.ndarray, optional
         2D distance matrix between components. Defaults to None.
+    correlation_matrix : numpy.ndarray, optional
+        2D correlation matrix between components. Defaults to None.
     annotations : dict, optional
         Dictionary with annotation names as keys and list of tuples (start, end) as values. Defaults to None.
+    victim_lib_time : float, optional
+        Timestamp of the victim liberation. If provided, will be plotted as a dashed vertical line. Defaults to None.
+    liberation_cell_ids : list, optional
+        List of ids of liberation cells. If a cell id is same as one of these, change its color to tab:red. Defaults to None.
+    title : str, optional
+        Title of the plot. Defaults to None.
     color_palette : str, optional
         Name of the Seaborn color palette to use for annotations. Defaults to 'husl'.
     n_to_plot : int, optional
@@ -270,11 +397,22 @@ def plot_correlated_traces(ax, traces, component_pairs, distances=None, annotati
         Vertical shift to apply between successive traces. Defaults to 10.
     line_alpha : float, optional
         Alpha transparency for the trace lines. Defaults to 0.7.
+    line_width : float, optional
+        Line width for the trace lines. Defaults to 0.5.
+    text_offset : int, optional
+        Offset for text labels. Defaults to 5.
+    filename : str, optional
+        If provided, save the figure in png and eps formats and close the figure. Defaults to None.
+    fps : int, optional
+        Frames per second. Defaults to 30.
 
     Returns
     -------
     None
     """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(20, 10))
+
     n_to_plot = min(n_to_plot, len(component_pairs))
 
     # Generate a color palette based on the number of annotations
@@ -286,17 +424,72 @@ def plot_correlated_traces(ax, traces, component_pairs, distances=None, annotati
     if annotations is not None and colors is not None:
         for j, (annotation, timestamps) in enumerate(annotations.items()):
             for start, end in timestamps:
-                ax.axvspan(start, end, label=annotation, color=colors[j], alpha=0.3)
+                ax.axvspan(start / fps, end / fps, label=annotation, color=colors[j], alpha=0.3)
 
-    # Plot the paired traces
-    for i, (idx1, idx2) in enumerate(component_pairs[:n_to_plot]):
-        ax.plot(traces[idx1, 1:] + vertical_shift * i, color='k', alpha=line_alpha)
-        ax.plot(traces[idx2, 1:] + vertical_shift * i, color='tab:blue', alpha=line_alpha)
+    # Plot victim liberation timestamp (if provided)
+    if victim_lib_time is not None:
+        ax.axvline(victim_lib_time, color='k', linestyle='dashed', linewidth=2)
 
-        # Add distance if provided
-        if distances is not None:
-            distance = distances[idx1, idx2]
-            ax.text(10, vertical_shift * i + text_offset, f'Distance between cell {int(idx1)} and cell {int(idx2)}: {distance:.2f}', fontsize=12)
+    # Plot the paired traces sorted by correlation value
+    correlation_values = [correlation_matrix[idx1, idx2] for idx1, idx2 in component_pairs[:n_to_plot]]
+    sorted_indices = np.argsort(correlation_values)[::-1]
+    for i, idx in enumerate(sorted_indices):
+        idx1, idx2 = component_pairs[idx]
+        color1 = 'k' if liberation_cell_ids is None or idx1 not in liberation_cell_ids else 'tab:red'
+        color2 = '#2AC5F4' if liberation_cell_ids is None or idx2 not in liberation_cell_ids else 'tab:red'
+        ax.plot(traces[idx1, 1:] + vertical_shift * i, color=color1, alpha=line_alpha, linewidth=line_width)
+        ax.plot(traces[idx2, 1:] + vertical_shift * i, color=color2, alpha=line_alpha, linewidth=line_width)
+
+        # # Add distance and/or correlation if provided
+        # if distances is not None and correlation_matrix is not None:
+        #     distance = distances[idx1, idx2]
+        #     correlation = correlation_matrix[idx1, idx2]
+        #     ax.text(10, vertical_shift * i + text_offset, f'Distance between cell {int(idx1)} and cell {int(idx2)}: {distance:.2f}, Correlation: {correlation:.2f}', fontsize=12)
+    
+    if len(correlation_values) > 0:
+        # Add an arrow showing an increase of PCC
+        arrow_head_width = 10
+        arrow_head_length = 5
+        arrow_start_x = -10
+        arrow_start_y = 0
+        arrow_dx = 0 - 5
+        arrow_dy = vertical_shift * n_to_plot
+
+        # Fix the arrow
+        # ax.arrow(arrow_start_x, arrow_start_y, arrow_dx, arrow_dy, head_width=arrow_head_width, head_length=arrow_head_length, fc='k', ec='k', lw=1)
+
+        # Add text labels
+        ax.text(arrow_start_x - 15, arrow_start_y, f'{correlation_values[0]:.2f}', ha='right', va='center', fontsize=12)
+        ax.text(arrow_start_x - 25, arrow_start_y + arrow_dy/2, 'Increasing PCC', ha='center', va='center', fontsize=14, rotation=90)
+        ax.text(arrow_start_x - 15, arrow_start_y + arrow_dy, f'{correlation_values[-1]:.2f}', ha='right', va='center', fontsize=12)
+
+    # Set xticks to be in seconds
+    tick_locs = np.linspace(-20, traces.shape[1], 10, endpoint=False).astype(int)
+    ax.set_xticks(tick_locs)
+    ax.set_xticklabels([f'{int(tick/fps):d}' for tick in tick_locs])
+
+    ax.set_yticks([])
+    ax.set_xlabel('Time (s)')
+
+    # Turn off the top and right spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+
+    if title is not None:
+        ax.set_title(title)
+
+    if filename is not None:
+        dir_name = os.path.dirname(filename)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+
+        for spine in ['top', 'right']:
+            ax.spines[spine].set_visible(False)
+
+        plt.savefig(f'{filename}', dpi=300, bbox_inches='tight')
+        plt.savefig(f'{filename}'.replace('.png', '.eps'), format='eps', bbox_inches='tight')
+        plt.close()
 
 def plot_random_traces(DF_F_Z_scored, num_traces=10, fps=30, snr=None, ax=None, filename=None):
     """
@@ -351,7 +544,7 @@ def plot_random_traces(DF_F_Z_scored, num_traces=10, fps=30, snr=None, ax=None, 
     if snr is not None:
         sm = ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])
-        cbar = plt.colorbar(sm, ax=ax, orientation='horizontal', pad=0.2)
+        cbar = plt.colorbar(sm, ax=ax)
         cbar.set_label('SNR')
 
     # Set xticks to be in seconds
@@ -371,7 +564,7 @@ def plot_random_traces(DF_F_Z_scored, num_traces=10, fps=30, snr=None, ax=None, 
     return ax
 
 
-def plot_histogram(values, threshold, filename, ax=None, suffix=None):
+def plot_histogram(values, threshold, filename, ax=None, suffix=None, legend=True):
     """
     Plot a histogram of the sum of the components in the DF_F_Z_scored.
 
@@ -380,6 +573,7 @@ def plot_histogram(values, threshold, filename, ax=None, suffix=None):
         threshold (float): The threshold to plot as a vertical line.
         filename (str): The path to the file to save the histogram.
         ax (matplotlib.axis): The axis to plot the histogram on.
+        legend (bool): Whether to show the legend.
 
     Returns:
         None or ax (matplotlib.axis): The axis with the histogram plotted on it.
@@ -412,8 +606,9 @@ def plot_histogram(values, threshold, filename, ax=None, suffix=None):
     # Add band specifying components selected 
     ax.axvspan(threshold, np.max(values), alpha=0.5, color='gray', label='Selected components')
 
-    # Modify legend to be smaller and placed inside the plot (top right corner)
-    ax.legend(loc='best', fontsize='small')
+    if legend:
+        # Modify legend to be smaller and placed inside the plot (top right corner)
+        ax.legend(loc='best', fontsize='small')
 
     # Remove y-axis label
     ax.set_ylabel('')

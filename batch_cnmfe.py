@@ -14,8 +14,8 @@ from collections import defaultdict
 # Set the global path
 #GLOBAL_PATH = 'data/dHPC/May_2024'
 
-paths = ['data/Jan_2024', 'data/May_2024', 'data/Mar_2024', 'data/Oct_2021']
-session_file_paths = ['session_file_MiniscopeCW_01_2024_Moises.csv', 'session_file_MiniscopeCW_05_2024_Moises.csv', 'session_file_MiniscopeCW_03_2024_Moises.csv', 'session_file_MiniscopeCW_10_2021_Moises.csv']
+paths = ['data/Oct_2021']
+session_file_paths = ['session_file_MiniscopeCW_10_2021_Moises.csv']
 
 for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
@@ -48,6 +48,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
             FPS = 20
         else:
             FPS = 30
+        # ^ Not highest priority, but I would recommend to load the FPS from the session file, to not rely on hardcoded values in single scripts
         
         # Extract session and mouse name from path
         session = path.split('/')[2]
@@ -59,6 +60,9 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         # Find in session file entry with the given filename in Miniscope video TIFF column
         session_entry = session_df[session_df['Miniscope video'] == filename]
         
+        # Assert that session in sesison entry corresponds to session
+        assert session_entry['Session'].values[0] == session
+
         # Create save directory
         OUTPUT_DIR = GLOBAL_PATH.replace('data', 'processed-data')
 
@@ -101,18 +105,20 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
         logging.info(f'Processing {session} {mouse}')
 
-        # # Check if the file has already been processed only if there is an output file
-        # if os.path.isfile(output_file_path):
-        #     if output_df[(output_df['Session'] == session) & (output_df['Mouse'] == mouse)].shape[0] > 0: 
-        #         logging.info(f'{session} {mouse} has already been processed')
-        #         continue
-        #     else:
-        #         logging.info(f'{session} {mouse} has not been processed yet')
+        # Check if the file has already been processed only if there is an output file
+        if os.path.isfile(output_file_path):
+            if output_df[(output_df['Session'] == session) & (output_df['Mouse'] == mouse)].shape[0] > 0: 
+                logging.info(f'{session} {mouse} has already been processed')
+                continue
+            else:
+                logging.info(f'{session} {mouse} has not been processed yet')
 
         try:
-            cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected = analyze_data(path, save_dir_docs, FPS, motion_correct=True, plot=True)
+            cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected = analyze_data(path, save_dir_docs, fps=FPS, motion_correct=True, plot=True)
         except Exception as e:
             logging.error(f'Error processing {session} {mouse}: {str(e)}')
+        # ^ I would recommend you to save also the border_px variable (max shift in x/y during registration) so you can later 
+        # ^ remove areas with very high shift values where likely you could have some motion artefacts from the experiment. 
 
         # Save cnmfe model
         cnmfe_save_dir = os.path.join(save_dir_model, f'{filename}.hdf5')
@@ -151,6 +157,8 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         output_dict['Final Outcome'].append(final_outcome)
         output_dict['Time Victim Inserted'].append(time_victim_inserted)
         output_dict['Sex'].append(sex)
+
+        print(output_dict)
 
         # Print all lengths of the lists
         print(f'Session: {len(output_dict["Session"])}')

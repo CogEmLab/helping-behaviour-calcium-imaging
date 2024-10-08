@@ -10,13 +10,100 @@ from caiman.motion_correction import MotionCorrect
 from caiman.source_extraction import cnmf
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from scipy import ndimage
+from src.plotting import *
 
-def shuffle_signal(DF_F_Z_scored):
-    """Cut each cell signal into pieces of 3 seconds bins (90 frames), mix the pieces order, and reconstruct the signal."""
-    num_bins = int(DF_F_Z_scored.shape[1] / 90)
-    idx = np.arange(num_bins)
-    np.random.shuffle(idx)
-    return np.concatenate([DF_F_Z_scored[:, i*90:(i+1)*90] for i in idx], axis=1)
+import numpy as np
+
+import numpy as np
+
+def shuffle_signal(DF_F_Z_scored, bin_time_seconds=3, fps=30):
+    """
+    Shuffle the temporal structure of cellular signals while preserving local patterns.
+
+    This function takes a 2D array of z-scored ΔF/F signals, where each row represents
+    a cell's activity over time. It divides each cell's signal into time bins of a 
+    specified duration, randomly shuffles these bins, and reconstructs the signal.
+    Any remaining frames at the end are randomly placed within the shuffled signal.
+
+    Parameters:
+    -----------
+    DF_F_Z_scored : numpy.ndarray
+        A 2D array of shape (n_cells, n_timepoints) containing z-scored ΔF/F signals.
+    bin_time_seconds : float, optional
+        The duration of each time bin in seconds (default is 3 seconds).
+    fps : int, optional
+        Frames per second of the recording (default is 30 fps).
+
+    Returns:
+    --------
+    shuffled_DFF : numpy.ndarray
+        A 2D array of the same shape as the input, containing the shuffled signals.
+
+    Notes:
+    ------
+    - The function calculates the number of frames per bin based on the provided
+      bin_time_seconds and fps.
+    - Any remaining frames that don't fit into a full bin are randomly placed
+      within the shuffled signal.
+    - This function is useful for creating control datasets in neuroscience experiments
+      to assess the significance of observed temporal patterns.
+
+    Raises:
+    -------
+    AssertionError:
+        If the output shape doesn't match the input shape or if no shuffling occurred.
+    ValueError:
+        If the calculated frames per bin is less than 1.
+    """
+
+    # Calculate the number of frames per bin
+    frames_per_bin = int(bin_time_seconds * fps)
+    if frames_per_bin < 1:
+        raise ValueError(f"The combination of bin_time_seconds={bin_time_seconds} and fps={fps} results in less than one frame per bin. Please adjust these parameters.")
+
+    # Calculate the number of bins and the size of the leftover piece
+    num_frames = DF_F_Z_scored.shape[1]
+    num_bins = num_frames // frames_per_bin
+    leftover_size = num_frames % frames_per_bin
+
+    # Initialize the output array with zeros, matching the input shape
+    shuffled_DFF = np.zeros_like(DF_F_Z_scored)
+
+    # Iterate over each cell (each row in the input array)
+    for i in range(DF_F_Z_scored.shape[0]):
+        # Create an array of bin indices and shuffle it
+        idx = np.arange(num_bins)
+        np.random.shuffle(idx)
+
+        # Shuffle the main bins
+        for k, j in enumerate(idx):
+            shuffled_start = j * frames_per_bin
+            shuffled_end = (j + 1) * frames_per_bin
+            positional_start = k * frames_per_bin
+            positional_end = (k + 1) * frames_per_bin
+            shuffled_DFF[i, positional_start:positional_end] = DF_F_Z_scored[i, shuffled_start:shuffled_end]
+
+        # Handle the leftover piece
+        if leftover_size > 0:
+            # Get the leftover piece from the end of the original signal
+            leftover_piece = DF_F_Z_scored[i, -leftover_size:]
+            
+            # Choose a random position to insert the leftover piece
+            insert_position = np.random.randint(0, num_frames - leftover_size + 1)
+            
+            # Shift the data after the insert position
+            shuffled_DFF[i, insert_position + leftover_size:] = shuffled_DFF[i, insert_position:-leftover_size]
+            
+            # Insert the leftover piece
+            shuffled_DFF[i, insert_position:insert_position + leftover_size] = leftover_piece
+
+    # Verify that the output has the same shape as the input
+    assert shuffled_DFF.shape == DF_F_Z_scored.shape, "Output shape does not match input shape"
+
+    # Verify that shuffling actually occurred (output is different from input)
+    assert not np.array_equal(shuffled_DFF, DF_F_Z_scored), "No shuffling occurred"
+
+    return shuffled_DFF
 
 def smooth_and_shrink_label(label, smooth_sigma=1, shrink_pixels=1):
     """
@@ -48,58 +135,6 @@ def calculate_binary_behaviors(annotations, unique_behaviors, npy_data):
         for start, end in behaviors[behavior]:
             binary_behaviors[behavior][start:end] = 1
     return binary_behaviors
-
-def get_most_active_components(DF_F_Z_scored, path, cohort, session, animal, plot_example=False, ax=None, suffix=None):
-    """
-    Get the most active components in the DF_F_Z_scored based on k*sigma threshold and save a histogram of the sum of the components with a threshold.
-
-    Parameters:
-        DF_F_Z_scored (np.DF_F_Z_scored): The input DF_F_Z_scored of shape (n_components, time) cropped around the window of interest.
-        path (str): The path to the file to save the histogram.
-        cohort (str): The cohort of the mouse.
-        session (str): The session of the mouse.
-        animal (str): The animal ID.
-        plot_example (bool): Whether to plot an example of the histogram.
-        ax (matplotlib.axis): The axis to plot the histogram on.
-
-    Returns:
-        DF_F_Z_scored_selected (np.DF_F_Z_scored): The components that are above the threshold.
-        selected_ids (np.array): The ids of the selected components.
-
-    Raises:
-        None
-    """
-    
-    # Get only components that are the most active in the window 
-    dff_sum = np.sum(DF_F_Z_scored, axis=1)
-    # Sort the components by the sum of their activity
-    sorted_idxs = np.argsort(dff_sum)[::-1] #! [::-1] to get the descending order
-    array_sorted = DF_F_Z_scored[sorted_idxs]
-
-    # Compute the threshold as 1 sigma above the mean
-    threshold = np.mean(dff_sum) + np.std(dff_sum)
-    # Get the components that are above the threshold
-    mask = dff_sum[sorted_idxs] > threshold
-    DF_F_Z_scored_selected = array_sorted[mask]
-
-    # Get a vector with selected ids
-    selected_ids = sorted_idxs[mask] #^ To use for registration search
-
-    # Also plot a histogram of the sum of the components with a threshold
-    if plot_example:
-        filename = os.path.join(path, 'histogram.png')
-        print('-----------------------------------')
-        print('Plotting example')
-        print('-----------------------------------')
-        plot_histogram(dff_sum, threshold, filename, ax=ax, suffix=suffix)
-    
-    # Add cohort, session and mouse_id to the path
-    path = os.path.join(path, cohort, session)
-    os.makedirs(path, exist_ok=True)
-    filename = os.path.join(path, f'histogram_{animal}.png')
-    plot_histogram(dff_sum, threshold, filename, suffix=suffix)
-    
-    return DF_F_Z_scored_selected, selected_ids
 
 def select_rows(summary_file, day, mouse):
     """
@@ -350,6 +385,8 @@ def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plo
         num_rejected: The number of rejected components.
     """
     logging.info('Analyzing data...')
+    # Load parameters 
+    config = load_config('tech_docs\caiman_parameters.yaml')
     # Get the name of the file
     save_name = os.path.basename(ci_movie_path).split('.')[0]
 
@@ -357,7 +394,7 @@ def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plo
     cluster, n_processes = general_setup()
 
     # Get parameters for motion correction
-    params_mc = get_params_mot_corr(ci_movie_path, frate=fps)
+    params_mc = get_params_mot_corr(ci_movie_path, config=config)
 
     # Perform motion correction if True
     if motion_correct:
@@ -395,7 +432,7 @@ def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plo
     ci_movie = Yr.T.reshape((T,) + dims, order='F')
 
     # get parameters for cnmfe
-    cnmfe_params = get_params_cnmfe(params_mc, gSig=np.array([4, 4]), gSiz= 2*np.array([4, 4])+1,  rf=24, stride_cnmf=8,  min_pnr=7, min_SNR=3.0, SNR_lowest=0.5)
+    cnmfe_params = get_params_cnmfe(params_mc, config=config)
     
     # run cnmfe
     cnmfe_model = cnmf.CNMF(n_processes=n_processes, 
@@ -429,7 +466,7 @@ def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plo
     correlation_image, peak_to_noise_ratio = cm.summary_images.correlation_pnr(ci_movie[::max(T//1000, 1)], # subsample if needed
                                                                             gSig=gsig_tmp[0], # used for filter
                                                                             swap_dim=False) # change swap dim if output looks weird, it is a problem with tiffile
-    
+    # ^ Just out of curiosity, which is subsampling being used in above function when passing the ci_movie array?
     cm.stop_server(dview=cluster)
     
     return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected

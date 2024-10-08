@@ -55,22 +55,22 @@ def load_config(config_file='functional_connectivity_config.yaml'):
         config = yaml.safe_load(file)
     return config
 
-def plot_session_example(axes, session, pnr, accepted_dff_signal, distances, correlation_matrix, correlated_pairs_new, position_dict, G, colors, labels):
-    axes['image-example'].imshow(pnr, cmap='grey')
+def plot_session_example(axes, session, pnr, accepted_dff_signal, distances, correlation_matrix, correlated_pairs_new, position_dict, G, colors, labels, liberation_cell_ids_mapped):
+    # axes['image-example'].imshow(pnr, cmap='grey')
     nx.draw_networkx_labels(G, pos=position_dict, ax=axes['image-example'], labels=labels, font_size=8, font_color='white')
 
-        # colors = ['white' if c == 'black' else c for c in colors]
+    # colors = ['white' if c == 'black' else c for c in colors]
     nx.draw(G, pos=position_dict, node_size=50, node_color=colors, ax=axes['image-example'], edge_color='black', node_shape='*')
     axes['image-example'].set_title('Graph example, animal: ' + str(session.animal_id) + ', session: ' + session.session)
 
-        # Plot the cross-correlation matrix, sort the values before plotting
+    # Plot the cross-correlation matrix, sort the values before plotting
     plot_cross_correlation_matrix(axes['cross-correlation-matrix'], correlation_matrix, 'Cross-correlation matrix, animal: ' + str(session.animal_id) + ', session: ' + session.session, cbar=False)
 
-        # Plot the distance matrix
+    # Plot the distance matrix
     plot_distance_matrix(axes['distance-matrix'], distances, 'Distance matrix, animal: ' + str(session.animal_id) + ', session: ' + session.session, cbar=False)
 
-        # Plot the traces of highly correlated components
-    plot_correlated_traces(axes['traces-example'], accepted_dff_signal, correlated_pairs_new, distances=distances)
+    # Plot the traces of highly correlated components
+    plot_correlated_traces(axes['traces-example'], accepted_dff_signal, correlated_pairs_new, distances=distances, correlation_matrix=correlation_matrix,liberation_cell_ids=liberation_cell_ids_mapped, fps=session.calcium_fps)
     axes['traces-example'].set_title('Traces of highly correlated components')
     axes['traces-example'].axvline(session.victim_lib_timecode * session.calcium_fps, color='k', linestyle='dashed', linewidth=2, label='Victim crossing')
 
@@ -89,63 +89,88 @@ def sample_values(distances_values: List[float], correlation_values: List[float]
     sample_idx = np.random.RandomState(0).permutation(len(distances_values))[:n_samples]
     return distances_values[sample_idx], correlation_values[sample_idx]
 
-def compute_correlations(positions, DFF_z_scored, threshold, 
+def compute_correlations(positions, signal, threshold, 
+                         bin_size_seconds, sampling_rate,
                          distance_metric='euclidean', correlation_method='pearson'):
     """
     Compute correlations and related metrics from the model and DFF data.
 
     Parameters:
-        estimates_spatial (np.array): Spatial estimates from the model.
-        DFF_z_scored (np.array): Z-scored delta F/F values.
-        img_dims (tuple): Dimensions of the image.
+        positions (np.array): Positions of components (in pixels) as a 2D (x, y of the centroid) array where each row corresponds to a component.
+        signal (np.array): Z-scored delta F/F values as a 2D array where each row corresponds to a component and each column corresponds to a time step. First column corresponds to the original indices of the components.
         threshold (float): Threshold for the adjacency matrix.
+        bin_size_seconds (float): Size of each time bin in seconds. Used to calculate cross-correlation in smaller intervals to get rid of a session lenght effect.
+        sampling_rate (float): Sampling rate of the data in Hz.
         distance_metric (str): Metric to use for distance calculation. Default is 'euclidean'.
         correlation_method (str): Method to use for correlation calculation. Default is 'pearson'.
 
     Returns:
         tuple: Contains the following elements:
-            - distances (np.array): Distance matrix between components (in pixels).
-            - cross_correlation (np.array): Cross-correlation matrix.
-            - correlated_pairs (tuple): Indices of highly correlated components.
+            - distances (np.array): Distance matrix between components (in pixels) as a 2D array where each entry (i, j) is the distance between components i and j.
+            - cross_correlation_bin (np.array): Cross-correlation matrix as a 2D array where each entry (i, j) is the Pearson correlation between components i and j.
+            - adjacency (np.array): Adjacency matrix as a 2D array where each entry (i, j) is 1 if components i and j are correlated and 0 otherwise.
+            - correlated_pairs (tuple): Indices of highly correlated components as a tuple of two arrays, each containing the indices of the first and second components in the pair. Returns indexes as in original CNMFe model (before filtering only accepted components)
     """
 
-    original_idx = DFF_z_scored[:, 0].astype(int)
-
-    DFF_z_scored = DFF_z_scored[:, 1:]
+    # Remove the original indices from the signal
+    signal = signal[:, 1:]
 
     # Input validation
-    if not isinstance(DFF_z_scored, np.ndarray):
-        raise TypeError("DFF_z_scored must be numpy array")
-    if DFF_z_scored is None or np.isnan(DFF_z_scored).any():
-        return None, None, None
-    
+    if not isinstance(signal, np.ndarray):
+        raise TypeError("signal must be numpy array")
+    if signal is None or np.isnan(signal).any():
+        return None, None, None, None
+
     # Calculate pairwise distances between component centers
     try:
         distances = cdist(positions, positions, metric=distance_metric)
     except Exception as e:
         print(f"Error calculating distances: {e}")
-        return None, None, None
+        return None, None, None, None
 
-    # Calculate cross-correlation and adjacency matrix
-    try:
+    # Calculate the number of time steps in each bin
+    bin_size_steps = int(bin_size_seconds * sampling_rate)
+    
+    # Calculate the total number of bins
+    n_bins = signal.shape[1] // bin_size_steps
+
+    if n_bins == 0:
+        print(f"Warning: Specified bin size ({bin_size_steps} steps) is larger than the total signal length ({signal.shape[1]} steps).")
+        print("Computing cross-correlation using the entire signal.")
         if correlation_method == 'pearson':
-            cross_correlation = np.corrcoef(DFF_z_scored)
+            cross_correlation_bin = np.corrcoef(signal)
         else:
             raise ValueError("Unsupported correlation method")
-    except Exception as e:
-        print(f"Error calculating correlations: {e}")
-        return None, None, None
+    else:
+        cross_correlation_bin = np.zeros((signal.shape[0], signal.shape[0]))
+        for i in range(n_bins):
+            bin_start = i * bin_size_steps
+            bin_end = (i+1) * bin_size_steps
+            signal_bin = signal[:, bin_start:bin_end]
 
-    adjacency_matrix = (cross_correlation > threshold)
-    adjacency_matrix = np.tril(adjacency_matrix, k=-1)
+            if correlation_method == 'pearson':
+                cross_correlation_bin += np.corrcoef(signal_bin)
+            else:
+                raise ValueError("Unsupported correlation method")
 
-    # Identify highly correlated components
+        # Average the cross-correlation matrices across all time-window bins
+        cross_correlation_bin /= n_bins
+
+    # Create the adjacency matrix by thresholding the cross-correlation matrix
+    adjacency_matrix = (cross_correlation_bin > threshold)
+    # Set the diagonal elements to 0 to avoid counting the correlation of a component with itself
+    adjacency_matrix = np.triu(adjacency_matrix, k=1) # k==1 to avoid the main diagonal
+
+    # Find highly correlated components
     correlated_pairs = np.where(adjacency_matrix)
-    correlated_pairs = (original_idx[correlated_pairs[0]], original_idx[correlated_pairs[1]])
+    # Map the correlated pairs back to the original index; DON'T MAKE, ACCEPTED COMPONENTS ARE PRE-SELECTED
+    correlated_pairs = (correlated_pairs[0], correlated_pairs[1])
 
-    return distances, cross_correlation, adjacency_matrix, correlated_pairs
+    return distances, cross_correlation_bin, adjacency_matrix, correlated_pairs
 
 def build_graph(session, neuron_positions, adjacency_matrix, liberation_cell_ids_mapped, suffix=''):
+    #TODO: Make not connected nodes slightly transperant and connecting lights in grey. 
+    
     """Build and plot a graph from the adjacency matrix.
 
     Parameters:
@@ -170,7 +195,18 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_cell_ids
     
     # Create a list of colors (white or red) for each node
     colors = ['black'] * len(neuron_positions)
+    alphas = [1] * len(neuron_positions)
+
+    degrees = G.degree()
+
+    # If degree is 0, set alpha to 0.4, else set alpha to 1
+    for node, degree in degrees:
+        if degree == 0:
+            alphas[node] = 0.4
+        else:
+            continue
     
+
     # Create a mapping between node IDs and their labels
     labels = {}
     
@@ -178,7 +214,7 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_cell_ids
     if liberation_cell_ids_mapped is not None:
         colors = ['red' if i in liberation_cell_ids_mapped else 'black' for i in range(len(neuron_positions))]
         labels.update({i: str(i) for i in liberation_cell_ids_mapped})
-
+        
         # Compare number of 'red' color to the number of liberation cells in session.number_of_liberation_cells;
         # if not matching print out
         if len(liberation_cell_ids_mapped) != session.number_of_liberation_cells:
@@ -186,7 +222,7 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_cell_ids
     
     # Plot the graph
     fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-    nx.draw(G, pos=position_dict, node_size=100, node_color=colors, ax=ax)
+    nx.draw(G, pos=position_dict, node_size=100, node_color=colors, alpha=alphas, edge_color='lightgray', ax=ax)
     
     # Save the figure
     output_dir = os.path.join('figures', 'graphs', session.cohort, session.session)
@@ -201,7 +237,7 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_cell_ids
 
 def get_values(matrix: np.ndarray) -> np.ndarray:
     """
-    Get the values from the lower triangle of a matrix.
+    Get the values from the upper triangle of a matrix.
 
     Parameters
     ----------
@@ -211,12 +247,10 @@ def get_values(matrix: np.ndarray) -> np.ndarray:
     Returns
     -------
     values_list : np.ndarray
-        The values from the lower triangle of the matrix.
+        The values from the upper triangle of the matrix.
     """
-    # Use the tril function from numpy to get the lower triangle of the matrix.
-    lower_triangle_matrix = np.tril(matrix, k=-1)
-    
-    # Use the flatten function to flatten the lower triangle matrix into a 1D array.
-    values_list = lower_triangle_matrix.flatten()
-    
-    return values_list
+    # Use the triu function from numpy to get the upper triangle of the matrix.
+    upper_triangle_matrix_indices = np.triu_indices(matrix.shape[0], k=1) # Should be below diagonal and not include same neuron data
+    # Take only the values from the upper triangle
+    value_list = matrix[upper_triangle_matrix_indices]
+    return value_list
