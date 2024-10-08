@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from src.plotting import *
 
-def sample_random_event_cells(signal, session_loader, window, fps, plot_example=False, suffix="", ax=None, n_samples=10, n_iterations=10):
+def sample_random_event_cells(signal, session_loader, fps, window=15, plot_example=False, suffix="", ax=None, n_samples=10, n_iterations=10):
     """
     Sample random event windows from a pre-loaded dataset, compute the most active components, and select a sample.
 
@@ -191,3 +191,20 @@ def load_and_preprocess_session_file(file_path):
             session_file[column] = np.nan
 
     return session_file
+
+
+def generate_event_window(total_expected_duration_seconds, event_timestamp, fps):
+
+    total_expected_duration_frames = total_expected_duration_seconds / fps # frames
+
+    # Taking only half of the window
+    window_halfsize_frames = int(total_expected_duration_frames / 2) # in frames
+
+    # Generate time window
+    time_victim_crossing = int(event_timestamp * fps) # event time code is given in seconds, lets convert to frames
+    
+    start = int(time_victim_crossing - window_halfsize_frames)
+    end = int(time_victim_crossing + window_halfsize_frames)
+    
+    window_duration = int((end - start)/ fps) # in seconds
+    return start, end, window_duration

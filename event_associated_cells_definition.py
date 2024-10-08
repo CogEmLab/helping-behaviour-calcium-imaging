@@ -33,7 +33,7 @@ from tqdm import tqdm
 import os
 from src.session_loader import Session
 from src.plotting import plot_heatmap, plot_boxplots, plot_values_over_days
-from src.liberation_cells_utils import *
+from src.event_associated_cells_definition_utils import *
 from src.update_registration_data import update_metadata
 import datetime
 
@@ -42,11 +42,18 @@ FIG_SIZE = (30, 12)
 GRID_SPEC = (2, 4)
 EXCLUDED_SESSIONS = ['Hab1', 'Hab2', 'Hab3', 'Toy', 'Pool', 'Empty']
 
-def process_session(row, fps, window, random=False, plot_example=False, axes=None):
-    
+def process_session(row, random=False, plot_example=False, axes=None):
+    '''
+    window given in seconds
+    '''
     # Extract necessary data from the row
     session_loader = Session(row)
 
+    # Get start and end of the window
+    start, end, window_duration = generate_event_window(30, session_loader.victim_lib_timecode, session_loader.calcium_fps)
+
+    logging.info('Using window size of {} seconds for data with FPS of {}'.format(window_duration, session_loader.calcium_fps))
+    
     # Skip if session outcome is not 'H'. Neural activity for helping and non-helping sessions can be assumed to be different, no need to mix these data together. (Duch's comment 2024 MidTermEvaluation)
     if session_loader.session in EXCLUDED_SESSIONS or session_loader.session_outcome != 'H' or np.isnan(session_loader.victim_lib_timecode):
         logging.warning(f"Skipping session {session_loader.session} with outcome {session_loader.session_outcome}")
@@ -63,14 +70,6 @@ def process_session(row, fps, window, random=False, plot_example=False, axes=Non
     labels = session_loader.get_neuron_labels()
     positions = session_loader.extract_neuron_positions(labels)
 
-    # Generate time window
-    time_victim_crossing = int(session_loader.victim_lib_timecode * fps)
-    window_frames = window * fps
-    # ^ now you multiply back but since you before divided 900/fps as a constant it will nt adapt to different fps
-    
-    start = int(time_victim_crossing - window_frames)
-    end = int(time_victim_crossing + window_frames)
-    
     # Ensure indices are within bounds
     if start < 0 or end > DF_F_Z_scored.shape[1]:
         logging.warning(f"Skipping session {session_loader.session} with victim liberation timecode {session_loader.victim_lib_timecode}")
@@ -98,7 +97,7 @@ def process_session(row, fps, window, random=False, plot_example=False, axes=Non
         logging.info(f"Sampling {len(selected_ids_true)} components from random event time")
         
         # Sample random components
-        selected_ids, DF_F_Z_scored_selected = sample_random_event_cells(DF_F_Z_scored, session_loader, window, fps, plot_example, suffix, ax=axes['histogram'], n_samples=len(selected_ids_true))
+        selected_ids, DF_F_Z_scored_selected = sample_random_event_cells(DF_F_Z_scored, session_loader, session_loader.calcium_fps, plot_example=plot_example, suffix=suffix, ax=axes['histogram'], n_samples=len(selected_ids_true))
         
         # Make sure that random selected ids has the same length as selected_ids_true
         assert len(selected_ids) == len(selected_ids_true)
@@ -197,22 +196,10 @@ def main(random=False):
         
         logging.info('Plotting index', random_idx_to_plot, ', Current index:', i)
 
-        # Check the FPS for the specific file (there are couple of files where fps is different, so we amend the window accordingly)
-        FPS = int(row['FPS (CI downsampled)'])
-
-        # Compute window size in seconds given that we want to include 900 frames
-        WINDOW = int(900 / FPS)
-        # ^ This could brake if you have different FPS in your sessions, then your window will not be same length in seconds
-        
-        # Taking only half of the window
-        WINDOW = int(WINDOW / 2)
-
-        logging.info('Using window size of {} seconds for data with FPS of {}'.format(WINDOW, FPS))
-
         # Plot example if random index
         plot_example = int(i) == int(random_idx_to_plot) # boolian flag to define whether to plot the example
         
-        row_results, sum_dff_selected, sum_dff_not_selected = process_session(row, FPS, WINDOW, random=random, plot_example=plot_example, axes=axes)  # Get the results
+        row_results, sum_dff_selected, sum_dff_not_selected = process_session(row, random=random, plot_example=plot_example, axes=axes)  # Get the results
                 
         if row_results is not np.nan:
             # Update metadata
