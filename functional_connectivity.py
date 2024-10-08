@@ -105,19 +105,19 @@ def process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=F
     correlated_pairs_tuple_list = list(zip(*correlated_pairs))
     
     # Filter out response scores and identities for unique cells participating in correlations
-    if metadata is not None:
+    if liberation_associated_metadata is not None:
         correlated_liberation_cells_lib_to_all = set({pair[0] for pair in correlated_pairs_lib_to_all})
 
         assert correlated_liberation_cells_lib_to_all.issubset(liberation_cells_ids)
 
-        filtered_response_scores_lib_to_all = metadata.loc[metadata['Component ID'].isin(correlated_liberation_cells_lib_to_all), 'Response Score'].values
-        filtered_identities_lib_to_all = metadata.loc[metadata['Component ID'].isin(correlated_liberation_cells_lib_to_all), 'Group'].values
+        filtered_response_scores_lib_to_all = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_liberation_cells_lib_to_all), 'Response Score'].values
+        filtered_identities_lib_to_all = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_liberation_cells_lib_to_all), 'Group'].values
         
         correlated_liberation_cells_only_lib = set({cell for pair in correlated_pairs_only_lib for cell in pair})
         assert correlated_liberation_cells_only_lib.issubset(liberation_cells_ids)
 
-        filtered_response_scores_only_lib = metadata.loc[metadata['Component ID'].isin(correlated_liberation_cells_only_lib), 'Response Score'].values
-        filtered_identities_only_lib = metadata.loc[metadata['Component ID'].isin(correlated_liberation_cells_only_lib), 'Group'].values
+        filtered_response_scores_only_lib = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_liberation_cells_only_lib), 'Response Score'].values
+        filtered_identities_only_lib = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_liberation_cells_only_lib), 'Group'].values
 
         avg_response_score_lib_to_all = filtered_response_scores_lib_to_all.mean()
         identity_counts_lib_to_all = pd.Series(filtered_identities_lib_to_all).value_counts().to_dict()
@@ -177,12 +177,12 @@ def process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=F
         'Density from full graph (lib)': round(nx.density(H_lib), 2) if H_lib is not None else None,
         'Has liberation cells': liberation_cells_ids is not None and len(liberation_cells_ids) > 0,
         'Number of liberation cells': len(liberation_cells_ids) if liberation_cells_ids is not None else 0,
-        'Average response score (lib -> all)': avg_response_score_lib_to_all if metadata is not None else None,
-        'Average response score (lib -> lib)': avg_response_score_only_lib if metadata is not None else None,
+        'Average response score (lib -> all)': avg_response_score_lib_to_all if liberation_associated_metadata is not None else None,
+        'Average response score (lib -> lib)': avg_response_score_only_lib if liberation_associated_metadata is not None else None,
     }
 
     # Add identity counts to results
-    if metadata is not None:
+    if liberation_associated_metadata is not None:
         for identity, count in identity_counts_lib_to_all.items():
             results[f'Number of {identity} cells in correlations (lib -> all)'] = count
         for identity, count in identity_counts_only_lib.items():
@@ -200,7 +200,7 @@ def process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=F
     
     return (pd.DataFrame(results, index=[0]), correlation_values, correlation_liberation_only_values, sampled_distances, sampled_correlations, SESSION_FILE)
 
-def main(random_event=False):
+def main(random_event, SESSION_FILE):
     fig, axes = setup_plot(FIG_SIZE, GRID_SPEC)
 
     # Filter the session file
@@ -327,4 +327,4 @@ def main(random_event=False):
     plt.savefig(os.path.join('tech_plots', f'functional_connectivity_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.pdf'))
  
 if __name__ == "__main__":
-    main(random_event=True)
+    main(random_event=False, SESSION_FILE=SESSION_FILE)
