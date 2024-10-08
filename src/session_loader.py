@@ -160,6 +160,7 @@ class Session:
 
 
     def load_liberation_metadata(self, metadata_path):
+        #TODO: Should access metadata path from self depending on the event type
         """
         Load and filter liberation metadata for the current session, and assert the number of liberation cells matches.
         

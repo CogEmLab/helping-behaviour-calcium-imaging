@@ -1,3 +1,4 @@
+#TODO: implemenet clean function, it should check for already existing outputs of this function and put them to the log folder
 """
 This script extracts the most active cells in a time window around the moment
 of liberation of the victim mouse. It processes each session in the provided
@@ -171,8 +172,10 @@ def main(random=False):
     # ^ What is random mode? would be good to have a short deycription above
 
     fig, axes = setup_plot(FIG_SIZE, GRID_SPEC) # Setup of the overview plot
+
+    #TODO: It should be always the freshest sesssion file.
     # Load the session file
-    session_file = load_and_preprocess_data('data/session_file_MiniscopeCW_all_Moises_latest.csv')
+    session_file = load_and_preprocess_session_file('data/session_file_MiniscopeCW_all_Moises_latest.csv')
     
     logging.info('Loading session file')
 
@@ -287,7 +290,7 @@ def main(random=False):
     session_file[col_name] = metadata_df_path #The metadata path is common for all sessions, however, it is better to make it easier to work with the loader
 
     # Save updated session file
-    session_file.to_csv(f'data/{os.path.basename(__file__)[:-3]}_{current_datetime}_session_file_MiniscopeCW_all_Moises_latest.csv', index=False)
+    session_file.to_csv(f'data/SESSION_FILE_{os.path.basename(__file__)[:-3]}_{current_datetime}.csv', index=False)
 
     # Plot boxplots to show the difference between selected and not selected cells in terms of sum of the activity in the window
     plot_boxplots(sum_components['selected'], sum_components['not_selected'], axes['boxplots'], '', ('Selected', 'Not selected'), 'Sum of $\\Delta F/F$ values in the window')
@@ -305,4 +308,4 @@ def main(random=False):
     plt.close(fig)
 
 if __name__ == "__main__":
-    main(random=True)
+    main(random=False)

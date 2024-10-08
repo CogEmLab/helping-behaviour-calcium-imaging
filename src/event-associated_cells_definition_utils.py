@@ -159,32 +159,26 @@ def setup_plot(fig_size, grid_spec):
     
     return fig, axes
 
-def load_and_preprocess_data(file_path):
+def load_and_preprocess_session_file(file_path):
+    #TODO: implement the search over several session files. Always take the most new. 
     """
     Load a CSV file and preprocess the data by filtering out specific sessions and cohorts.
 
     Parameters
     ----------
-    file_path : str
-        The path to the CSV file to load.
+    ...
 
     Returns
     -------
-    data : pandas.DataFrame
-        The preprocessed data.
+    session_file : pandas.DataFrame
+        The prepared session file.
     """
-    data = pd.read_csv(file_path)
-
-    # # Filter out specific sessions and cohorts
-    # excluded_sessions = ['Hab1', 'Hab2', 'Hab3', 'Toy', 'Pool', 'Empty']
-    # excluded_cohorts = []
-
-    # data = data[~data['Session'].isin(excluded_sessions) & ~data['Cohort'].isin(excluded_cohorts)] #! This is bad. I am removing these sessions from the main session file. TODO: rewrite
+    session_file = pd.read_csv(file_path)
 
     # Convert Mouse column to str with 4 digits
-    data['Mouse'] = data['Mouse'].astype(str).str.zfill(4)
+    session_file['Mouse'] = session_file['Mouse'].astype(str).str.zfill(4)
 
-    # Add new columns if they don't exist
+    #TODO: You should add column with the proper name ({event_cells})
     columns_to_add = [
         'Num of liberation cells',
         '% of liberation cells',
@@ -192,9 +186,8 @@ def load_and_preprocess_data(file_path):
         'Num of randomd liberation cells'
     ]
 
-    #TODO: need first to check if such a column exist or not already 
     for column in columns_to_add:
-        if column not in data.columns:
-            data[column] = np.nan
+        if column not in session_file.columns:
+            session_file[column] = np.nan
 
-    return data
+    return session_file
