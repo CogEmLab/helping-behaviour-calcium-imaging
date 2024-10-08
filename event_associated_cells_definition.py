@@ -49,11 +49,6 @@ def process_session(row, WINDOW, random=False, plot_example=False, axes=None):
     '''
     # Extract necessary data from the row
     session_loader = Session(row)
-
-    # Get start and end of the window
-    start, end = generate_event_window(WINDOW, session_loader.victim_lib_timecode, session_loader.calcium_fps)
-
-    logging.info('Using window size of {} seconds for data with FPS of {}'.format(WINDOW, session_loader.calcium_fps))
     
     # Skip if session outcome is not 'H'. Neural activity for helping and non-helping sessions can be assumed to be different, no need to mix these data together. (Duch's comment 2024 MidTermEvaluation)
     if session_loader.session in EXCLUDED_SESSIONS or session_loader.session_outcome != 'H' or np.isnan(session_loader.victim_lib_timecode):
@@ -71,6 +66,10 @@ def process_session(row, WINDOW, random=False, plot_example=False, axes=None):
     labels = session_loader.get_neuron_labels()
     positions = session_loader.extract_neuron_positions(labels)
 
+    # Get start and end of the window
+    start, end = generate_event_window(WINDOW, session_loader.victim_lib_timecode, session_loader.calcium_fps)
+    logging.info('Using window size of {} seconds for data with FPS of {}'.format(WINDOW, session_loader.calcium_fps))
+    
     # Ensure indices are within bounds
     if start < 0 or end > DF_F_Z_scored.shape[1]:
         logging.warning(f"Skipping session {session_loader.session} with victim liberation timecode {session_loader.victim_lib_timecode}")
