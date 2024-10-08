@@ -42,17 +42,17 @@ FIG_SIZE = (30, 12)
 GRID_SPEC = (2, 4)
 EXCLUDED_SESSIONS = ['Hab1', 'Hab2', 'Hab3', 'Toy', 'Pool', 'Empty']
 
-def process_session(row, random=False, plot_example=False, axes=None):
+def process_session(row, WINDOW, random=False, plot_example=False, axes=None):
     '''
-    window given in seconds
+    window given in seconds and full
     '''
     # Extract necessary data from the row
     session_loader = Session(row)
 
     # Get start and end of the window
-    start, end, window_duration = generate_event_window(30, session_loader.victim_lib_timecode, session_loader.calcium_fps)
+    start, end = generate_event_window(WINDOW, session_loader.victim_lib_timecode, session_loader.calcium_fps)
 
-    logging.info('Using window size of {} seconds for data with FPS of {}'.format(window_duration, session_loader.calcium_fps))
+    logging.info('Using window size of {} seconds for data with FPS of {}'.format(WINDOW, session_loader.calcium_fps))
     
     # Skip if session outcome is not 'H'. Neural activity for helping and non-helping sessions can be assumed to be different, no need to mix these data together. (Duch's comment 2024 MidTermEvaluation)
     if session_loader.session in EXCLUDED_SESSIONS or session_loader.session_outcome != 'H' or np.isnan(session_loader.victim_lib_timecode):
@@ -121,16 +121,19 @@ def process_session(row, random=False, plot_example=False, axes=None):
     # Create a directory for the cohort and session
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     # Plot heatmap
-    plot_heatmap(DF_F_Z_scored_selected, filename=filename, ax=None, window_to_use=window, FPS=fps, animal=session_loader.animal_id, day_of_helping=row['DayofHelping'])
+    plot_heatmap(DF_F_Z_scored_selected, filename=filename, ax=None, window_to_use=WINDOW, FPS=session_loader.calcium_fps, animal=session_loader.animal_id, day_of_helping=row['DayofHelping'])
 
     # Plot again if plot_example is True on heatmap axis of the setup_plot
     if plot_example:
         filename = None
-        plot_heatmap(DF_F_Z_scored_selected, filename=filename, ax=axes['heatmap'], window_to_use=window, FPS=fps, animal=session_loader.animal_id, day_of_helping=row['DayofHelping'])
+        plot_heatmap(DF_F_Z_scored_selected, filename=filename, ax=axes['heatmap'], window_to_use=WINDOW, FPS=session_loader.calcium_fps, animal=session_loader.animal_id, day_of_helping=row['DayofHelping'])
     
     # Calculate response scores
-    pre_response = np.absolute(np.sum(DF_F_Z_scored_selected[:, :window_frames], axis=1)) # Add absolute value getting out of the bounds
-    post_response = np.absolute(np.sum(DF_F_Z_scored_selected[:, window_frames:], axis=1))
+    print("Calculating response scores")
+    print(DF_F_Z_scored_selected.shape)
+    
+    pre_response = np.absolute(np.sum(DF_F_Z_scored_selected[:, :], axis=1)) # Add absolute value getting out of the bounds
+    post_response = np.absolute(np.sum(DF_F_Z_scored_selected[:, :], axis=1))
     total_response = np.add(pre_response, post_response)
 
     # Remove components with zero total response

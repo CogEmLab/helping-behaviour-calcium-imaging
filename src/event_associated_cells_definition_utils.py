@@ -194,17 +194,33 @@ def load_and_preprocess_session_file(file_path):
 
 
 def generate_event_window(total_expected_duration_seconds, event_timestamp, fps):
+    """
+    Generate a window around an event timestamp, given the expected duration of the event and the frames per second.
 
-    total_expected_duration_frames = total_expected_duration_seconds / fps # frames
+    Parameters
+    ----------
+    total_expected_duration_seconds : float
+        The desired duration of the window around the event (in seconds).
+    event_timestamp : float
+        The timestamp of the event in seconds.
+    fps : int
+        The frames per second of the calcium data.
 
-    # Taking only half of the window
-    window_halfsize_frames = int(total_expected_duration_frames / 2) # in frames
+    Returns
+    -------
+    start : int
+        The start time of the window in frames.
+    end : int
+        The end time of the window in frames.
+    """
 
-    # Generate time window
-    time_victim_crossing = int(event_timestamp * fps) # event time code is given in seconds, lets convert to frames
+    # Total expected duration in frames
+    total_expected_duration_frames = int(total_expected_duration_seconds / fps) # in frames
+
+    # Convert the event timestamp to frames
+    time_victim_crossing = int(event_timestamp * fps) # in frames
     
-    start = int(time_victim_crossing - window_halfsize_frames)
-    end = int(time_victim_crossing + window_halfsize_frames)
+    start = int(time_victim_crossing - int(total_expected_duration_frames / 2))
+    end = int(time_victim_crossing + int(total_expected_duration_frames / 2))
     
-    window_duration = int((end - start)/ fps) # in seconds
-    return start, end, window_duration
+    return start, end
