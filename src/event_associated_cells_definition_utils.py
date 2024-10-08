@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from src.plotting import *
 
-def sample_random_event_cells(signal, session_loader, fps, window=15, plot_example=False, suffix="", ax=None, n_samples=10, n_iterations=10):
+def sample_random_event_cells(signal, session_loader, fps, window, plot_example=False, suffix="", ax=None, n_samples=10, n_iterations=10):
     """
     Sample random event windows from a pre-loaded dataset, compute the most active components, and select a sample.
 
@@ -50,15 +50,9 @@ def sample_random_event_cells(signal, session_loader, fps, window=15, plot_examp
         session_length = session_loader.session_length  # Get total session length (in seconds or frames)
         time_victim_crossing = np.random.randint(window * 2, session_length - window * 2)
         
-        # Convert the selected time point to the frame index using fps
-        time_victim_crossing_frames = int(time_victim_crossing * fps)
-
-        # Calculate the start and end indices of the window (frames)
-        start_frame = int(time_victim_crossing_frames - window * fps)
-        end_frame = int(time_victim_crossing_frames + window * fps)
-
+        start, end = generate_event_window(total_expected_duration_seconds=window, event_timestamp=time_victim_crossing, fps=fps)
         # Extract the data within the specified time window from the pre-loaded DF_F_Z_scored
-        signal_window = signal[:, start_frame:end_frame]
+        signal_window = signal[:, start:end]
 
         # Sum the activity across time for each component within the window
         sum_data = np.sum(signal_window, axis=1)
@@ -159,36 +153,44 @@ def setup_plot(fig_size, grid_spec):
     
     return fig, axes
 
-def load_and_preprocess_session_file(file_path):
-    #TODO: implement the search over several session files. Always take the most new. 
+def load_and_preprocess_session_file(dir_path, event_type):
     """
-    Load a CSV file and preprocess the data by filtering out specific sessions and cohorts.
+    Load a session file and prepare it for analysis.
 
     Parameters
     ----------
-    ...
+    file_path : str
+        The path to the directory where session files are stored.
+    event_type : str
+        The event type to create proper columns for.
 
     Returns
     -------
     session_file : pandas.DataFrame
         The prepared session file.
     """
+
+    # Check directory to find all csv files starting with SESSION_FILE
+    csv_files = [file for file in os.listdir(dir_path) if file.startswith('SESSION_FILE')]
+    # In all csv files sort according to date, extracted using 'data/SESSION_FILE_{os.path.basename(__file__)[:-3]}_{current_datetime}.csv' pattern
+    csv_files.sort(key=lambda x: os.path.getmtime(os.path.join(dir_path, x)))
+    # Select the most recent csv file
+    file_path = os.path.join(dir_path, csv_files[-1])
+
+    # Load the csv file
     session_file = pd.read_csv(file_path)
 
     # Convert Mouse column to str with 4 digits
     session_file['Mouse'] = session_file['Mouse'].astype(str).str.zfill(4)
 
-    #TODO: You should add column with the proper name ({event_cells})
+    # Add columns to save the number of event associatedcells and their percentage
     columns_to_add = [
-        'Num of liberation cells',
-        '% of liberation cells',
-        '% of randomd liberation cells',
-        'Num of randomd liberation cells'
+        f'Num of {event_type} cells',
+        f'% of {event_type} cells'
     ]
 
     for column in columns_to_add:
-        if column not in session_file.columns:
-            session_file[column] = np.nan
+        session_file[column] = np.nan
 
     return session_file
 
