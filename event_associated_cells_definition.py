@@ -35,6 +35,7 @@ from src.session_loader import Session
 from src.plotting import plot_heatmap, plot_boxplots, plot_values_over_days
 from src.event_associated_cells_definition_utils import *
 from src.update_registration_data import update_metadata
+from src.utils import load_session_file
 import datetime
 
 # Constants
@@ -190,7 +191,7 @@ def main(random=False):
     fig, axes = setup_plot(FIG_SIZE, GRID_SPEC) # Setup of the overview plot
 
     # Load the session file
-    session_file = load_and_preprocess_session_file(dir_path='data', event_type=event_type)
+    session_file = load_session_file(dir_path='data')
 
     logging.info('Loading session file')
 

@@ -540,3 +540,35 @@ def plot_rigid_shifts(motion_corrector, save_dir, save_name):
     plt.close()
     
     logging.info('Rigid shifts plot saved.')
+
+def load_session_file(dir_path):
+    """
+    Load a session file and prepare it for analysis.
+
+    Parameters
+    ----------
+    file_path : str
+        The path to the directory where session files are stored.
+    event_type : str
+        The event type to create proper columns for.
+
+    Returns
+    -------
+    session_file : pandas.DataFrame
+        The prepared session file.
+    """
+
+    # Check directory to find all csv files starting with SESSION_FILE
+    csv_files = [file for file in os.listdir(dir_path) if file.startswith('SESSION_FILE')]
+    # In all csv files sort according to date, extracted using 'data/SESSION_FILE_{os.path.basename(__file__)[:-3]}_{current_datetime}.csv' pattern
+    csv_files.sort(key=lambda x: os.path.getmtime(os.path.join(dir_path, x)))
+    # Select the most recent csv file
+    file_path = os.path.join(dir_path, csv_files[-1])
+
+    # Load the csv file
+    session_file = pd.read_csv(file_path)
+
+    # Convert Mouse column to str with 4 digits
+    session_file['Mouse'] = session_file['Mouse'].astype(str).str.zfill(4)
+
+    return session_file

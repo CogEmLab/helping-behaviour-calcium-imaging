@@ -12,12 +12,13 @@ from src.plotting import *
 from src.session_loader import Session
 from src.functional_connectivity_utils import *
 import networkx as nx
+from src.utils import load_session_file
 
 # Load the configuration
 config = load_config('tech_docs/functional_connectivity_config.yaml')
 
 # Access the configuration values
-SESSION_FILE = config['session_file']
+SESSION_FILE = load_session_file(config['session_file_dir'])
 METADATA_FILE = config['metadata_file']
 ANNOTATIONS_DIR = config['annotations_dir']
 
@@ -28,7 +29,7 @@ GRID_SPEC = tuple(config['grid_spec'])
 SESSION_ORDER = config['session_order']
 DAYS_OF_HELPING_ORDER = config['days_of_helping_order']
 
-def process_session(session_df, row, plot, axes, METADATA_FILE, random_event=False):
+def process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=False):
     """Processes a session to calculate mean correlations and return a DataFrame."""
 
     # Create a session object
@@ -39,16 +40,21 @@ def process_session(session_df, row, plot, axes, METADATA_FILE, random_event=Fal
     session.get_neuron_labels()
     dff_signal = session.load_dff_signal()
     neuron_positions = session.neuron_positions
-
-    if random_event:
-        METADATA_FILE = 'processed-data/metadata_cross_comp_random_event_updated.csv'
-
+    
     # Load the metadata for liberation components
-    metadata = session.load_liberation_metadata(METADATA_FILE)
-    if metadata is not None:
+    liberation_associated_metadata = session.load_liberation_metadata('Liberation')
+    random_event_metadata = session.load_liberation_metadata('Random')
+
+    # Get the IDs of the liberation cells
+    if liberation_associated_metadata is not None:
         liberation_cells_ids = session.get_liberation_cells_ids()
     else:
         liberation_cells_ids = None
+
+    if random_event_metadata is not None:
+        random_event_cells_ids = session.get_liberation_cells_ids()
+    else:
+        random_event_cells_ids = None
 
     # Get the timecode of the victim liberation
     victim_lib_timecode = parse_victim_lib_timecode(session.victim_lib_timecode)
@@ -192,18 +198,16 @@ def process_session(session_df, row, plot, axes, METADATA_FILE, random_event=Fal
     # Instead of plotting these values here, sample random 40 of them and return
     sampled_distances, sampled_correlations = sample_values(get_values(distances), get_values(correlation_matrix))
     
-    return (pd.DataFrame(results, index=[0]), correlation_values, correlation_liberation_only_values, sampled_distances, sampled_correlations, session_df)
+    return (pd.DataFrame(results, index=[0]), correlation_values, correlation_liberation_only_values, sampled_distances, sampled_correlations, SESSION_FILE)
 
 def main(random_event=False):
     fig, axes = setup_plot(FIG_SIZE, GRID_SPEC)
-    global metadata_df
-    metadata_df = pd.read_csv(METADATA_FILE)
-    session_df = pd.read_csv(SESSION_FILE)
-    session_df = session_df[~session_df['Session'].str.contains('Hab')]
-    session_df = session_df[session_df['Mouse'] != 7964]
 
-    # Reindex the DataFrame
-    session_df = session_df.reset_index(drop=True)
+    # Filter the session file
+    SESSION_FILE = SESSION_FILE[SESSION_FILE['Excluded'] != True]
+
+    # # Reindex the DataFrame
+    # SESSION_FILE = SESSION_FILE.reset_index(drop=True)
 
     correlation_values_accepted, correlation_values_accepted_lib = [], []
     sampled_distances_all, sampled_correlations_all = [], []
@@ -211,15 +215,15 @@ def main(random_event=False):
     all_data = pd.DataFrame()
 
     # Get random index for plotting 
-    idx = np.random.randint(0, len(session_df))
-    for i, row in tqdm(session_df.iterrows()):
+    idx = np.random.randint(0, len(SESSION_FILE))
+    for i, row in tqdm(SESSION_FILE.iterrows()):
         if i == idx:
             print('Plotting session with index:', i)
             plot=True
         else:
             plot=False
 
-        corr_data, pccs, pccs_lib, sampled_distances, sampled_correlations, session_df = process_session(session_df, row, plot, axes, METADATA_FILE, random_event=random_event)
+        corr_data, pccs, pccs_lib, sampled_distances, sampled_correlations, SESSION_FILE = process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=random_event)
         
         if not corr_data.empty:
             # Add correlation data to the DataFrame

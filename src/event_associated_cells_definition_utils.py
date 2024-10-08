@@ -153,48 +153,6 @@ def setup_plot(fig_size, grid_spec):
     
     return fig, axes
 
-def load_and_preprocess_session_file(dir_path, event_type):
-    """
-    Load a session file and prepare it for analysis.
-
-    Parameters
-    ----------
-    file_path : str
-        The path to the directory where session files are stored.
-    event_type : str
-        The event type to create proper columns for.
-
-    Returns
-    -------
-    session_file : pandas.DataFrame
-        The prepared session file.
-    """
-
-    # Check directory to find all csv files starting with SESSION_FILE
-    csv_files = [file for file in os.listdir(dir_path) if file.startswith('SESSION_FILE')]
-    # In all csv files sort according to date, extracted using 'data/SESSION_FILE_{os.path.basename(__file__)[:-3]}_{current_datetime}.csv' pattern
-    csv_files.sort(key=lambda x: os.path.getmtime(os.path.join(dir_path, x)))
-    # Select the most recent csv file
-    file_path = os.path.join(dir_path, csv_files[-1])
-
-    # Load the csv file
-    session_file = pd.read_csv(file_path)
-
-    # Convert Mouse column to str with 4 digits
-    session_file['Mouse'] = session_file['Mouse'].astype(str).str.zfill(4)
-
-    # # Add columns to save the number of event associatedcells and their percentage
-    # columns_to_add = [
-    #     f'Num of {event_type} cells',
-    #     f'% of {event_type} cells'
-    # ]
-
-    # for column in columns_to_add:
-    #     session_file[column] = np.nan
-
-    return session_file
-
-
 def generate_event_window(total_expected_duration_seconds, event_timestamp, fps):
     """
     Generate a window around an event timestamp, given the expected duration of the event and the frames per second.
