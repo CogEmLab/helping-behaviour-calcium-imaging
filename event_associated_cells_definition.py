@@ -302,12 +302,10 @@ def main(random=False):
     # Save the figure
     plt.tight_layout()
 
-    # Save the overview figure as PDF
-    plt.savefig(f'tech_plots/{os.path.basename(__file__)[:-3]}_{current_datetime}_overview_figure_liberation_cells_extraction{suffix}.pdf')
+    # Save the overview figure
+    plt.savefig(f'tech_plots/OVERVIEW_FIGURE_{os.path.basename(__file__)[:-3]}_{current_datetime}{suffix}.pdf')
     # Also save as PNG
-    plt.savefig(f'tech_plots/{os.path.basename(__file__)[:-3]}_{current_datetime}_overview_figure_liberation_cells_extraction{suffix}.png')
-    # Close the figure
-    plt.close(fig)
+    plt.savefig(f'tech_plots/OVERVIEW_FIGURE_{os.path.basename(__file__)[:-3]}_{current_datetime}{suffix}.png')
 
 if __name__ == "__main__":
     main(random=False)
