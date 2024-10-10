@@ -11,10 +11,7 @@ from caiman.source_extraction import cnmf
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from scipy import ndimage
 from src.plotting import *
-
-import numpy as np
-
-import numpy as np
+import cv2
 
 def shuffle_signal(DF_F_Z_scored, bin_time_seconds=3, fps=30):
     """
@@ -569,6 +566,6 @@ def load_session_file(dir_path):
     session_file = pd.read_csv(file_path)
 
     # Convert Mouse column to str with 4 digits
-    session_file['Mouse'] = session_file['Mouse'].astype(str).str.zfill(4)
+    # session_file['Mouse'] = session_file['Mouse'].astype(str).str.zfill(4)
 
     return session_file
