@@ -289,22 +289,17 @@ def main(SESSION_FILE):
     sns.ecdfplot(correlation_values_accepted_lib, ax=axes['pcc-cumulative-distribution'], label='Liberation cells', color='r')
     axes['pcc-cumulative-distribution'].set_title('PCC cumulative distribution')
     axes['pcc-cumulative-distribution'].legend()
-
-    if random_event:
-        suffix='_random_event'
-    else:
-        suffix=''
     
     # Plot cumulative distribution of PCC values for all accepted components and liberation cells (separate figure)
     plot_ecdf_with_ks_test(
         correlation_values_accepted,
         correlation_values_accepted_lib,
-        filename=os.path.join('figures', 'functional_connectivity', 'general', f'pcc_cumulative_distribution{suffix}_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.png'),
+        filename=os.path.join('figures', 'functional_connectivity', 'general', f'pcc_cumulative_distribution_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.png'),
         shuffled_signal_color='red')
     
     # Save correlation_values_accepted and correlation_values_accepted_lib as npy files
-    np.save(os.path.join('processed-data', f'correlation_values{suffix}_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.npy'), correlation_values_accepted)
-    np.save(os.path.join('processed-data', f'correlation_values_lib{suffix}_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.npy'), correlation_values_accepted_lib)
+    np.save(os.path.join('processed-data', f'correlation_values_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.npy'), correlation_values_accepted)
+    np.save(os.path.join('processed-data', f'correlation_values_lib_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.npy'), correlation_values_accepted_lib)
 
     # Finalize plot
     for ax in axes.values():
