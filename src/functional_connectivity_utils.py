@@ -1,4 +1,5 @@
 import os
+from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -8,6 +9,7 @@ from src.plotting import plot_correlated_traces, plot_cross_correlation_matrix, 
 import yaml
 from scipy.spatial.distance import cdist
 import networkx as nx
+import datetime
 
 def setup_plot(fig_size: Tuple[float, float] = (12, 9),
                grid_spec: Tuple[int, int] = (3, 6)) -> Tuple[plt.Figure, Dict[str, plt.Axes]]:
@@ -55,7 +57,7 @@ def load_config(config_file='functional_connectivity_config.yaml'):
         config = yaml.safe_load(file)
     return config
 
-def plot_session_example(axes, session, pnr, accepted_dff_signal, distances, correlation_matrix, correlated_pairs_new, position_dict, G, colors, labels, liberation_cell_ids_mapped):
+def plot_session_example(axes, session, pnr, accepted_dff_signal, distances, correlation_matrix, correlated_pairs_new, position_dict, G, colors, labels, liberation_associated_cells_ids):
     # axes['image-example'].imshow(pnr, cmap='grey')
     nx.draw_networkx_labels(G, pos=position_dict, ax=axes['image-example'], labels=labels, font_size=8, font_color='white')
 
@@ -70,7 +72,7 @@ def plot_session_example(axes, session, pnr, accepted_dff_signal, distances, cor
     plot_distance_matrix(axes['distance-matrix'], distances, 'Distance matrix, animal: ' + str(session.animal_id) + ', session: ' + session.session, cbar=False)
 
     # Plot the traces of highly correlated components
-    plot_correlated_traces(axes['traces-example'], accepted_dff_signal, correlated_pairs_new, distances=distances, correlation_matrix=correlation_matrix,liberation_cell_ids=liberation_cell_ids_mapped, fps=session.calcium_fps)
+    plot_correlated_traces(axes['traces-example'], accepted_dff_signal, correlated_pairs_new, distances=distances, correlation_matrix=correlation_matrix,liberation_cell_ids=liberation_associated_cells_ids, fps=session.calcium_fps)
     axes['traces-example'].set_title('Traces of highly correlated components')
     axes['traces-example'].axvline(session.victim_lib_timecode * session.calcium_fps, color='k', linestyle='dashed', linewidth=2, label='Victim crossing')
 
@@ -168,9 +170,7 @@ def compute_correlations(positions, signal, threshold,
 
     return distances, cross_correlation_bin, adjacency_matrix, correlated_pairs
 
-def build_graph(session, neuron_positions, adjacency_matrix, liberation_cell_ids_mapped, suffix=''):
-    #TODO: Make not connected nodes slightly transperant and connecting lights in grey. 
-    
+def build_graph(session, neuron_positions, adjacency_matrix, liberation_associated_cells_ids, random_event_associated_cells_ids, suffix=None):    
     """Build and plot a graph from the adjacency matrix.
 
     Parameters:
@@ -178,13 +178,14 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_cell_ids
         neuron_positions (list of tuples): List of (x, y) positions of neurons.
         adjacency_matrix (np.array): Adjacency matrix representing the graph.
         liberation_cells_ids (list): List of IDs of liberation cells, mapped to (new) IDs.
+        random_event_cells_ids (list): List of IDs of random event cells, mapped to (new) IDs.
         suffix (str): Optional suffix to add to the filename.
 
     Returns:
         tuple: Contains the following elements:
             - position_dict (dict): Mapping between node IDs and their positions.
             - G (nx.Graph): Graph object representing the graph.
-            - colors (list): List of colors (white or red) for each node.
+            - colors (list): List of colors (white, red, blue or violet) for each node.
             - labels (dict): Mapping between node IDs and their labels.
     """
     # Create a graph from the adjacency matrix
@@ -196,6 +197,7 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_cell_ids
     # Create a list of colors (white or red) for each node
     colors = ['black'] * len(neuron_positions)
     alphas = [1] * len(neuron_positions)
+    labels = {}
 
     degrees = G.degree()
 
@@ -206,29 +208,43 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_cell_ids
         else:
             continue
     
-
-    # Create a mapping between node IDs and their labels
-    labels = {}
-    
     # If liberation cells are present, highlight them
-    if liberation_cell_ids_mapped is not None:
-        colors = ['red' if i in liberation_cell_ids_mapped else 'black' for i in range(len(neuron_positions))]
-        labels.update({i: str(i) for i in liberation_cell_ids_mapped})
-        
-        # Compare number of 'red' color to the number of liberation cells in session.number_of_liberation_cells;
-        # if not matching print out
-        if len(liberation_cell_ids_mapped) != session.number_of_liberation_cells:
-            print(f'Number of cells in {session.session} does not match number of cells in Liberation Data')
+    if liberation_associated_cells_ids is not None:
+        colors = ['red' if i in liberation_associated_cells_ids else 'black' for i in range(len(neuron_positions))]
+
+    # If random event cells are present, highlight them
+    if random_event_associated_cells_ids is not None:
+        colors = ['blue' if i in random_event_associated_cells_ids else c for i, c in enumerate(colors)]
+
+    # If a cell is both liberation and random event, make it violet
+    if liberation_associated_cells_ids is not None and random_event_associated_cells_ids is not None:
+        for i in range(len(neuron_positions)):
+            if i in random_event_associated_cells_ids and i in liberation_associated_cells_ids:
+                colors[i] = 'violet'
     
+    # Save liberation and random event cells to the labels 
+    if liberation_associated_cells_ids is not None:
+        labels.update({i: f'{str(i)} Lib' for i in range(len(neuron_positions)) if i in liberation_associated_cells_ids})
+    if random_event_associated_cells_ids is not None:
+        labels.update({i: f'{str(i)} Rand' for i in range(len(neuron_positions)) if i in random_event_associated_cells_ids})
+
     # Plot the graph
-    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+    __, ax = plt.subplots(1, 1, figsize=(8, 6))
     nx.draw(G, pos=position_dict, node_size=100, node_color=colors, alpha=alphas, edge_color='lightgray', ax=ax)
+
+    # Add legend for the colors; if black==Rest, if Red ==Lib, if Blue ==Rand, if Violet == Both
+    legend_elements = [Patch(facecolor='black', edgecolor='black', label='Rest'),
+                       Patch(facecolor='red', edgecolor='black', label='Liberation-associated'),
+                       Patch(facecolor='blue', edgecolor='black', label='Random-Event-associated'),
+                       Patch(facecolor='violet', edgecolor='black', label='Both')]
+    ax.legend(handles=legend_elements, loc='upper right')
     
     # Save the figure
-    output_dir = os.path.join('figures', 'graphs', session.cohort, session.session)
+    now = datetime.datetime.now()
+    output_dir = os.path.join('figures', 'functional_connectivity', 'graphs', session.cohort, session.session)
     os.makedirs(output_dir, exist_ok=True)
-    filename_png = os.path.join(output_dir, f'graph_{str(session.animal_id)}{suffix}.png')
-    filename_eps = os.path.join(output_dir, f'graph_{str(session.animal_id)}{suffix}.eps')
+    filename_png = os.path.join(output_dir, f'NETWORK_{now.strftime("%Y-%m-%d_%H-%M-%S")}_{os.path.basename(__file__)[:-3]}_{str(session.animal_id)}{suffix}.png')
+    filename_eps = os.path.join(output_dir, f'NETWORK_{now.strftime("%Y-%m-%d_%H-%M-%S")}_{os.path.basename(__file__)[:-3]}_{str(session.animal_id)}{suffix}.eps')
     plt.savefig(filename_png, dpi=300)
     plt.savefig(filename_eps, format='eps')
     plt.close()

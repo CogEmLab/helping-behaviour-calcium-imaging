@@ -29,7 +29,7 @@ GRID_SPEC = tuple(config['grid_spec'])
 SESSION_ORDER = config['session_order']
 DAYS_OF_HELPING_ORDER = config['days_of_helping_order']
 
-def process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=False):
+def process_session(SESSION_FILE, row, plot, axes):
     """Processes a session to calculate mean correlations and return a DataFrame."""
 
     # Create a session object
@@ -64,7 +64,7 @@ def process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=F
     distances, correlation_matrix, adjacency_matrix, correlated_pairs = compute_correlations(neuron_positions, dff_signal[:,:border], THRESHOLD, bin_size_seconds=60, sampling_rate=session.calcium_fps)
 
     # Create a graph from the adjacency matrix
-    position_dict, G, colors, labels = build_graph(session, neuron_positions, adjacency_matrix, liberation_cells_ids)
+    position_dict, G, colors, labels = build_graph(session, neuron_positions, adjacency_matrix, liberation_cells_ids, random_event_cells_ids)
 
     # Separate correlation pairs depending on the neuron identity; only do it if there are at least some liberation cells
     correlated_pairs_lib_to_all = []
@@ -79,7 +79,6 @@ def process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=F
 
         for (cell1, cell2) in zip(correlated_pairs[0], correlated_pairs[1]):
 
-            #! I don't really need this, it serves only a purpose of making a list of tuples
             if cell1 in liberation_cells_ids and cell2 in liberation_cells_ids:
                 correlated_pairs_only_lib.append((cell1, cell2))
             elif cell1 in liberation_cells_ids:
@@ -168,13 +167,10 @@ def process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=F
         'Number of correlated pairs (lib -> lib)': len(correlated_pairs_only_lib),
         'Clustering coefficient (all)': round(nx.average_clustering(G), 2),
         'Clustering coefficient (lib)': round(nx.average_clustering(G.subgraph(list(liberation_cells_ids))), 2) if liberation_cells_ids is not None else None,
-        'Clustering coefficient from full graph (lib)': round(nx.average_clustering(H_lib), 2) if H_lib is not None else None,
         'Global Efficiency (all)': round(nx.global_efficiency(G), 2),
         'Global Efficiency (lib)': round(nx.global_efficiency(G.subgraph(list(liberation_cells_ids))), 2) if liberation_cells_ids is not None else None,
-        'Global Efficiency from full graph (lib)': round(nx.global_efficiency(H_lib), 2) if H_lib is not None else None,
         'Density (all)': round(nx.density(G), 2),
         'Density (lib)': round(nx.density(G.subgraph(list(liberation_cells_ids))), 2) if liberation_cells_ids is not None else None,
-        'Density from full graph (lib)': round(nx.density(H_lib), 2) if H_lib is not None else None,
         'Has liberation cells': liberation_cells_ids is not None and len(liberation_cells_ids) > 0,
         'Number of liberation cells': len(liberation_cells_ids) if liberation_cells_ids is not None else 0,
         'Average response score (lib -> all)': avg_response_score_lib_to_all if liberation_associated_metadata is not None else None,
@@ -200,14 +196,11 @@ def process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=F
     
     return (pd.DataFrame(results, index=[0]), correlation_values, correlation_liberation_only_values, sampled_distances, sampled_correlations, SESSION_FILE)
 
-def main(random_event, SESSION_FILE):
+def main(SESSION_FILE):
     fig, axes = setup_plot(FIG_SIZE, GRID_SPEC)
 
     # Filter the session file
     SESSION_FILE = SESSION_FILE[SESSION_FILE['Excluded'] != True]
-
-    # # Reindex the DataFrame
-    # SESSION_FILE = SESSION_FILE.reset_index(drop=True)
 
     correlation_values_accepted, correlation_values_accepted_lib = [], []
     sampled_distances_all, sampled_correlations_all = [], []
@@ -223,7 +216,7 @@ def main(random_event, SESSION_FILE):
         else:
             plot=False
 
-        corr_data, pccs, pccs_lib, sampled_distances, sampled_correlations, SESSION_FILE = process_session(SESSION_FILE, row, plot, axes, METADATA_FILE, random_event=random_event)
+        corr_data, pccs, pccs_lib, sampled_distances, sampled_correlations, SESSION_FILE = process_session(SESSION_FILE, row, plot, axes)
         
         if not corr_data.empty:
             # Add correlation data to the DataFrame
@@ -327,4 +320,4 @@ def main(random_event, SESSION_FILE):
     plt.savefig(os.path.join('tech_plots', f'functional_connectivity_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.pdf'))
  
 if __name__ == "__main__":
-    main(random_event=False, SESSION_FILE=SESSION_FILE)
+    main(SESSION_FILE=SESSION_FILE)
