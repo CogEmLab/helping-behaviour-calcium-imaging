@@ -33,6 +33,18 @@ class Session:
         self.number_of_components_total = data_row['Total Components']
         self.number_of_accepted_components = data_row['Num Accepted']
 
+        # Check if column Num of Liberation cells exist and and as an attribute (int)
+        if 'Num of Liberation cells' in data_row.keys():
+            self.number_of_liberation_cells = data_row['Num of Liberation cells']
+        else:
+            self.number_of_liberation_cells = None
+        
+        # Check if column Num of Random cells exist and and as an attribute (int)
+        if 'Num of Random cells' in data_row.keys:
+            self.number_of_random_cells = data_row['Num of Random cells']
+        else:
+            self.number_of_random_cells = None
+
         # Construct the annotations path
         annotations_filename = data_row['ManualAnnotationSide']
         self.annotations_path = os.path.join('annotations', self.cohort, self.session, f'{annotations_filename}.csv')
@@ -48,13 +60,12 @@ class Session:
         self.pnr_image = None
         self.caiman_model = None
         self.liberation_cells_ids = None
+        self.random_cells_ids = None
         self.snr_values = None 
         self.pnr_image_dims = None  # To store dimensions of the PNR image
         self.neuron_labels = None
         self.neuron_positions = None
         self.neuron_circularity = None
-        self.number_of_liberation_cells = None
-        self.random_cells_ids = None
         
     def load_caiman_model(self):
             """Load the CaImAn fitted model."""
@@ -171,88 +182,43 @@ class Session:
         :return: Filtered pandas DataFrame containing liberation metadata for this session,
                 or None if the file is not found or data for this session is not present
         """
-        # Check if  f'{event_type} Associated Cells Metadata Path' exist in row
-        metadata_path = self.row[f'{event_type} Associated Cells Metadata Path']
-        if metadata_path is None:
-            print(f"Warning: {event_type} metadata file path not found. Make sure to run the 'event_associated_cells_definition.py' script first.")
-            return None
         
-        # Check if the metadata file exists
-        if not os.path.exists(metadata_path):
-            print(f"Warning: Liberation metadata file not found at {metadata_path}")
+        metadata_path = self.row[f'{event_type} Associated Cells Metadata Path']
+
+        if metadata_path is None or not os.path.exists(metadata_path):
+            print(f"Warning: No {event_type} metadata found for Cohort: {self.cohort}, Mouse: {self.animal_id}, Session: {self.session}")
             return None
 
-        try:
-            full_metadata = pd.read_csv(metadata_path)
-            filtered_metadata = full_metadata[
-                (full_metadata['Cohort'] == self.cohort) &
-                (full_metadata['Mouse'] == self.animal_id) &
-                (full_metadata['Session'] == self.session)
-            ]
+        full_metadata = pd.read_csv(metadata_path)
+        filtered_metadata = full_metadata[
+            (full_metadata['Cohort'] == self.cohort) &
+            (full_metadata['Mouse'] == self.animal_id) &
+            (full_metadata['Session'] == self.session)
+        ]
 
-            if filtered_metadata.empty:
-                print(f"Warning: No liberation metadata found for Cohort: {self.cohort}, Mouse: {self.animal_id}, Session: {self.session}")
-                return None
+        if not filtered_metadata.empty:
 
             if event_type == 'Liberation':
                 self.liberation_cells_ids = filtered_metadata['Component ID'].to_list()
-                assert len(self.liberation_cells_ids) == len(filtered_metadata), (
-                    f"Duplicated liberation cells found in the metadata file: expected {len(filtered_metadata)}, "
+                assert self.number_of_liberation_cells == len(self.liberation_cells_ids), (
+                    f"Wrong number of liberation cells found in the metadata file: expected {self.number_of_liberation_cells}, "
                     f"but got {len(self.liberation_cells_ids)}."
                 )
 
-                # Assert that the number of liberation cells matches the expected total
-                assert len(self.liberation_cells_ids) == self.number_of_liberation_cells, (
-                    f"Mismatch in number of liberation cells: expected {self.number_of_liberation_cells}, "
-                    f"but got {len(self.liberation_cells_ids)}."
-                )
             elif event_type == 'Random':
                 self.random_cells_ids = filtered_metadata['Component ID'].to_list()
-                assert len(self.random_cells_ids) == len(filtered_metadata), (
-                    f"Duplicated random cells found in the metadata file: expected {len(filtered_metadata)}, "
-                    f"but got {len(self.random_cells_ids)}."
-                )
-
-                # Assert that the number of random cells matches the expected total
-                assert len(self.random_cells_ids) == self.number_of_random_cells, (
-                    f"Mismatch in number of random cells: expected {self.number_of_random_cells}, "
+                assert self.number_of_random_cells == len(self.random_cells_ids), (
+                    f"Wrong number of random cells found in the metadata file: expected {self.number_of_random_cells}, "
                     f"but got {len(self.random_cells_ids)}."
                 )
 
             else:
                 raise ValueError(f"Invalid event type: {event_type}")
 
-            return filtered_metadata
+        else:
+            print(f"Warning: No {event_type} metadata found for Cohort: {self.cohort}, Mouse: {self.animal_id}, Session: {self.session}")
 
-        except pd.errors.EmptyDataError:
-            print(f"Warning: The liberation metadata file at {metadata_path} is empty")
-        except KeyError as e:
-            print(f"Error: The liberation metadata file is missing expected column: {str(e)}")
-        except Exception as e:
-            print(f"Error occurred while loading liberation metadata: {str(e)}")
-        return None
-
-    # def load_accepted_components(self):
-    #     """Load accepted components and assert the number matches the expected count."""
-    #     if self.caiman_model is not None:
-    #         accepted_components = self.caiman_model.estimates.idx_components
-    #     elif os.path.exists(self.accepted_components_path):
-    #         try:
-    #             accepted_components = np.load(self.accepted_components_path).tolist()
-    #         except Exception as e:
-    #             print(f"Error loading accepted components: {str(e)}")
-    #             return None
-    #     else:
-    #         print(f"Warning: Accepted components file not found at {self.accepted_components_path}")
-    #         return None
-
-    #     # Assert that the number of accepted components matches the expected total
-    #     assert len(accepted_components) == self.number_of_accepted_components, (
-    #         f"Mismatch in number of accepted components: expected {self.number_of_accepted_components}, "
-    #         f"but got {len(accepted_components)}."
-    #     )
-        
-    #     return accepted_components
+        return filtered_metadata
     
     def get_neuron_labels(self, binary_output=False, smooth_sigma=3, shrink_pixels=1):
         #TODO: at this point if labels overlap, nonexpected behaviour can occur. I should handle this case. 
