@@ -19,11 +19,11 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
 
     Parameters
     ----------
-    first_dist_values : array-like
+    first_dist_values : list of float
         Array of values for the first distribution.
-    second_dist_values : array-like
+    second_dist_values : list of float
         Array of values for the second distribution.
-    optional_third_dist_values : array-like, optional
+    optional_third_dist_values : list of float, optional
         Array of values for the third distribution.
     ax : matplotlib axis object, optional
         The axis to plot on. If None, create a new figure and axis.
@@ -47,6 +47,12 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         Label for the third distribution.
     """
     
+    # Convert inputs to lists of floats
+    first_dist_values = [float(x) for x in first_dist_values]
+    second_dist_values = [float(x) for x in second_dist_values]
+    if optional_third_dist_values is not None:
+        optional_third_dist_values = [float(x) for x in optional_third_dist_values]
+    
     # Create a new figure and axis if one is not provided
     if ax is None:
         __, ax = plt.subplots(figsize=(8, 6))
@@ -54,15 +60,18 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
     # Select equal number of samples for all distributions, but randomize which samples to select
     if optional_third_dist_values is not None:
         n_samples = min(len(first_dist_values), len(second_dist_values), len(optional_third_dist_values))
-        sample_idx = np.array(np.random.RandomState(0).permutation(n_samples))
-        first_dist_values = first_dist_values[sample_idx]
-        second_dist_values = second_dist_values[sample_idx]
-        optional_third_dist_values = optional_third_dist_values[sample_idx]
+        first_sample_idx = np.random.RandomState(0).permutation(len(first_dist_values))[:n_samples]
+        second_sample_idx = np.random.RandomState(0).permutation(len(second_dist_values))[:n_samples]
+        third_sample_idx = np.random.RandomState(0).permutation(len(optional_third_dist_values))[:n_samples]
+        first_dist_values = [first_dist_values[i] for i in first_sample_idx]
+        second_dist_values = [second_dist_values[i] for i in second_sample_idx]
+        optional_third_dist_values = [optional_third_dist_values[i] for i in third_sample_idx]
     else:
         n_samples = min(len(first_dist_values), len(second_dist_values))
-        sample_idx = np.array(np.random.RandomState(0).permutation(n_samples))
-        first_dist_values = first_dist_values[sample_idx]
-        second_dist_values = second_dist_values[sample_idx]
+        first_sample_idx = np.random.RandomState(0).permutation(len(first_dist_values))[:n_samples]
+        second_sample_idx = np.random.RandomState(0).permutation(len(second_dist_values))[:n_samples]
+        first_dist_values = [first_dist_values[i] for i in first_sample_idx]
+        second_dist_values = [second_dist_values[i] for i in second_sample_idx]
     
     # Plot ECDF for True and Shuffled values
     sns.ecdfplot(first_dist_values, ax=ax, color='k', alpha=0.9, label=true_label)
@@ -113,6 +122,7 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         plt.close(plt.gcf())  # Close the figure after saving
     else:
         return ax
+
 
 def exp_func(x, a, b):
             return a * np.exp(b * x)
