@@ -179,7 +179,13 @@ def process_session(SESSION_FILE, row, plot, axes):
             results[f'Number of {identity} cells in correlations (lib -> lib)'] = count
 
     if liberation_cells_ids is not None and len(liberation_cells_ids) > 2:
-        correlation_values = get_values(correlation_matrix)
+        # Get a dff_f for cells that are not in liberation_cells_ids and not in random_event_cells_ids
+        ids_to_exclude = np.array(set(liberation_cells_ids).union(random_event_cells_ids))
+        
+        # Compute correlations
+        __, correlation_matrix_rest, ___, ___ = compute_correlations(neuron_positions[~ids_to_exclude], dff_signal[~ids_to_exclude,:border], THRESHOLD, bin_size_seconds=60, sampling_rate=session.calcium_fps)
+
+        correlation_values = get_values(correlation_matrix_rest)
         correlation_liberation_only_values = get_values(correlation_matrix_liberation_only) 
         correlation_random_only_values = get_values(correlation_matrix_random_only)
     else:
@@ -187,8 +193,8 @@ def process_session(SESSION_FILE, row, plot, axes):
         correlation_liberation_only_values = []
         correlation_random_only_values = []
 
-    # Instead of plotting these values here, sample random 40 of them and return
-    sampled_distances, sampled_correlations = sample_values(get_values(distances), get_values(correlation_matrix))
+    # Instead of plotting these values here, sample random 60 of them and return
+    sampled_distances, sampled_correlations = sample_values(get_values(distances), get_values(correlation_matrix), n_samples=60)
     
     return (pd.DataFrame(results, index=[0]), correlation_values, correlation_liberation_only_values, correlation_random_only_values, sampled_distances, sampled_correlations, SESSION_FILE)
 

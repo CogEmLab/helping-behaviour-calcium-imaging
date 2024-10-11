@@ -49,7 +49,20 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
     
     # Create a new figure and axis if one is not provided
     if ax is None:
-        fig, ax = plt.subplots(figsize=(8, 6))
+        __, ax = plt.subplots(figsize=(8, 6))
+    
+    # Select equal number of samples for all distributions, but randomize which samples to select
+    if optional_third_dist_values is not None:
+        n_samples = min(len(first_dist_values), len(second_dist_values), len(optional_third_dist_values))
+        sample_idx = np.random.RandomState(0).permutation(n_samples)
+        first_dist_values = first_dist_values[sample_idx]
+        second_dist_values = second_dist_values[sample_idx]
+        optional_third_dist_values = optional_third_dist_values[sample_idx]
+    else:
+        n_samples = min(len(first_dist_values), len(second_dist_values))
+        sample_idx = np.random.RandomState(0).permutation(n_samples)
+        first_dist_values = first_dist_values[sample_idx]
+        second_dist_values = second_dist_values[sample_idx]
     
     # Plot ECDF for True and Shuffled values
     sns.ecdfplot(first_dist_values, ax=ax, color='k', alpha=0.9, label=true_label)
@@ -78,19 +91,15 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         p_values = [test_result[1] for test_result in test_results]
         p_value_corrected = min(p_values) * 3
 
-    # Add the KS test results to the plot
-    ax.text(0.05, 0.9, f'stat = {ks_result[0]:.2e}', 
-            transform=ax.transAxes, verticalalignment='top', color='black')
-    
-    # Add the p-value to the plot
-    ax.text(0.05, 0.85, f'p = {p_value_corrected:.2e}', 
-            transform=ax.transAxes, verticalalignment='top', color='black')
+    # Add p values to the plot
+    ax.text(0.65, 0.95, f'p-value: {p_value_corrected:.2e}', transform=ax.transAxes, ha='center', va='center')
 
-    # If the p-value is below the threshold, add a significance star
+    # Add significance star if the p-value is below the threshold
     if p_value_corrected < p_value_threshold:
-        ax.text(0.35, 1, ' *', 
-                transform=ax.transAxes, verticalalignment='top', 
-                color=significance_color, fontsize=14)  # Customize the position and size of the star
+        ax.scatter(0.65, 0.9, color=significance_color, s=100, marker='*')
+
+    # Add number of samples to the plot
+    ax.text(0.65, 0.85, f'{n_samples} samples', transform=ax.transAxes, ha='center', va='center')
 
     # If a filename is provided, save the plot
     if filename is not None:
