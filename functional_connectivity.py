@@ -291,13 +291,13 @@ def main(SESSION_FILE):
     axes['pcc-cumulative-distribution'].legend()
     
     # Plot cumulative distribution of PCC values for all accepted components and liberation cells (separate figure)
-    plot_ecdf_with_ks_test(
-        correlation_values,
+    plot_ecdf_with_ks_test(correlation_values,
         correlation_values_lib,
-        correlation_values_rand
+        correlation_values_rand,
         filename=os.path.join('figures', 'functional_connectivity', 'general', f'pcc_cumulative_distribution_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.png'),
-        shuffled_signal_color='tab:red',
-        third_signal_color='tab:blue',
+        second_dist_color='tab:red',
+        third_dist_color='tab:blue',
+        legend=True,
         true_label='All components',
         shuffled_label='Liberation cells',
         third_label='Random Event cells'
