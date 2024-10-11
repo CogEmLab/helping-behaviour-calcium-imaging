@@ -142,6 +142,9 @@ class Session:
             registration_file (np.ndarray): The registration file.
             indexing_scheme (Dict[str, List[int]]): The indexing scheme.
         """
+        # A small workaround to ensure proper file reading
+        self.animal_id = self.animal_id.astype(str).str.zfill(4)
+
         try:
             registration_file = np.load(os.path.join(f'processed-data/{self.cohort}', 'registration', f'{self.animal_id}_accepted_only_registered_ids.npy'))
             indexing_scheme = np.load(os.path.join(f'processed-data/{self.cohort}', 'registration', f'{self.animal_id}_accepted_only_session_indexing.npy'), allow_pickle=True).item()
