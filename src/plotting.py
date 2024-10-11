@@ -8,9 +8,10 @@ import os
 from scipy.optimize import curve_fit
 from scipy.stats import ks_2samp
 
-def plot_ecdf_with_ks_test(true_values, shuffled_values, ax=None, 
-                           significance_color='r', shuffled_signal_color='grey', 
-                           p_value_threshold=0.05, filename=None):
+def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third_dist_values=None, ax=None, 
+                           significance_color='r', second_dist_color='grey', third_dist_color='b',
+                           p_value_threshold=0.05, filename=None, legend=False, 
+                           true_label='True', shuffled_label='Shuffled', third_label='Random Event Cells'):
     """
     Plot ECDF for true and shuffled data, perform the Kolmogorov-Smirnov (KS) test, and 
     display the results with a significance star if the p-value is below the threshold. 
@@ -18,20 +19,32 @@ def plot_ecdf_with_ks_test(true_values, shuffled_values, ax=None,
 
     Parameters
     ----------
-    true_values : array-like
-        Array of true values for comparison.
-    shuffled_values : array-like
-        Array of shuffled values for comparison.
+    first_dist_values : array-like
+        Array of values for the first distribution.
+    second_dist_values : array-like
+        Array of values for the second distribution.
+    optional_third_dist_values : array-like, optional
+        Array of values for the third distribution.
     ax : matplotlib axis object, optional
         The axis to plot on. If None, create a new figure and axis.
     significance_color : str, optional
         Color of the significance star (default is 'r' - red).
-    shuffled_signal_color : str, optional
+    second_dist_color : str, optional
         Color for the ECDF plot of the shuffled data (default is 'grey').
+    third_dist_color : str, optional
+        Color for the ECDF plot of the third data (default is 'b' - blue).
     p_value_threshold : float, optional
         Threshold for statistical significance (default is 0.05).
     filename : str, optional
         If provided, the plot will be saved as both PNG and EPS with the given filename.
+    legend : bool, optional
+        If True, add a legend to the plot.
+    true_label : str, optional
+        Label for the true distribution.
+    shuffled_label : str, optional
+        Label for the shuffled distribution.
+    third_label : str, optional
+        Label for the third distribution.
     """
     
     # Create a new figure and axis if one is not provided
@@ -39,27 +52,42 @@ def plot_ecdf_with_ks_test(true_values, shuffled_values, ax=None,
         fig, ax = plt.subplots(figsize=(8, 6))
     
     # Plot ECDF for True and Shuffled values
-    sns.ecdfplot(true_values, ax=ax, label='True', color='k', alpha=0.9)
-    sns.ecdfplot(shuffled_values, ax=ax, label='Shuffled', color=shuffled_signal_color, alpha=0.9)
+    sns.ecdfplot(first_dist_values, ax=ax, color='k', alpha=0.9, label=true_label)
+    sns.ecdfplot(second_dist_values, ax=ax, color=second_dist_color, alpha=0.9, label=shuffled_label)
+
+    # Plot ECDF for third values if provided
+    if optional_third_dist_values is not None:
+        sns.ecdfplot(optional_third_dist_values, ax=ax, color=third_dist_color, alpha=0.9, label=third_label)
+
+    # Add legend if requested
+    if legend:
+        ax.legend()
 
     # Set axis limits and aesthetics
-    ax.set_xlim(-1, 1)
+    ax.set_xlim(-0.5, 0.5)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
-    # Perform the Kolmogorov-Smirnov test
-    ks_result = ks_2samp(shuffled_values, true_values)
+    # Perform the Kolmogorov-Smirnov test with Bonferroni correction
+    if optional_third_dist_values is None:
+        ks_result = ks_2samp(second_dist_values, first_dist_values)
+        p_value_corrected = ks_result[1]
+    else:
+        # Perform three tests and Bonferroni correct the p-values
+        test_results = [ks_2samp(second_dist_values, first_dist_values), ks_2samp(second_dist_values, optional_third_dist_values), ks_2samp(first_dist_values, optional_third_dist_values)]
+        p_values = [test_result[1] for test_result in test_results]
+        p_value_corrected = min(p_values) * 3
 
     # Add the KS test results to the plot
     ax.text(0.05, 0.9, f'stat = {ks_result[0]:.2e}', 
             transform=ax.transAxes, verticalalignment='top', color='black')
     
     # Add the p-value to the plot
-    ax.text(0.05, 0.85, f'p = {ks_result[1]:.2e}', 
+    ax.text(0.05, 0.85, f'p = {p_value_corrected:.2e}', 
             transform=ax.transAxes, verticalalignment='top', color='black')
 
     # If the p-value is below the threshold, add a significance star
-    if ks_result[1] < p_value_threshold:
+    if p_value_corrected < p_value_threshold:
         ax.text(0.35, 1, ' *', 
                 transform=ax.transAxes, verticalalignment='top', 
                 color=significance_color, fontsize=14)  # Customize the position and size of the star

@@ -294,8 +294,14 @@ def main(SESSION_FILE):
     plot_ecdf_with_ks_test(
         correlation_values,
         correlation_values_lib,
+        correlation_values_rand
         filename=os.path.join('figures', 'functional_connectivity', 'general', f'pcc_cumulative_distribution_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.png'),
-        shuffled_signal_color='red')
+        shuffled_signal_color='tab:red',
+        third_signal_color='tab:blue',
+        true_label='All components',
+        shuffled_label='Liberation cells',
+        third_label='Random Event cells'
+    )
     
     # Save correlation_values_accepted and correlation_values_accepted_lib as npy files
     np.save(os.path.join('processed-data', f'correlation_values_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.npy'), correlation_values)
@@ -308,7 +314,7 @@ def main(SESSION_FILE):
         ax.tick_params(axis='x', labelsize=12)
         ax.tick_params(axis='y', labelsize=12)
 
-    all_data.to_csv(os.path.join('processed-data', f'functional_connectivity_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.csv'), index=False)
+    all_data.to_csv(os.path.join('processed-data', f'FC_DATA_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.csv'), index=False)
 
     # Save the plot
     plt.tight_layout()
