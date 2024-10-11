@@ -54,13 +54,13 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
     # Select equal number of samples for all distributions, but randomize which samples to select
     if optional_third_dist_values is not None:
         n_samples = min(len(first_dist_values), len(second_dist_values), len(optional_third_dist_values))
-        sample_idx = np.random.RandomState(0).permutation(n_samples)
+        sample_idx = np.array(np.random.RandomState(0).permutation(n_samples))
         first_dist_values = first_dist_values[sample_idx]
         second_dist_values = second_dist_values[sample_idx]
         optional_third_dist_values = optional_third_dist_values[sample_idx]
     else:
         n_samples = min(len(first_dist_values), len(second_dist_values))
-        sample_idx = np.random.RandomState(0).permutation(n_samples)
+        sample_idx = np.array(np.random.RandomState(0).permutation(n_samples))
         first_dist_values = first_dist_values[sample_idx]
         second_dist_values = second_dist_values[sample_idx]
     
