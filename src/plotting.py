@@ -7,6 +7,7 @@ import seaborn as sns
 import os
 from scipy.optimize import curve_fit
 from scipy.stats import ks_2samp
+from scipy.stats import false_discovery_control
 
 def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third_dist_values=None, ax=None, 
                            significance_color='r', second_dist_color='grey', third_dist_color='b',
@@ -94,21 +95,17 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
     if optional_third_dist_values is None:
         ks_result = ks_2samp(second_dist_values, first_dist_values)
         p_value_corrected = ks_result[1]
+        # Add p-value to the plot
+        ax.text(0.65, 0.85, f'p-value: {p_value_corrected:.4f}', transform=ax.transAxes, ha='center', va='center')
     else:
         # Perform three tests and Bonferroni correct the p-values
         test_results = [ks_2samp(second_dist_values, first_dist_values), ks_2samp(second_dist_values, optional_third_dist_values), ks_2samp(first_dist_values, optional_third_dist_values)]
         p_values = [test_result[1] for test_result in test_results]
-        p_value_corrected = min(p_values) * 3
-
-    # Add p values to the plot
-    ax.text(0.65, 0.95, f'p-value: {p_value_corrected:.2e}', transform=ax.transAxes, ha='center', va='center')
-
-    # Add significance star if the p-value is below the threshold
-    if p_value_corrected < p_value_threshold:
-        ax.scatter(0.65, 0.9, color=significance_color, s=100, marker='*')
-
-    # Add number of samples to the plot
-    ax.text(0.65, 0.85, f'{n_samples} samples', transform=ax.transAxes, ha='center', va='center')
+        # Correct the p-values using the Bonferroni correction
+        p_values_corrected = false_discovery_control(p_values, method='bonferroni')
+        # Add p-values to the plot
+        for i, p_value in enumerate(p_values_corrected):
+            ax.text(0.65, 0.85 - i * 0.05, f'p-value: {p_value:.4f}', transform=ax.transAxes, ha='center', va='center')
 
     # If a filename is provided, save the plot
     if filename is not None:
@@ -122,7 +119,6 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         plt.close(plt.gcf())  # Close the figure after saving
     else:
         return ax
-
 
 def exp_func(x, a, b):
             return a * np.exp(b * x)
