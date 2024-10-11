@@ -62,9 +62,10 @@ def sample_random_event_cells(signal, session_loader, fps, window, plot_example=
         # Randomly sample up to 10 components from the most active ones, ensuring no duplicates
         sampled_ids = np.random.choice(active_ids, min(len(active_ids), 10), replace=False)
 
-        # Append the selected component IDs and corresponding data to the global lists
-        selected_ids_all.extend(sampled_ids)
-        selected_data_all.extend(active_data)
+        # Append the selected component IDs and corresponding data to the global lists, ensuring no duplicates
+        new_ids = [id for id in sampled_ids if id not in selected_ids_all]
+        selected_ids_all.extend(new_ids)
+        selected_data_all.extend(active_data[new_ids])
 
     # Convert the collected component IDs and data to numpy arrays for easier processing
     selected_ids_all = np.array(selected_ids_all)
