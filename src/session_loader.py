@@ -143,7 +143,7 @@ class Session:
             indexing_scheme (Dict[str, List[int]]): The indexing scheme.
         """
         # A small workaround to ensure proper file reading
-        self.animal_id = self.animal_id.astype(str).str.zfill(4)
+        self.animal_id = str(self.animal_id).zfill(4)
 
         try:
             registration_file = np.load(os.path.join(f'processed-data/{self.cohort}', 'registration', f'{self.animal_id}_accepted_only_registered_ids.npy'))
