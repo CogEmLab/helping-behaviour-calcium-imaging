@@ -180,10 +180,14 @@ def process_session(SESSION_FILE, row, plot, axes):
 
     if liberation_cells_ids is not None and len(liberation_cells_ids) > 2:
         # Get a dff_f for cells that are not in liberation_cells_ids and not in random_event_cells_ids
-        ids_to_exclude = np.array(set(liberation_cells_ids).union(random_event_cells_ids))
+        ids_to_exclude = list(set(liberation_cells_ids).union(set(random_event_cells_ids)))
         
+        # Create a mask
+        mask = np.ones(dff_signal.shape[0], dtype=bool)
+        mask[ids_to_exclude] = False
+
         # Compute correlations
-        __, correlation_matrix_rest, ___, ___ = compute_correlations(neuron_positions[~ids_to_exclude], dff_signal[~ids_to_exclude,:border], THRESHOLD, bin_size_seconds=60, sampling_rate=session.calcium_fps)
+        __, correlation_matrix_rest, ___, ___ = compute_correlations(neuron_positions[mask], dff_signal[mask,:border], THRESHOLD, bin_size_seconds=60, sampling_rate=session.calcium_fps)
 
         correlation_values = get_values(correlation_matrix_rest)
         correlation_liberation_only_values = get_values(correlation_matrix_liberation_only) 
