@@ -170,7 +170,7 @@ def compute_correlations(positions, signal, threshold,
 
     return distances, cross_correlation_bin, adjacency_matrix, correlated_pairs
 
-def build_graph(session, neuron_positions, adjacency_matrix, liberation_associated_cells_ids, random_event_associated_cells_ids, suffix=None):    
+def build_graph(session, neuron_positions, adjacency_matrix, liberation_associated_cells_ids=None, random_event_associated_cells_ids=None, suffix=None):    
     """Build and plot a graph from the adjacency matrix.
 
     Parameters:
@@ -208,36 +208,33 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_associat
         else:
             continue
     
-    # If liberation cells are present, highlight them
-    if liberation_associated_cells_ids is not None:
-        colors = ['red' if i in liberation_associated_cells_ids else 'black' for i in range(len(neuron_positions))]
-
-    # If random event cells are present, highlight them
-    if random_event_associated_cells_ids is not None:
-        colors = ['blue' if i in random_event_associated_cells_ids else c for i, c in enumerate(colors)]
-
     # If a cell is both liberation and random event, make it violet
     if liberation_associated_cells_ids is not None and random_event_associated_cells_ids is not None:
         for i in range(len(neuron_positions)):
             if i in random_event_associated_cells_ids and i in liberation_associated_cells_ids:
                 colors[i] = 'violet'
-    
-    # Save liberation and random event cells to the labels 
-    if liberation_associated_cells_ids is not None:
-        labels.update({i: f'{str(i)} Lib' for i in range(len(neuron_positions)) if i in liberation_associated_cells_ids})
-    if random_event_associated_cells_ids is not None:
-        labels.update({i: f'{str(i)} Rand' for i in range(len(neuron_positions)) if i in random_event_associated_cells_ids})
 
+    # If liberation cells are present, highlight them
+    if liberation_associated_cells_ids is not None:
+        colors = ['tab:red' if i in liberation_associated_cells_ids else c for i, c in enumerate(colors)]
+        labels.update({i: f'{str(i)}' for i in range(len(neuron_positions)) if i in liberation_associated_cells_ids})
+
+    # If random event cells are present, highlight them
+    if random_event_associated_cells_ids is not None:
+        colors = ['tab:blue' if i in random_event_associated_cells_ids and not i in liberation_associated_cells_ids else c for i, c in enumerate(colors)]
+        labels.update({i: f'{str(i)}' for i in range(len(neuron_positions)) if i in random_event_associated_cells_ids})
+            
     # Plot the graph
     __, ax = plt.subplots(1, 1, figsize=(8, 6))
+    nx.draw_networkx_labels(G, pos=position_dict, ax=ax, labels=labels, font_size=6, font_color='k')
     nx.draw(G, pos=position_dict, node_size=100, node_color=colors, alpha=alphas, edge_color='lightgray', ax=ax)
 
-    # Add legend for the colors; if black==Rest, if Red ==Lib, if Blue ==Rand, if Violet == Both
-    legend_elements = [Patch(facecolor='black', edgecolor='black', label='Rest'),
-                       Patch(facecolor='red', edgecolor='black', label='Liberation-associated'),
-                       Patch(facecolor='blue', edgecolor='black', label='Random-Event-associated'),
-                       Patch(facecolor='violet', edgecolor='black', label='Both')]
-    ax.legend(handles=legend_elements, loc='upper right')
+    # # Add legend for the colors; if black==Rest, if Red ==Lib, if Blue ==Rand, if Violet == Both
+    # legend_elements = [Patch(facecolor='black', edgecolor='black', label='Rest'),
+    #                    Patch(facecolor='red', edgecolor='black', label='Liberation-associated'),
+    #                    Patch(facecolor='blue', edgecolor='black', label='Random-Event-associated'),
+    #                    Patch(facecolor='violet', edgecolor='black', label='Both')]
+    # ax.legend(handles=legend_elements)
     
     # Save the figure
     now = datetime.datetime.now()

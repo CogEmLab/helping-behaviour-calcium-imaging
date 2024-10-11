@@ -45,16 +45,9 @@ def process_session(SESSION_FILE, row, plot, axes):
     liberation_associated_metadata = session.load_liberation_metadata('Liberation')
     random_event_metadata = session.load_liberation_metadata('Random')
 
-    # Get the IDs of the liberation cells
-    if liberation_associated_metadata is not None:
-        liberation_cells_ids = session.get_liberation_cells_ids()
-    else:
-        liberation_cells_ids = None
-
-    if random_event_metadata is not None:
-        random_event_cells_ids = session.get_liberation_cells_ids()
-    else:
-        random_event_cells_ids = None
+    # Get the IDs of the liberation cells; it will return None if metadata for this session is empty
+    liberation_cells_ids = session.get_event_associated_cells_ids('Liberation')
+    random_event_cells_ids = session.get_event_associated_cells_ids('Random')
 
     # Get the timecode of the victim liberation
     victim_lib_timecode = parse_victim_lib_timecode(session.victim_lib_timecode)
@@ -88,6 +81,7 @@ def process_session(SESSION_FILE, row, plot, axes):
 
         # Compute correlations for only the liberation cells
         __, correlation_matrix_liberation_only, adjacency_matrix_liberation_only, correlated_pairs_liberation_only = compute_correlations(neuron_positions[liberation_cells_ids], dff_signal[liberation_cells_ids, :border], THRESHOLD, bin_size_seconds=60, sampling_rate=session.calcium_fps)
+        __, correlation_matrix_random_only, __, ___ = compute_correlations(neuron_positions[random_event_cells_ids], dff_signal[random_event_cells_ids, :border], THRESHOLD, bin_size_seconds=60, sampling_rate=session.calcium_fps)
 
         # Convert correlation pairs to list of tuples
         correlated_pairs_liberation_only = list(zip(*correlated_pairs_liberation_only))
@@ -98,25 +92,25 @@ def process_session(SESSION_FILE, row, plot, axes):
             print('Something went wrong with the correlation computation! Check the numbers of correlated cells in session: ' + str(session.session) + ', animal: ' + str(session.animal_id) + ', cohort: ' + str(session.cohort) + '\n' + 'Number from general graph ' + str(len(correlated_pairs_only_lib)) + ', number from lib only graph ' + str(len(correlated_pairs_liberation_only)))
         
         # Create a graph from the adjacency matrix for only the liberation cells
-        __, H_lib, __, __ = build_graph(session, neuron_positions[liberation_cells_ids], adjacency_matrix_liberation_only, liberation_cells_ids, suffix='_liberation_only')
+        __, H_lib, __, __ = build_graph(session, neuron_positions[liberation_cells_ids], adjacency_matrix_liberation_only, suffix='_liberation_only')
 
     # Convert correlation pairs to list of tuples
     correlated_pairs_tuple_list = list(zip(*correlated_pairs))
     
     # Filter out response scores and identities for unique cells participating in correlations
     if liberation_associated_metadata is not None:
-        correlated_liberation_cells_lib_to_all = set({pair[0] for pair in correlated_pairs_lib_to_all})
+        correlated_pairs_lib_to_all = set({pair[0] for pair in correlated_pairs_lib_to_all})
 
-        assert correlated_liberation_cells_lib_to_all.issubset(liberation_cells_ids)
+        assert correlated_pairs_lib_to_all.issubset(liberation_cells_ids)
 
-        filtered_response_scores_lib_to_all = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_liberation_cells_lib_to_all), 'Response Score'].values
-        filtered_identities_lib_to_all = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_liberation_cells_lib_to_all), 'Group'].values
+        filtered_response_scores_lib_to_all = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_pairs_lib_to_all), 'Response Score'].values
+        filtered_identities_lib_to_all = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_pairs_lib_to_all), 'Group'].values
         
-        correlated_liberation_cells_only_lib = set({cell for pair in correlated_pairs_only_lib for cell in pair})
-        assert correlated_liberation_cells_only_lib.issubset(liberation_cells_ids)
+        correlated_pairs_only_lib = set({cell for pair in correlated_pairs_only_lib for cell in pair})
+        assert correlated_pairs_only_lib.issubset(liberation_cells_ids)
 
-        filtered_response_scores_only_lib = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_liberation_cells_only_lib), 'Response Score'].values
-        filtered_identities_only_lib = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_liberation_cells_only_lib), 'Group'].values
+        filtered_response_scores_only_lib = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_pairs_only_lib), 'Response Score'].values
+        filtered_identities_only_lib = liberation_associated_metadata.loc[liberation_associated_metadata['Component ID'].isin(correlated_pairs_only_lib), 'Group'].values
 
         avg_response_score_lib_to_all = filtered_response_scores_lib_to_all.mean()
         identity_counts_lib_to_all = pd.Series(filtered_identities_lib_to_all).value_counts().to_dict()
@@ -187,14 +181,16 @@ def process_session(SESSION_FILE, row, plot, axes):
     if liberation_cells_ids is not None and len(liberation_cells_ids) > 2:
         correlation_values = get_values(correlation_matrix)
         correlation_liberation_only_values = get_values(correlation_matrix_liberation_only) 
+        correlation_random_only_values = get_values(correlation_matrix_random_only)
     else:
         correlation_values = []
         correlation_liberation_only_values = []
+        correlation_random_only_values = []
 
     # Instead of plotting these values here, sample random 40 of them and return
     sampled_distances, sampled_correlations = sample_values(get_values(distances), get_values(correlation_matrix))
     
-    return (pd.DataFrame(results, index=[0]), correlation_values, correlation_liberation_only_values, sampled_distances, sampled_correlations, SESSION_FILE)
+    return (pd.DataFrame(results, index=[0]), correlation_values, correlation_liberation_only_values, correlation_random_only_values, sampled_distances, sampled_correlations, SESSION_FILE)
 
 def main(SESSION_FILE):
     fig, axes = setup_plot(FIG_SIZE, GRID_SPEC)
@@ -202,7 +198,7 @@ def main(SESSION_FILE):
     # Filter the session file
     SESSION_FILE = SESSION_FILE[SESSION_FILE['Excluded'] != True]
 
-    correlation_values_accepted, correlation_values_accepted_lib = [], []
+    correlation_values, correlation_values_lib, correlation_values_rand = [], [], []
     sampled_distances_all, sampled_correlations_all = [], []
 
     all_data = pd.DataFrame()
@@ -216,7 +212,7 @@ def main(SESSION_FILE):
         else:
             plot=False
 
-        corr_data, pccs, pccs_lib, sampled_distances, sampled_correlations, SESSION_FILE = process_session(SESSION_FILE, row, plot, axes)
+        corr_data, pccs, pccs_lib, pccs_rand, sampled_distances, sampled_correlations, SESSION_FILE = process_session(SESSION_FILE, row, plot, axes)
         
         if not corr_data.empty:
             # Add correlation data to the DataFrame
@@ -224,9 +220,11 @@ def main(SESSION_FILE):
             sampled_correlations_all.extend(sampled_correlations)
             sampled_distances_all.extend(sampled_distances)
             if pccs is not None:
-                correlation_values_accepted.extend(pccs)
+                correlation_values.extend(pccs)
             if pccs_lib is not None:
-                correlation_values_accepted_lib.extend(pccs_lib)
+                correlation_values_lib.extend(pccs_lib)
+            if pccs_rand is not None:
+                correlation_values_rand.extend(pccs_rand)
 
     # Remove 847 Mouse from plotting
     all_data = all_data[all_data['Mouse'] != 847]
@@ -261,17 +259,18 @@ def main(SESSION_FILE):
     )
 
     # Plot histogram of PCC values for all accepted components and Liberation cells
-    df = pd.DataFrame({'Label': 'All cells', 'PCC': correlation_values_accepted})
-    df_lib = pd.DataFrame({'Label': 'Liberation cells', 'PCC': correlation_values_accepted_lib})
-    df = pd.concat([df, df_lib], ignore_index=True)
+    df = pd.DataFrame({'Label': 'All cells', 'PCC': correlation_values})
+    df_lib = pd.DataFrame({'Label': 'Liberation cells', 'PCC': correlation_values_lib})
+    df_rad = pd.DataFrame({'Label': 'Random Event cells', 'PCC': correlation_values_rand})
+    df = pd.concat([df, df_lib, df_rad], ignore_index=True)
 
     # Plot histogram of PCC values for all accepted components and liberation cells
-    sns.histplot(data=df, x='PCC', hue='Label', ax=axes['pcc-distribution'], bins=100, common_norm=False, stat='density', fill=False, alpha=0.5, palette={'All cells': 'black', 'Liberation cells': 'tab:red'}, kde=False)
+    sns.histplot(data=df, x='PCC', hue='Label', ax=axes['pcc-distribution'], bins=100, common_norm=False, stat='density', fill=False, alpha=0.5, palette={'All cells': 'black', 'Liberation cells': 'tab:red', 'Random Event cells': 'tab:blue'}, kde=False)
     axes['pcc-distribution'].set_xlim(-1, 1)
 
     # Plot histogram of PCC values for all accepted components and liberation cells (separate figure)
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.histplot(data=df, x='PCC', hue='Label', ax=ax, bins=50, common_norm=False, stat='density', fill=False, alpha=0.7, palette={'All cells': 'black', 'Liberation cells': 'tab:red'}, kde=False)
+    sns.histplot(data=df, x='PCC', hue='Label', ax=ax, bins=50, common_norm=False, stat='density', fill=False, alpha=0.7, palette={'All cells': 'black', 'Liberation cells': 'tab:red', 'Random Event cells': 'tab:blue'}, kde=False)
     ax.set_xlim(-1, 1)
     ax.set_title('PCC distribution')
     ax.set_xlabel('Pearson correlation coefficient')
@@ -285,21 +284,22 @@ def main(SESSION_FILE):
     plt.close(fig)
 
     # Plot cumulative distribution of PCC values for all accepted components and liberation cells
-    sns.ecdfplot(correlation_values_accepted, ax=axes['pcc-cumulative-distribution'], label='All components', color='k')
-    sns.ecdfplot(correlation_values_accepted_lib, ax=axes['pcc-cumulative-distribution'], label='Liberation cells', color='r')
+    sns.ecdfplot(correlation_values, ax=axes['pcc-cumulative-distribution'], label='All components', color='k')
+    sns.ecdfplot(correlation_values_lib, ax=axes['pcc-cumulative-distribution'], label='Liberation cells', color='r')
+    sns.ecdfplot(correlation_values_rand, ax=axes['pcc-cumulative-distribution'], label='Random Event cells', color='b')
     axes['pcc-cumulative-distribution'].set_title('PCC cumulative distribution')
     axes['pcc-cumulative-distribution'].legend()
     
     # Plot cumulative distribution of PCC values for all accepted components and liberation cells (separate figure)
     plot_ecdf_with_ks_test(
-        correlation_values_accepted,
-        correlation_values_accepted_lib,
+        correlation_values,
+        correlation_values_lib,
         filename=os.path.join('figures', 'functional_connectivity', 'general', f'pcc_cumulative_distribution_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.png'),
         shuffled_signal_color='red')
     
     # Save correlation_values_accepted and correlation_values_accepted_lib as npy files
-    np.save(os.path.join('processed-data', f'correlation_values_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.npy'), correlation_values_accepted)
-    np.save(os.path.join('processed-data', f'correlation_values_lib_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.npy'), correlation_values_accepted_lib)
+    np.save(os.path.join('processed-data', f'correlation_values_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.npy'), correlation_values)
+    np.save(os.path.join('processed-data', f'correlation_values_lib_{os.path.basename(__file__)[:-3]}_{now.strftime("%Y-%m-%d_%H-%M-%S")}.npy'), correlation_values_lib)
 
     # Finalize plot
     for ax in axes.values():

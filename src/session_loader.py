@@ -40,7 +40,7 @@ class Session:
             self.number_of_liberation_cells = None
         
         # Check if column Num of Random cells exist and and as an attribute (int)
-        if 'Num of Random cells' in data_row.keys:
+        if 'Num of Random cells' in data_row.keys():
             self.number_of_random_cells = data_row['Num of Random cells']
         else:
             self.number_of_random_cells = None
@@ -217,7 +217,8 @@ class Session:
 
         else:
             print(f"Warning: No {event_type} metadata found for Cohort: {self.cohort}, Mouse: {self.animal_id}, Session: {self.session}")
-
+            return None
+        
         return filtered_metadata
     
     def get_neuron_labels(self, binary_output=False, smooth_sigma=3, shrink_pixels=1):
@@ -329,13 +330,16 @@ class Session:
             print(f"Error loading annotations: {str(e)}")
             return None
 
-    def get_liberation_cells_ids(self):
+    def get_event_associated_cells_ids(self, event_type):
         """
         Get the liberation cell IDs for this session.
         
         :return: List of liberation cell IDs or None if not loaded yet
         """
-        return self.liberation_cells_ids if self.liberation_cells_ids is not None else None
+        if event_type == 'Liberation':
+            return self.liberation_cells_ids if self.liberation_cells_ids is not None else None
+        elif event_type == 'Random':
+            return self.random_cells_ids if self.random_cells_ids is not None else None
     
     def get_snr_values(self):
         """
