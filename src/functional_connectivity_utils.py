@@ -170,7 +170,7 @@ def compute_correlations(positions, signal, threshold,
 
     return distances, cross_correlation_bin, adjacency_matrix, correlated_pairs
 
-def build_graph(session, neuron_positions, adjacency_matrix, liberation_associated_cells_ids=None, random_event_associated_cells_ids=None, suffix=None):    
+def build_graph(session, neuron_positions, adjacency_matrix, liberation_associated_cells_ids=None, random_event_associated_cells_ids=None, lib_tracking=None, suffix=None):    
     """Build and plot a graph from the adjacency matrix.
 
     Parameters:
@@ -179,6 +179,7 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_associat
         adjacency_matrix (np.array): Adjacency matrix representing the graph.
         liberation_cells_ids (list): List of IDs of liberation cells, mapped to (new) IDs.
         random_event_cells_ids (list): List of IDs of random event cells, mapped to (new) IDs.
+        lib_tracking (list): List of bools indicating whether the given liberation cell was tracked or not. each ith element corresponds to ith element of liberation_associated_cells_ids array.
         suffix (str): Optional suffix to add to the filename.
 
     Returns:
@@ -216,14 +217,20 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_associat
 
     # If liberation cells are present, highlight them
     if liberation_associated_cells_ids is not None:
-        colors = ['tab:red' if i in liberation_associated_cells_ids else c for i, c in enumerate(colors)]
+        colors = ['tab:red' if i in liberation_associated_cells_ids and not i in random_event_associated_cells_ids else c for i, c in enumerate(colors)]
         labels.update({i: f'{str(i)}' for i in range(len(neuron_positions)) if i in liberation_associated_cells_ids})
 
     # If random event cells are present, highlight them
     if random_event_associated_cells_ids is not None:
         colors = ['tab:blue' if i in random_event_associated_cells_ids and not i in liberation_associated_cells_ids else c for i, c in enumerate(colors)]
         labels.update({i: f'{str(i)}' for i in range(len(neuron_positions)) if i in random_event_associated_cells_ids})
-            
+
+    # If lib_tracking is not None, draw green circles around tracked cells
+    if lib_tracking is not None:
+        for i, track in enumerate(lib_tracking):
+            if track:
+                colors[liberation_associated_cells_ids[i]] = 'green'
+        
     # Plot the graph
     __, ax = plt.subplots(1, 1, figsize=(8, 6))
     nx.draw_networkx_labels(G, pos=position_dict, ax=ax, labels=labels, font_size=6, font_color='k')
