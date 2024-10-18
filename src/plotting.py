@@ -48,6 +48,12 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         Label for the third distribution.
     """
     
+    # Remove None from the arrays
+    first_dist_values = [x for x in first_dist_values if x is not None]
+    second_dist_values = [x for x in second_dist_values if x is not None]
+    if optional_third_dist_values is not None:
+        optional_third_dist_values = [x for x in optional_third_dist_values if x is not None]
+
     # Convert inputs to lists of floats
     first_dist_values = [float(x) for x in first_dist_values]
     second_dist_values = [float(x) for x in second_dist_values]
@@ -96,16 +102,18 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         ks_result = ks_2samp(second_dist_values, first_dist_values)
         p_value_corrected = ks_result[1]
         # Compute the effect size (D statistic)
-        D_statistic = np.abs(np.mean(first_dist_values) - np.mean(second_dist_values)) / np.sqrt(np.var(first_dist_values) + np.var(second_dist_values))
+        D_statistic = np.abs(np.mean(first_dist_values) - np.mean(second_dist_values)) / np.sqrt(np.var(first_dist_values) + np.var(second_dist_values) + 1e-10)
         # Add p-value and effect size to the plot
-        ax.text(0.65, 0.85, f'p-value: {p_value_corrected:.4f}\nD-statistic: {D_statistic:.4f}', transform=ax.transAxes, ha='center', va='center')
+        ax.text(0.65, 0.85, 'p-value: {:.4f}\nD-statistic: {:.4f}\nSamples: {}'.format(p_value_corrected, D_statistic, n_samples), transform=ax.transAxes, ha='center', va='center')
         # Save the results to a file
-        with open(filename + '.txt', 'w') as f:
+        with open(filename.replace('.png', '.txt'), 'w') as f:
             f.write('Test Results:\n')
             f.write('KS statistic: {:.4f}\n'.format(ks_result[0]))
             f.write('p-value: {:.4f}\n'.format(ks_result[1]))
             f.write('p-value corrected: {:.4f}\n'.format(p_value_corrected))
             f.write('D-statistic: {:.4f}\n'.format(D_statistic))
+            f.write('Number of samples: {}\n'.format(n_samples))
+            f.write('Number of samples for both distributions: {}\n'.format(len(first_dist_values)))
     else:
         # Perform three tests and Bonferroni correct the p-values
         test_results = [ks_2samp(second_dist_values, first_dist_values), ks_2samp(second_dist_values, optional_third_dist_values), ks_2samp(first_dist_values, optional_third_dist_values)]
@@ -115,18 +123,20 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         # Compute the effect size (D statistic) for each comparison
         D_statistics = []
         for i, test_result in enumerate(test_results):
-            D_statistic = np.abs(np.mean(test_result[0]) - np.mean(test_result[1])) / np.sqrt(np.var(test_result[0]) + np.var(test_result[1]))
+            D_statistic = np.abs(np.mean(test_result[0]) - np.mean(test_result[1])) / np.sqrt(np.var(test_result[0]) + np.var(test_result[1]) + 1e-10)
             D_statistics.append(D_statistic)
         # Add p-values and effect sizes to the plot
-        for i, p_value in enumerate(p_values_corrected):
-            ax.text(0.65, 0.85 - i * 0.05, f'p-value: {p_value:.4f}\nD-statistic: {D_statistics[i]:.4f}', transform=ax.transAxes, ha='center', va='center')
+        ax.text(0.65, 0.15, '\n'.join(['p-value: {:.4f}'.format(p_value) for p_value in p_values_corrected]), transform=ax.transAxes, ha='center', va='bottom')
         # Save the results to a file
-        with open(filename + '.txt', 'w') as f:
+        with open(filename.replace('.png', '.txt'), 'w') as f:
             f.write('Test Results:\n')
             for i, test_result in enumerate(test_results):
-                f.write('Test {}: KS statistic: {:.4f}, p-value: {:.4f}, D-statistic: {:.4f}\n'.format(i+1, test_result[0], test_result[1], D_statistics[i]))
+                f.write('{} vs {}: KS statistic: {0[0]:.4f}, p-value: {0[1]:.4f}, D-statistic: {1:.4f}, Number of samples: {}\n'.format(
+                    true_label if i == 0 else shuffled_label if i == 1 else third_label,
+                    shuffled_label if i == 0 else third_label if i == 1 else true_label,
+                    test_result, D_statistics[i], len(test_result[0])))
             f.write('p-values corrected: {}\n'.format(p_values_corrected))
-
+            f.write('Number of samples for both distributions: {}\n'.format(len(first_dist_values)))
     # If a filename is provided, save the plot
     if filename is not None:
         # Create the directory if it doesn't exist
@@ -135,7 +145,7 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
             os.makedirs(directory)
         # Save the plot to both PNG and EPS formats
         plt.savefig(filename + '.png', dpi=300)
-        plt.savefig(filename + '.eps')
+        plt.savefig(filename.replace('.png', '.eps'))
         plt.close(plt.gcf())  # Close the figure after saving
     else:
         return ax
