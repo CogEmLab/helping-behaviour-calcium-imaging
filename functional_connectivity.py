@@ -50,7 +50,7 @@ def process_session(SESSION_FILE, row, plot, axes):
     random_event_cells_ids = session.get_event_associated_cells_ids('Random')
 
     # For liberation cells, also get Reg IDs 
-    lib_tracking = liberation_associated_metadata['Tracked'].apply(lambda x: x.lower() == 'true').to_list() if liberation_associated_metadata is not None else []
+    lib_tracking = liberation_associated_metadata['Tracked'] if liberation_associated_metadata is not None else []
     
     # Get the timecode of the victim liberation
     victim_lib_timecode = parse_victim_lib_timecode(session.victim_lib_timecode)
@@ -164,17 +164,17 @@ def process_session(SESSION_FILE, row, plot, axes):
         correlation_random_only_values = get_values(correlation_matrix_random_only)
         
         # Get the 95th percentile for each data
-        correlation_values_95th_percentile = np.percentile(correlation_values, 99)
-        correlation_liberation_only_values_95th_percentile = np.percentile(correlation_liberation_only_values, 99) 
-        correlation_random_only_values_95th_percentile = np.percentile(correlation_random_only_values, 99)
+        correlation_values_99th_percentile = np.percentile(correlation_values, 99)
+        correlation_liberation_only_values_99th_percentile = np.percentile(correlation_liberation_only_values, 99) 
+        correlation_random_only_values_99th_percentile = np.percentile(correlation_random_only_values, 99)
     else:
         correlation_values = []
         correlation_liberation_only_values = []
         correlation_random_only_values = []
         
-        correlation_values_95th_percentile = None
-        correlation_liberation_only_values_95th_percentile = None
-        correlation_random_only_values_95th_percentile = None
+        correlation_values_99th_percentile = None
+        correlation_liberation_only_values_99th_percentile = None
+        correlation_random_only_values_99th_percentile = None
     
     results = {
         'Cohort': session.cohort,
@@ -200,9 +200,9 @@ def process_session(SESSION_FILE, row, plot, axes):
         'Number of liberation cells': len(liberation_cells_ids) if liberation_cells_ids is not None else 0,
         'Average response score (lib -> all)': avg_response_score_lib_to_all if liberation_associated_metadata is not None else None,
         'Average response score (lib -> lib)': avg_response_score_only_lib if liberation_associated_metadata is not None else None,
-        '95th percentile correlation values (all)': correlation_values_95th_percentile,
-        '95th percentile correlation values (lib -> lib)': correlation_liberation_only_values_95th_percentile,
-        '95th percentile correlation values (ran -> ran)': correlation_random_only_values_95th_percentile,
+        '99th percentile correlation values (all)': correlation_values_99th_percentile,
+        '99th percentile correlation values (lib -> lib)': correlation_liberation_only_values_99th_percentile,
+        '99th percentile correlation values (ran -> ran)': correlation_random_only_values_99th_percentile,
     }
 
     # Add identity counts to results
@@ -232,7 +232,7 @@ def main(SESSION_FILE):
     idx = np.random.randint(0, len(SESSION_FILE))
     for i, row in tqdm(SESSION_FILE.iterrows()):
 
-        if row['Excluded'].apply(lambda x: x.lower() == 'true').to_list()[0]:
+        if row['Excluded']:
             continue
 
         if i == idx:
