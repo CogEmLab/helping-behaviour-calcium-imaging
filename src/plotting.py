@@ -111,24 +111,25 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
                 ks_result[0], ks_result[1], p_value_corrected, D_statistic))
     else:
         # Perform three tests and Bonferroni correct the p-values
-        test_results = [ks_2samp(second_dist_values, first_dist_values), ks_2samp(second_dist_values, optional_third_dist_values), ks_2samp(first_dist_values, optional_third_dist_values)]
+        comparisons = [(second_dist_values, first_dist_values), (second_dist_values, optional_third_dist_values), (first_dist_values, optional_third_dist_values)]
+        labels = [(shuffled_label, true_label), (shuffled_label, third_label), (true_label, third_label)]
+        test_results = [ks_2samp(*comparison) for comparison in comparisons]
         p_values = [test_result[1] for test_result in test_results]
+
         # Correct the p-values using the Bonferroni correction
         p_values_corrected = false_discovery_control(p_values, method='bh')
         
         # Compute the effect size (D statistic) for each comparison
         D_statistics = []
-        for i, test_result in enumerate(test_results):
-            D_statistic = np.abs(np.mean(test_result[0]) - np.mean(test_result[1])) / np.sqrt(np.var(test_result[0]) + np.var(test_result[1]) + 1e-10)
+        for comparison in comparisons:
+            D_statistic = np.abs(np.mean(comparison[0]) - np.mean(comparison[1])) / np.sqrt(np.var(comparison[0]) + np.var(comparison[1]) + 1e-10)
             D_statistics.append(D_statistic)
 
-        # Add p-values and effect sizes to the plot
-        ax.text(0.65, 0.15, '\n'.join(['p-value: {:.4f}'.format(p_value) for p_value in p_values_corrected]), transform=ax.transAxes, ha='center', va='bottom')
         # Save the results to a file
         with open(filename.replace('.png', '.txt'), 'w') as f:
             for i, test_result in enumerate(test_results):
-                f.write('Test {}: KS statistic: {:.4f}\np-value: {:.4f}\np-value corrected: {:.4f}\nD-statistic: {:.4f}\n'.format(
-                    i+1, test_result[0], test_result[1], p_values_corrected[i], D_statistics[i]))
+                f.write('Test {}: comparing {} and {} distributions\nKS statistic: {:.4f}\np-value: {:.4f}\np-value corrected: {:.4f}\nD-statistic: {:.4f}\n'.format(
+                    i+1, labels[i][0], labels[i][1], test_result[0], test_result[1], p_values_corrected[i], D_statistics[i]))
                 
     # If a filename is provided, save the plot
     if filename is not None:
