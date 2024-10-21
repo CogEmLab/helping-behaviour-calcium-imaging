@@ -113,7 +113,6 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
             f.write('p-value corrected: {:.4f}\n'.format(p_value_corrected))
             f.write('D-statistic: {:.4f}\n'.format(D_statistic))
             f.write('Number of samples: {}\n'.format(n_samples))
-            f.write('Number of samples for both distributions: {}\n'.format(len(first_dist_values)))
     else:
         # Perform three tests and Bonferroni correct the p-values
         test_results = [ks_2samp(second_dist_values, first_dist_values), ks_2samp(second_dist_values, optional_third_dist_values), ks_2samp(first_dist_values, optional_third_dist_values)]
@@ -134,9 +133,8 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
                 f.write('{} vs {}: KS statistic: {0[0]:.4f}, p-value: {0[1]:.4f}, D-statistic: {1:.4f}, Number of samples: {}\n'.format(
                     true_label if i == 0 else shuffled_label if i == 1 else third_label,
                     shuffled_label if i == 0 else third_label if i == 1 else true_label,
-                    test_result, D_statistics[i], len(test_result[0])))
+                    test_result, D_statistics[i], n_samples))
             f.write('p-values corrected: {}\n'.format(p_values_corrected))
-            f.write('Number of samples for both distributions: {}\n'.format(len(first_dist_values)))
     # If a filename is provided, save the plot
     if filename is not None:
         # Create the directory if it doesn't exist

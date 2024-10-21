@@ -307,4 +307,4 @@ def main(random=False):
     plt.savefig(f'tech_plots/OVERVIEW_FIGURE_{os.path.basename(__file__)[:-3]}_{current_datetime}{suffix}.png')
 
 if __name__ == "__main__":
-    main(random=True)
+    main(random=False)

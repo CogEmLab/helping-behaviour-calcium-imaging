@@ -222,6 +222,7 @@ def main(SESSION_FILE):
 
     # Filter the session file
     SESSION_FILE = SESSION_FILE[SESSION_FILE['Excluded'] != True]
+    SESSION_FILE = SESSION_FILE[SESSION_FILE['Mouse'] == 5593]
 
     correlation_values, correlation_values_lib, correlation_values_rand = [], [], []
     sampled_distances_all, sampled_correlations_all = [], []
@@ -231,9 +232,6 @@ def main(SESSION_FILE):
     # Get random index for plotting 
     idx = np.random.randint(0, len(SESSION_FILE))
     for i, row in tqdm(SESSION_FILE.iterrows()):
-
-        if row['Excluded']:
-            continue
 
         if i == idx:
             print('Plotting session with index:', i)
@@ -300,7 +298,7 @@ def main(SESSION_FILE):
 
     # Plot histogram of PCC values for all accepted components and liberation cells (separate figure)
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.histplot(data=df, x='PCC', hue='Label', ax=ax, bins=50, common_norm=False, stat='density', fill=False, alpha=0.7, palette={'All cells': 'black', 'Liberation cells': 'tab:red', 'Random Event cells': 'tab:blue'}, kde=False)
+    sns.histplot(data=df, x='PCC', hue='Label', ax=ax, bins=50, common_norm=False, stat='density', fill=True, alpha=0.7, palette={'All cells': 'black', 'Liberation cells': 'tab:red', 'Random Event cells': 'tab:blue'}, kde=False)
     ax.set_xlim(-1, 1)
     ax.set_title('PCC distribution')
     ax.set_xlabel('Pearson correlation coefficient')
