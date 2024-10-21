@@ -127,11 +127,9 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         # Save the results to a file
         with open(filename.replace('.png', '.txt'), 'w') as f:
             for i, test_result in enumerate(test_results):
-                f.write('{} vs {}: KS statistic: {0[0]:.4f}, p-value: {0[1]:.4f}, D-statistic: {1:.4f}\n'.format(
-                    true_label if i == 0 else shuffled_label if i == 1 else third_label,
-                    shuffled_label if i == 0 else third_label if i == 1 else true_label,
-                    test_result, D_statistics[i]))
-
+                f.write('Test {}: KS statistic: {:.4f}\np-value: {:.4f}\np-value corrected: {:.4f}\nD-statistic: {:.4f}\n'.format(
+                    i+1, test_result[0], test_result[1], p_values_corrected[i], D_statistics[i]))
+                
     # If a filename is provided, save the plot
     if filename is not None:
         # Create the directory if it doesn't exist
