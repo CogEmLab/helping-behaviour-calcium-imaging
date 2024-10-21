@@ -104,37 +104,34 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         # Compute the effect size (D statistic)
         D_statistic = np.abs(np.mean(first_dist_values) - np.mean(second_dist_values)) / np.sqrt(np.var(first_dist_values) + np.var(second_dist_values) + 1e-10)
         # Add p-value and effect size to the plot
-        ax.text(0.65, 0.85, 'p-value: {:.4f}\nD-statistic: {:.4f}\nSamples: {}'.format(p_value_corrected, D_statistic, n_samples), transform=ax.transAxes, ha='center', va='center')
+        ax.text(0.65, 0.85, 'p-value: {:.4f}\nD-statistic: {:.4f}'.format(p_value_corrected, D_statistic), transform=ax.transAxes, ha='center', va='center')
         # Save the results to a file
         with open(filename.replace('.png', '.txt'), 'w') as f:
-            f.write('Test Results:\n')
-            f.write('KS statistic: {:.4f}\n'.format(ks_result[0]))
-            f.write('p-value: {:.4f}\n'.format(ks_result[1]))
-            f.write('p-value corrected: {:.4f}\n'.format(p_value_corrected))
-            f.write('D-statistic: {:.4f}\n'.format(D_statistic))
-            f.write('Number of samples: {}\n'.format(n_samples))
+            f.write('KS statistic: {:.4f}\np-value: {:.4f}\np-value corrected: {:.4f}\nD-statistic: {:.4f}\n'.format(
+                ks_result[0], ks_result[1], p_value_corrected, D_statistic))
     else:
         # Perform three tests and Bonferroni correct the p-values
         test_results = [ks_2samp(second_dist_values, first_dist_values), ks_2samp(second_dist_values, optional_third_dist_values), ks_2samp(first_dist_values, optional_third_dist_values)]
         p_values = [test_result[1] for test_result in test_results]
         # Correct the p-values using the Bonferroni correction
         p_values_corrected = false_discovery_control(p_values, method='bh')
+        
         # Compute the effect size (D statistic) for each comparison
         D_statistics = []
         for i, test_result in enumerate(test_results):
             D_statistic = np.abs(np.mean(test_result[0]) - np.mean(test_result[1])) / np.sqrt(np.var(test_result[0]) + np.var(test_result[1]) + 1e-10)
             D_statistics.append(D_statistic)
+
         # Add p-values and effect sizes to the plot
         ax.text(0.65, 0.15, '\n'.join(['p-value: {:.4f}'.format(p_value) for p_value in p_values_corrected]), transform=ax.transAxes, ha='center', va='bottom')
         # Save the results to a file
         with open(filename.replace('.png', '.txt'), 'w') as f:
-            f.write('Test Results:\n')
             for i, test_result in enumerate(test_results):
-                f.write('{} vs {}: KS statistic: {0[0]:.4f}, p-value: {0[1]:.4f}, D-statistic: {1:.4f}, Number of samples: {}\n'.format(
+                f.write('{} vs {}: KS statistic: {0[0]:.4f}, p-value: {0[1]:.4f}, D-statistic: {1:.4f}\n'.format(
                     true_label if i == 0 else shuffled_label if i == 1 else third_label,
                     shuffled_label if i == 0 else third_label if i == 1 else true_label,
-                    test_result, D_statistics[i], n_samples))
-            f.write('p-values corrected: {}\n'.format(p_values_corrected))
+                    test_result, D_statistics[i]))
+
     # If a filename is provided, save the plot
     if filename is not None:
         # Create the directory if it doesn't exist
