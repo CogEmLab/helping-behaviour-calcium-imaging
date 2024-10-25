@@ -44,7 +44,7 @@ def setup_plot(fig_size: Tuple[float, float] = (12, 9),
 
     return fig, axes
 
-def parse_victim_lib_timecode(timecode):
+def parse_timecode(timecode):
     if pd.isna(timecode):
         return None
     try:

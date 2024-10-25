@@ -27,6 +27,7 @@ class Session:
         self.final_outcome = data_row['Final Outcome']
         self.calcium_fps = data_row['FPS (CI downsampled)']
         self.victim_lib_timecode = data_row['TimeVictimHeadCrossing(s)']
+        self.victim_insr_timecode = data_row['TimeVictimInsertion(s)']
         self.day_of_helping = data_row['DayofHelping']
         self.model_path = data_row['CNMFE Model Path'].replace('.hdf5', '_accepted_only.hdf5')
         self.path_to_pnr = data_row['Peak-to-Noise Ratio Path']

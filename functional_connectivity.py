@@ -53,7 +53,7 @@ def process_session(SESSION_FILE, row, plot, axes):
     lib_tracking = liberation_associated_metadata['Tracked'] if liberation_associated_metadata is not None else []
     
     # Get the timecode of the victim liberation
-    victim_lib_timecode = parse_victim_lib_timecode(session.victim_lib_timecode)
+    victim_lib_timecode = parse_timecode(session.victim_lib_timecode)
     border = int((victim_lib_timecode * session.calcium_fps) - 15 * session.calcium_fps) if victim_lib_timecode is not None else None #* The formula calculates a time point 15 seconds before the victim liberation time, converted to frame numbers in the calcium imaging data.
 
     # Compute correlations
