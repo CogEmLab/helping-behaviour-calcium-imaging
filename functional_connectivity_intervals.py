@@ -28,7 +28,7 @@ THRESHOLD = config['threshold']
 SESSION_ORDER = config['session_order']
 DAYS_OF_HELPING_ORDER = config['days_of_helping_order']
 
-def process_session(SESSION_FILE, row, plot, axes):
+def process_session(SESSION_FILE, row):
     """Processes a session to calculate mean correlations and return a DataFrame."""
 
     # Create a session object
@@ -97,7 +97,7 @@ def main(SESSION_FILE):
         axes[i].set_ylabel('Number of neurons')
         axes[i].legend()
     plt.tight_layout()
-    plt.show()
+    plt.savefig(os.path.join('tech_plots', f'intervals_FC{os.path.basename(__file__)[:-3]}.png'))
 
 if __name__ == "__main__":
     main(SESSION_FILE=SESSION_FILE)
