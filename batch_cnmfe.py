@@ -11,11 +11,10 @@ from tifffile import imwrite
 import os
 from collections import defaultdict
 
-# Set the global path
-#GLOBAL_PATH = 'data/dHPC/May_2024'
-
-paths = ['data/Oct_2024_synthetic']
-session_file_paths = ['Oct_2024_synthetic_session_file.csv']
+# Define needed paths
+paths = [os.path.normpath(p) for p in ['data/Oct_2021']]
+session_file_paths = [os.path.normpath(p) for p in ['session_file_MiniscopeCW_10_2021_Moises.csv']]
+config_filepath = os.path.normpath('tech_docs/caiman_parameters.yaml')
 
 for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
@@ -114,7 +113,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         #         logging.info(f'{session} {mouse} has not been processed yet')
 
         # try:
-        cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected = analyze_data(path, save_dir_docs, fps=FPS, motion_correct=True, plot=True)
+        cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected = analyze_data(path, save_dir_docs, config_filepath, fps=FPS, motion_correct=True, plot=True)
         # except Exception as e:
         #     logging.error(f'Error processing {session} {mouse}: {str(e)}')
         # ^ I would recommend you to save also the border_px variable (max shift in x/y during registration) so you can later 

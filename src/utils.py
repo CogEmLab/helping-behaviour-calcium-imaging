@@ -360,7 +360,7 @@ def reevaluate_components(model_path, fname_new, fps=30):
     return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected
 
 
-def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plot=False):
+def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_correct=False, plot=False):
     """
     Analyze calcium imaging data using CNMF-E algorithm.
 
@@ -382,8 +382,10 @@ def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plo
         num_rejected: The number of rejected components.
     """
     logging.info('Analyzing data...')
-    # Load parameters 
-    config = load_config('tech_docs/caiman_parameters.yaml')
+    
+    # Load config file 
+    config = load_config(config_filepath)
+
     # Get the name of the file
     save_name = os.path.basename(ci_movie_path).split('.')[0]
 
