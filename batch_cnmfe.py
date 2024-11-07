@@ -14,13 +14,13 @@ from collections import defaultdict
 # Set the global path
 #GLOBAL_PATH = 'data/dHPC/May_2024'
 
-paths = ['data/Oct_2021']
-session_file_paths = ['session_file_MiniscopeCW_10_2021_Moises.csv']
+paths = ['data/Oct_2024_synthetic']
+session_file_paths = ['Oct_2024_synthetic_session_file.csv']
 
 for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
     # Configure logging
-    logging.basicConfig(filename='batch_cnmfe.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logging.basicConfig(filename='batch_cnmfe_synthetic.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     miniscope_paths = glob(f'{GLOBAL_PATH}/**/miniscope/**.tiff', recursive=True)
 
@@ -53,7 +53,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         # Extract session and mouse name from path
         session = path.split('/')[2]
         filename = os.path.splitext(os.path.basename(path))[0]
-
+        print(filename)
         # Log the filename and path
         logging.info(f'Processing {filename} in {session}')
 
@@ -90,33 +90,33 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
              # Extract the mouse name from the session file
             mouse = str(session_entry['Pair'].values[0].split('-')[0])
             # Extract the session duration from the session file
-            session_duration = session_entry['TimeVideoEnd'].values[0] 
+            session_duration = float(session_entry['TimeVideoEnd(s)'].values[0])
             # If not nan, convert mm:ss to seconds format and to float with 2 decimal points
-            if not pd.isna(session_duration):
-                session_duration = float(f'{int(session_duration.split(":")[0])*60 + int(session_duration.split(":")[1]):.2f}')
+            # if not pd.isna(session_duration):
+            #     session_duration = float(f'{int(session_duration.split(":")[0])*60 + int(session_duration.split(":")[1]):.2f}')
             logging.info(f'Session duration: {session_duration}')
-            session_outcome = session_entry['Session outcome'].values[0]
-            final_outcome = session_entry['Final outcome'].values[0]
-            time_victim_inserted = session_entry['TimeVictimInsertion'].values[0] 
+            session_outcome = session_entry['Session Outcome'].values[0]
+            final_outcome = session_entry['Final Outcome'].values[0]
+            time_victim_inserted = float(session_entry['TimeVictimInsertion(s)'].values[0])
             # If not nan, convert mm:ss to seconds format and to float with 2 decimal points
-            if not pd.isna(time_victim_inserted):
-                time_victim_inserted = float(f'{int(time_victim_inserted.split(":")[0])*60 + int(time_victim_inserted.split(":")[1]):.2f}')
+            # if not pd.isna(time_victim_inserted):
+            #     time_victim_inserted = float(f'{int(time_victim_inserted.split(":")[0])*60 + int(time_victim_inserted.split(":")[1]):.2f}')
             sex = session_entry['Sex'].values[0]
 
         logging.info(f'Processing {session} {mouse}')
 
-        # Check if the file has already been processed only if there is an output file
-        if os.path.isfile(output_file_path):
-            if output_df[(output_df['Session'] == session) & (output_df['Mouse'] == mouse)].shape[0] > 0: 
-                logging.info(f'{session} {mouse} has already been processed')
-                continue
-            else:
-                logging.info(f'{session} {mouse} has not been processed yet')
+        # # Check if the file has already been processed only if there is an output file
+        # if os.path.isfile(output_file_path):
+        #     if output_df[(output_df['Session'] == session) & (output_df['Mouse'] == mouse)].shape[0] > 0: 
+        #         logging.info(f'{session} {mouse} has already been processed')
+        #         continue
+        #     else:
+        #         logging.info(f'{session} {mouse} has not been processed yet')
 
-        try:
-            cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected = analyze_data(path, save_dir_docs, fps=FPS, motion_correct=True, plot=True)
-        except Exception as e:
-            logging.error(f'Error processing {session} {mouse}: {str(e)}')
+        # try:
+        cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected = analyze_data(path, save_dir_docs, fps=FPS, motion_correct=True, plot=True)
+        # except Exception as e:
+        #     logging.error(f'Error processing {session} {mouse}: {str(e)}')
         # ^ I would recommend you to save also the border_px variable (max shift in x/y during registration) so you can later 
         # ^ remove areas with very high shift values where likely you could have some motion artefacts from the experiment. 
 

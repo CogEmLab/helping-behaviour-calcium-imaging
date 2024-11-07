@@ -383,7 +383,7 @@ def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plo
     """
     logging.info('Analyzing data...')
     # Load parameters 
-    config = load_config('tech_docs\caiman_parameters.yaml')
+    config = load_config('tech_docs/caiman_parameters.yaml')
     # Get the name of the file
     save_name = os.path.basename(ci_movie_path).split('.')[0]
 
@@ -435,7 +435,7 @@ def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plo
     cnmfe_model = cnmf.CNMF(n_processes=n_processes, 
                         dview=cluster, 
                         params=cnmfe_params, center_psf=True, method_init='corr_pnr', only_init_patch=True)
-    
+    print('here')
     cnmfe_model.fit(ci_movie)
 
     if plot:

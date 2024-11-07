@@ -43,11 +43,38 @@ def get_params_mot_corr(ci_path, config):
     Returns:
     - parameters (caiman.source_extraction.cnmf.params.CNMFParams): Motion correction parameters.
     """
-        
-    mc_dict = config['motion_correction']
-    mc_dict['fnames'] = ci_path
-    
+    # dataset dependent parameters
+    frate = 30                       # movie frame rate
+    decay_time = 0.3                 # length of a typical transient in seconds
+
+    # motion correction parameters
+    motion_correct = True    # flag for performing motion correction
+    pw_rigid = False         # flag for performing piecewise-rigid motion correction (otherwise just rigid)
+    gSig_filt = (3, 3)       # sigma for high pass spatial filter applied before motion correction, used in 1p data
+    max_shifts = (5, 5)      # maximum allowed rigid shift
+    strides = (48, 48)       # start a new patch for pw-rigid motion correction every x pixels
+    overlaps = (24, 24)      # overlap between patches (size of patch = strides + overlaps)
+    max_deviation_rigid = 3  # maximum deviation allowed for patch with respect to rigid shifts
+    border_nan = 'copy'      # replicate values along the boundaries
+
+    mc_dict = {
+        'fnames': ci_path,
+        'fr': frate,
+        'decay_time': decay_time,
+        'pw_rigid': pw_rigid,
+        'max_shifts': max_shifts,
+        'gSig_filt': gSig_filt,
+        'strides': strides,
+        'overlaps': overlaps,
+        'max_deviation_rigid': max_deviation_rigid,
+        'border_nan': border_nan
+    }
+
     parameters = params.CNMFParams(params_dict=mc_dict)
+    # mc_dict = config['motion_correction']
+    # mc_dict['fnames'] = ci_path
+    
+    # parameters = params.CNMFParams(params_dict=mc_dict)
     return parameters
 
 def get_params_cnmfe(parameters=None, config=None):
@@ -79,15 +106,63 @@ def get_params_cnmfe(parameters=None, config=None):
     Returns:
     - parameters (caiman.source_extraction.cnmf.params.CNMFParams): CNMF-E parameters.
     """
-        
-    if parameters is None:
-        parameters = params.CNMFParams()
     
-    cnmfe_dict = config['cnmfe']
+    # parameters for source extraction and deconvolution
+    p = 1               # order of the autoregressive system
+    K = None            # upper bound on number of components per patch, in general None for CNMFE
+    gSig = np.array([3, 3])  # expected half-width of neurons in pixels 
+    gSiz = 2*gSig + 1     # half-width of bounding box created around neurons during initialization
+    merge_thr = .7      # merging threshold, max correlation allowed
+    rf = 20          # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
+    stride_cnmf = 10    # amount of overlap between the patches in pixels 
+    tsub = 2            # downsampling factor in time for initialization, increase if you have memory problems
+    ssub = 1            # downsampling factor in space for initialization, increase if you have memory problems
+    gnb = 0             # number of background components (rank) if positive, set to 0 for CNMFE
+    low_rank_background = None  # None leaves background of each patch intact (use True if gnb>0)
+    nb_patch = 0        # number of background components (rank) per patch (0 for CNMFE)
+    min_corr = .8       # min peak value from correlation image
+    min_pnr = 10        # min peak to noise ration from PNR image
+    ssub_B = 2          # additional downsampling factor in space for background (increase to 2 if slow)
+    ring_size_factor = 1.4  # radius of ring is gSiz*ring_size_factor
+    min_SNR = 3.0  
+    SNR_lowest = 2.0 
+    rval_lowest = 0.3
+    border_nan = 'copy'
+    bord_px = 0 if border_nan == 'copy' else bord_px
+
+    parameters.change_params(params_dict={'method_init': 'corr_pnr',  # use this for 1 photon
+                                    'K': K,
+                                    'gSig': gSig,
+                                    'gSiz': gSiz,
+                                    'merge_thr': merge_thr,
+                                    'p': p,
+                                    'tsub': tsub,
+                                    'ssub': ssub,
+                                    'rf': rf,
+                                    'stride': stride_cnmf,
+                                    'only_init': True,    # set it to True to run CNMF-E
+                                    'nb': gnb,
+                                    'nb_patch': nb_patch,
+                                    'method_deconvolution': 'oasis',       # could use 'cvxpy' alternatively
+                                    'low_rank_background': low_rank_background,
+                                    'update_background_components': True,  # sometimes setting to False improve the results
+                                    'min_corr': min_corr,
+                                    'min_pnr': min_pnr,
+                                    'normalize_init': False,               # just leave as is
+                                    'center_psf': True,                    # True for 1p
+                                    'ssub_B': ssub_B,
+                                    'ring_size_factor': ring_size_factor,
+                                    'del_duplicates': True,                # whether to remove duplicates from initialization
+                                    'border_pix': bord_px});  
+
+    # if parameters is None:
+    #     parameters = params.CNMFParams()
     
-    for key in ['gSig']:
-        if key in cnmfe_dict and isinstance(cnmfe_dict[key], list):
-            cnmfe_dict[key] = np.array(cnmfe_dict[key])
+    # cnmfe_dict = config['cnmfe']
     
-    parameters.change_params(params_dict=cnmfe_dict)
+    # for key in ['gSig']:
+    #     if key in cnmfe_dict and isinstance(cnmfe_dict[key], list):
+    #         cnmfe_dict[key] = np.array(cnmfe_dict[key])
+    
+    # parameters.change_params(params_dict=cnmfe_dict)
     return parameters
