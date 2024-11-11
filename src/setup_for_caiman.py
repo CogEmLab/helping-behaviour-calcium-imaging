@@ -80,26 +80,26 @@ def get_params_cnmfe(parameters=None, config=None):
     """
     
     # Parameters for source extraction and deconvolution
-    p = int(config['motion_correction']['p'])                                         # order of the autoregressive system
-    K = type(config['motion_correction']['K'])                                        # upper bound on number of components per patch, in general None for CNMFE
-    gSig = np.array(config['motion_correction'][' gSig'])                              # expected half-width of neurons in pixels 
-    gSiz = 2*gSig + 1                                                                 # half-width of bounding box created around neurons during initialization
-    merge_thr = float(config['motion_correction']['merge_thr'])                       # merging threshold, max correlation allowed
-    rf = int(config['motion_correction']['rf'])                                       # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
-    stride_cnmf = int(config['motion_correction']['stride_cnmf'])                     # amount of overlap between the patches in pixels 
-    tsub = int(config['motion_correction']['tsub'])                                   # downsampling factor in time for initialization, increase if you have memory problems
-    ssub = int(config['motion_correction']['ssub'])                                   # downsampling factor in space for initialization, increase if you have memory problems
-    gnb = int(config['motion_correction']['gnb'])                                     # number of background components (rank) if positive, set to 0 for CNMFE
-    low_rank_background = type(config['motion_correction']['low_rank_background'])    # None leaves background of each patch intact (use True if gnb>0)
-    nb_patch = int(config['motion_correction']['nb_patch'])                           # number of background components (rank) per patch (0 for CNMFE)
-    min_corr = float(config['motion_correction']['min_corr'])                         # min peak value from correlation image
-    min_pnr = int(config['motion_correction']['min_pnr'])                             # min peak to noise ration from PNR image
-    ssub_B = int(config['motion_correction']['ssub_B'])                               # additional downsampling factor in space for background (increase to 2 if slow)
-    ring_size_factor = float(config['motion_correction']['ring_size_factor'])         # radius of ring is gSiz*ring_size_factor
-    min_SNR = float(config['motion_correction']['min_SNR'])                           # minimum SNR for accepting new components
-    SNR_lowest = float(config['motion_correction']['SNR_lowest'])
-    rval_lowest = float(config['motion_correction']['rval_lowest'])
-    use_cuda = bool(config['motion_correction']['use_cuda'])                          # flag for gpu acceleration
+    p = int(config['cnmfe']['p'])                                         # order of the autoregressive system
+    K = type(config['cnmfe']['K'])                                        # upper bound on number of components per patch, in general None for CNMFE
+    gSig = np.array(config['cnmfe']['gSig'])                              # expected half-width of neurons in pixels 
+    gSiz = 2*gSig + 1                                                     # half-width of bounding box created around neurons during initialization
+    merge_thr = float(config['cnmfe']['merge_thr'])                       # merging threshold, max correlation allowed
+    rf = int(config['cnmfe']['rf'])                                       # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
+    stride_cnmf = int(config['cnmfe']['stride_cnmf'])                     # amount of overlap between the patches in pixels 
+    tsub = int(config['cnmfe']['tsub'])                                   # downsampling factor in time for initialization, increase if you have memory problems
+    ssub = int(config['cnmfe']['ssub'])                                   # downsampling factor in space for initialization, increase if you have memory problems
+    gnb = int(config['cnmfe']['gnb'])                                     # number of background components (rank) if positive, set to 0 for CNMFE
+    low_rank_background = type(config['cnmfe']['low_rank_background'])    # None leaves background of each patch intact (use True if gnb>0)
+    nb_patch = int(config['cnmfe']['nb_patch'])                           # number of background components (rank) per patch (0 for CNMFE)
+    min_corr = float(config['cnmfe']['min_corr'])                         # min peak value from correlation image
+    min_pnr = int(config['cnmfe']['min_pnr'])                             # min peak to noise ration from PNR image
+    ssub_B = int(config['cnmfe']['ssub_B'])                               # additional downsampling factor in space for background (increase to 2 if slow)
+    ring_size_factor = float(config['cnmfe']['ring_size_factor'])         # radius of ring is gSiz*ring_size_factor
+    min_SNR = float(config['cnmfe']['min_SNR'])                           # minimum SNR for accepting new components
+    SNR_lowest = float(config['cnmfe']['SNR_lowest'])
+    rval_lowest = float(config['cnmfe']['rval_lowest'])
+    use_cuda = bool(config['cnmfe']['use_cuda'])                          # flag for gpu acceleration
 
     parameters.change_params(params_dict={'method_init': 'corr_pnr',       # use this for 1 photon
                                     'K': K,

@@ -12,8 +12,8 @@ import os
 from collections import defaultdict
 
 # Define needed paths
-paths = [os.path.normpath(p) for p in ['data/Oct_2021']]
-session_file_paths = [os.path.normpath(p) for p in ['session_file_MiniscopeCW_10_2021_Moises.csv']]
+paths = [os.path.normpath(p) for p in ['data/Oct_2024_synthetic']]
+session_file_paths = [os.path.normpath(p) for p in ['Oct_2024_synthetic_session_file.csv']]
 config_filepath = os.path.normpath('tech_docs/caiman_parameters.yaml')
 
 for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
