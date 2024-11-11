@@ -15,15 +15,23 @@ from collections import defaultdict
 paths = [os.path.normpath(p) for p in ['data/Oct_2024_synthetic']]
 session_file_paths = [os.path.normpath(p) for p in ['Oct_2024_synthetic_session_file.csv']]
 config_filepath = os.path.normpath('tech_docs/caiman_parameters.yaml')
+required_columns = ['session', 'pair', 'sex', 'miniscope video', 'ci_fps_downsampled', 'timevideoend(s)', 'session outcome', 'final outcome', 'timevictiminsertion(s)']
 
 for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
     # Configure logging
     logging.basicConfig(filename='batch_cnmfe_synthetic.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    miniscope_paths = glob(f'{GLOBAL_PATH}/**/miniscope/**.tiff', recursive=True)
+    # Check if miniscope folder exist, if yes, seach for files
+    miniscope_folder = os.path.join(GLOBAL_PATH, 'miniscope')
+    if os.path.isdir(miniscope_folder):
+        miniscope_paths = glob(f'{miniscope_folder}/**.tiff', recursive=True)
+    else:
+        logging.warning(f'Miniscope folder {miniscope_folder} does not exist. Skipping it.')
+        miniscope_paths = []
 
-    output_file_path = f'{GLOBAL_PATH}/cnmfe_output_updated.csv'
+    # Create an output doc path, we will save all metadata information there
+    output_file_path = os.path.normpath(os.path.join(GLOBAL_PATH, 'cnmfe_output_updated.csv'))
 
     if os.path.isfile(output_file_path):
         # Read the existing output file
@@ -36,88 +44,98 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         # Create an empty defaultdict list
         output_dict = defaultdict(list)
 
-    #session_file_path = 'data/dHPC/Jan_2024/session_file_MiniscopeCW_01_2024_Moises.csv'
-    session_file_path  = os.path.join(GLOBAL_PATH, session_file_path)
+    # Define the path to the session file
+    session_file_path  = os.path.normpath(os.path.join(GLOBAL_PATH, session_file_path))
+
     # Read the session file
     session_df = pd.read_csv(session_file_path)
+    # Convert all column names to small lettercase
+    session_df.columns = [x.lower() for x in session_df.columns]
+    
+    # Check if all required columns are present
+    if not all(x in session_df.columns for x in required_columns):
+        logging.warning(f'Session file {session_file_path} is missing one or more of the required columns: {required_columns}. Skipping it.')
+        continue
     
     for path in tqdm(miniscope_paths):
-
-        if path == f'{GLOBAL_PATH}/HBTD1/miniscope/2021-10-23-13-10-46_video.tiff' or path == f'{GLOBAL_PATH}/HBTD1/miniscope/2021-10-23-13-36-07_video.tiff' or path == f'{GLOBAL_PATH}/HBTD1/miniscope/2021-10-23-14-33-10_video.tiff':
-            FPS = 20
-        else:
-            FPS = 30
-        # ^ Not highest priority, but I would recommend to load the FPS from the session file, to not rely on hardcoded values in single scripts
         
         # Extract session and mouse name from path
         session = path.split('/')[2]
         filename = os.path.splitext(os.path.basename(path))[0]
-        print(filename)
+
         # Log the filename and path
         logging.info(f'Processing {filename} in {session}')
 
+        # Read FPS from the session file
+        session_entry = session_df[session_df['miniscope video'] == filename]
+        if not session_entry.empty:
+            FPS = int(session_entry['ci_fps_downsampled'].values[0])
+            logging.info(f'Setting FPS to {FPS} based on session file.')
+        else:
+            FPS = 30 # Assuming default=30
+            logging.info(f'No FPS found in session file, setting to default=30.')
+
         # Find in session file entry with the given filename in Miniscope video TIFF column
-        session_entry = session_df[session_df['Miniscope video'] == filename]
+        session_entry = session_df[session_df['miniscope video'] == filename]
         
         # Assert that session in sesison entry corresponds to session
-        assert session_entry['Session'].values[0] == session
-
-        # Create save directory
-        OUTPUT_DIR = GLOBAL_PATH.replace('data', 'processed-data')
-
-        save_dir_model = os.path.join(OUTPUT_DIR, session, 'cnmfe_model')
-        save_dir_data = os.path.join(OUTPUT_DIR, session, 'cnmfe_data')
-        save_dir_docs = os.path.join(OUTPUT_DIR, session, 'cnmfe_docs')
-
-        # # First check if the directories exist, if they do, skip to the next file
-        # if os.path.isdir(save_dir_model) and os.path.isdir(save_dir_data) and os.path.isdir(save_dir_docs):
-        #     logging.info(f'{filename} has already been processed')
-        #     continue
-
-        os.makedirs(save_dir_model, exist_ok=True)
-        os.makedirs(save_dir_data, exist_ok=True)
-        os.makedirs(save_dir_docs, exist_ok=True)
+        assert session_entry['session'].values[0] == session
 
         if session_entry.shape[0] == 0:
-            logging.error(f'No entry found for {filename} in session file')
+            logging.error(f'No entry found for {filename} in the session file. Cannot extract needed metadata.')
             # If no entry found, skip to the next file but write to the txt file the filename and path
             with open('no_entry_found.txt', 'a') as f:
                 f.write(f'{filename} {path}\n')
             continue
 
+        # Create save directory
+        OUTPUT_DIR = os.path.normpath(GLOBAL_PATH.replace('data', 'processed-data'))
+
+        save_dir_model = os.path.join(OUTPUT_DIR, session, 'cnmfe_model')
+        save_dir_data = os.path.join(OUTPUT_DIR, session, 'cnmfe_data')
+        save_dir_docs = os.path.join(OUTPUT_DIR, session, 'cnmfe_docs')
+
+        os.makedirs(save_dir_model, exist_ok=True)
+        os.makedirs(save_dir_data, exist_ok=True)
+        os.makedirs(save_dir_docs, exist_ok=True)
+
+        # Extract the mouse name from the session file
+        mouse = str(session_entry['pair'].values[0].split('-')[0])
+
+        # Extract the session duration from the session file
+        if ':' in str(session_entry['timevideoend(s)'].values[0]):
+            session_duration = float(f'{int(session_entry["timevideoend(s)"].values[0].split(":")[0])*60 + int(session_entry["timevideoend(s)"].values[0].split(":")[1]):.2f}')
         else:
-             # Extract the mouse name from the session file
-            mouse = str(session_entry['Pair'].values[0].split('-')[0])
-            # Extract the session duration from the session file
-            session_duration = float(session_entry['TimeVideoEnd(s)'].values[0])
-            # If not nan, convert mm:ss to seconds format and to float with 2 decimal points
-            # if not pd.isna(session_duration):
-            #     session_duration = float(f'{int(session_duration.split(":")[0])*60 + int(session_duration.split(":")[1]):.2f}')
-            logging.info(f'Session duration: {session_duration}')
-            session_outcome = session_entry['Session Outcome'].values[0]
-            final_outcome = session_entry['Final Outcome'].values[0]
-            time_victim_inserted = float(session_entry['TimeVictimInsertion(s)'].values[0])
-            # If not nan, convert mm:ss to seconds format and to float with 2 decimal points
-            # if not pd.isna(time_victim_inserted):
-            #     time_victim_inserted = float(f'{int(time_victim_inserted.split(":")[0])*60 + int(time_victim_inserted.split(":")[1]):.2f}')
-            sex = session_entry['Sex'].values[0]
+            session_duration = float(session_entry['timevideoend(s)'].values[0])
 
-        logging.info(f'Processing {session} {mouse}')
+        # Extract outcome of the session from the session file
+        session_outcome = session_entry['session outcome'].values[0]
+        final_outcome = session_entry['final outcome'].values[0]
+        
+        # Extract the time of victim insertion from the session file
+        time_victim_inserted = session_entry['timevictiminsertion(s)'].values[0]
+        if ':' in str(time_victim_inserted):
+            time_victim_inserted = float(f'{int(time_victim_inserted.split(":")[0])*60 + int(time_victim_inserted.split(":")[1]):.2f}')
+        else:
+            time_victim_inserted = float(time_victim_inserted)
+        
+        # Extract sex of the animal 
+        sex = session_entry['sex'].values[0]
 
-        # # Check if the file has already been processed only if there is an output file
-        # if os.path.isfile(output_file_path):
-        #     if output_df[(output_df['Session'] == session) & (output_df['Mouse'] == mouse)].shape[0] > 0: 
-        #         logging.info(f'{session} {mouse} has already been processed')
-        #         continue
-        #     else:
-        #         logging.info(f'{session} {mouse} has not been processed yet')
+        logging.info(f'Processing {session} {mouse}, Sex: {sex}, Session duration: {session_duration}, Session outcome: {session_outcome}, Final outcome: {final_outcome}, Time victim inserted: {time_victim_inserted}')
 
-        # try:
-        cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected = analyze_data(path, save_dir_docs, config_filepath, fps=FPS, motion_correct=True, plot=True)
-        # except Exception as e:
-        #     logging.error(f'Error processing {session} {mouse}: {str(e)}')
-        # ^ I would recommend you to save also the border_px variable (max shift in x/y during registration) so you can later 
-        # ^ remove areas with very high shift values where likely you could have some motion artefacts from the experiment. 
+        # Check if the file has already been processed only if there is an output file
+        if os.path.isfile(output_file_path):
+            if output_df[(output_df['Session'] == session) & (output_df['Mouse'] == mouse)].shape[0] > 0: 
+                logging.info(f'{session} {mouse} has already been processed')
+                continue
+            else:
+                logging.info(f'{session} {mouse} has not been processed yet')
+
+        try:
+            cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected, border_px = analyze_data(path, save_dir_docs, config_filepath, fps=FPS, motion_correct=True, plot=True)
+        except Exception as e:
+            logging.error(f'Error processing {session} {mouse}: {str(e)}')
 
         # Save cnmfe model
         cnmfe_save_dir = os.path.join(save_dir_model, f'{filename}.hdf5')
@@ -131,12 +149,12 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         peak_to_noise_ratio_path = os.path.join(save_dir_data, f'peak_to_noise_ratio_{filename}.tif')
         imwrite(peak_to_noise_ratio_path, peak_to_noise_ratio)
         
-        # copy the motion corrected file to the save directory
+        # Copy the motion corrected file to the save directory
         save_motion_corrected = fname_new.replace('data', 'processed-data').replace('miniscope', 'cnmfe_data')
         os.makedirs(os.path.dirname(save_motion_corrected), exist_ok=True)
         os.system(f'cp {fname_new} {save_motion_corrected}')
 
-        # delete the motion corrected file
+        # Delete the motion corrected file
         os.system(f'rm {fname_new}')
 
         # Append the information to each column accordingly
@@ -156,29 +174,13 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         output_dict['Final Outcome'].append(final_outcome)
         output_dict['Time Victim Inserted'].append(time_victim_inserted)
         output_dict['Sex'].append(sex)
+        output_dict['Maximum Shift'].append(float(border_px))
 
-        print(output_dict)
-
-        # Print all lengths of the lists
-        print(f'Session: {len(output_dict["Session"])}')
-        print(f'Mouse: {len(output_dict["Mouse"])}')
-        print(f'Total Components: {len(output_dict["Total Components"])}')
-        print(f'Num Accepted: {len(output_dict["Num Accepted"])}')
-        print(f'Num Rejected: {len(output_dict["Num Rejected"])}')
-        print(f'FPS: {len(output_dict["FPS"])}')
-        print(f'Dimensions: {len(output_dict["Dimensions"])}')
-        print(f'Correlation Image Path: {len(output_dict["Correlation Image Path"])}')
-        print(f'Peak-to-Noise Ratio Path: {len(output_dict["Peak-to-Noise Ratio Path"])}')
-        print(f'CNMFE Model Path: {len(output_dict["CNMFE Model Path"])}')
-        print(f'Motion Corrected Path: {len(output_dict["Motion Corrected Path"])}')
-        print(f'Session Duration: {len(output_dict["Session Duration"])}')
-        print(f'Session Outcome: {len(output_dict["Session Outcome"])}')
-        print(f'Final Outcome: {len(output_dict["Final Outcome"])}')
-        print(f'Time Victim Inserted: {len(output_dict["Time Victim Inserted"])}')
-        print(f'Sex: {len(output_dict["Sex"])}')
-
+        # Assert that all lists have the same size
+        assert all(len(x) == len(output_dict['Session']) for x in output_dict.values()), 'All lists should have the same size'
         
     # Save the output dataframe
     output_df = pd.DataFrame(output_dict)
     output_df.to_csv(f'{GLOBAL_PATH}/cnmfe_output_updated.csv', index=False)
-    logging.info('Batch CNMFE processing complete')
+    logging.info(f'Batch CNMFE processing complete for cohort {GLOBAL_PATH}')
+

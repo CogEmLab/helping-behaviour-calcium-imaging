@@ -380,6 +380,7 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
         total_components: The total number of components.
         num_accepted: The number of accepted components.
         num_rejected: The number of rejected components.
+        border_px: Maximum shift in motion correction.
     """
     logging.info('Analyzing data...')
     
@@ -393,11 +394,12 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
     cluster, n_processes = general_setup()
 
     # Get parameters for motion correction
+    logging.info('Getting parameters for motion correction')
     params_mc = get_params_mot_corr(ci_movie_path, config=config)
 
     # Perform motion correction if True
     if motion_correct:
-        
+        logging.info('Performing motion correction')
         # do motion correction rigid
         motion_corrector = MotionCorrect(ci_movie_path, dview=cluster, **params_mc.get_group('motion'))
         motion_corrector.motion_correct(save_movie=True)
@@ -408,39 +410,45 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
 
         if pw_rigid:
             # If motion correction is rigid, calculate the maximum absolute shifts in x and y directions
+            logging.info('Calculating maximum absolute shifts in x and y directions')
             border_px = np.ceil(np.maximum(np.max(np.abs(motion_corrector.x_shifts_els)),
                                            np.max(np.abs(motion_corrector.y_shifts_els)))).astype(int)
         else:
             # If motion correction is piecewise rigid, calculate the maximum absolute shifts
+            logging.info('Calculating maximum absolute shifts')
             border_px = np.ceil(np.max(np.abs(motion_corrector.shifts_rig))).astype(int)
 
         border_nan = params_mc.get('motion', 'border_nan')  # Get the border_nan parameter
 
         border_px = 0 if border_nan == 'copy' else border_px  # Set border_px to 0 if border_nan is 'copy'
 
+        logging.info('Saving memory-mappable file')
         fname_new = cm.save_memmap(fname_mc, base_name=f'memmap_{save_name}', order='C', border_to_0=border_px)  # Save memory-mappable file
         
     else:  # if no motion correction, just memory map the file
         # save memory file to save_path
-
+        logging.info('Saving memory-mappable file without motion correction')
         fname_new = cm.save_memmap([ci_movie_path], base_name=f'memmap_{save_name}',
                                 order='C', border_to_0=0, dview=cluster)
             
     # load memory mappable file
+    logging.info('Loading memory-mappable file')
     Yr, dims, T = cm.load_memmap(fname_new)
     ci_movie = Yr.T.reshape((T,) + dims, order='F')
 
     # get parameters for cnmfe
+    logging.info('Getting parameters for CNMF-E')
     cnmfe_params = get_params_cnmfe(params_mc, config=config)
     
     # run cnmfe
+    logging.info('Running CNMF-E')
     cnmfe_model = cnmf.CNMF(n_processes=n_processes, 
                         dview=cluster, 
                         params=cnmfe_params, center_psf=True, method_init='corr_pnr', only_init_patch=True)
-    print('here')
     cnmfe_model.fit(ci_movie)
 
     if plot:
+        logging.info('Plotting rigid shifts')
         plot_rigid_shifts(motion_corrector, save_dir_docs, save_name)
 
     logging.info('CNMF-E analysis completed.')
@@ -462,13 +470,14 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
 
     # Compute some summary images (correlation and peak to noise)
     gsig_tmp = (3,3)
+    logging.info('Computing summary images')
     correlation_image, peak_to_noise_ratio = cm.summary_images.correlation_pnr(ci_movie[::max(T//1000, 1)], # subsample if needed
                                                                             gSig=gsig_tmp[0], # used for filter
                                                                             swap_dim=False) # change swap dim if output looks weird, it is a problem with tiffile
     # ^ Just out of curiosity, which is subsampling being used in above function when passing the ci_movie array?
     cm.stop_server(dview=cluster)
     
-    return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected
+    return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected, border_px
 
 def visualize_analysis(ci_movie, motion_correct=False, plot=False, already_set=False):
     """
