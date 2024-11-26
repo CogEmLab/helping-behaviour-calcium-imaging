@@ -386,7 +386,7 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
     
     # Load config file 
     config = load_config(config_filepath)
-
+    
     # Get the name of the file
     save_name = os.path.basename(ci_movie_path).split('.')[0]
 
@@ -397,16 +397,18 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
     logging.info('Getting parameters for motion correction')
     params_mc = get_params_mot_corr(ci_movie_path, config=config)
 
-    # Perform motion correction if True
+    # Perform motion correction if True   
     if motion_correct:
         logging.info('Performing motion correction')
         # do motion correction rigid
         motion_corrector = MotionCorrect(ci_movie_path, dview=cluster, **params_mc.get_group('motion'))
         motion_corrector.motion_correct(save_movie=True)
 
-        # Save motion corrected movie as memory-mappable file
+        f_order_file = motion_corrector.fname_tot_rig[0]
+
+        # # Save motion corrected movie as memory-mappable file
         pw_rigid = params_mc.get('motion', 'pw_rigid')  # Check if motion correction is rigid or piecewise rigid
-        fname_mc = motion_corrector.fname_tot_rig  # Get the filename of the motion corrected movie
+          # Get the filename of the motion corrected movie
 
         if pw_rigid:
             # If motion correction is rigid, calculate the maximum absolute shifts in x and y directions
@@ -423,14 +425,14 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
         border_px = 0 if border_nan == 'copy' else border_px  # Set border_px to 0 if border_nan is 'copy'
 
         logging.info('Saving memory-mappable file')
-        fname_new = cm.save_memmap(fname_mc, base_name=f'memmap_{save_name}', order='C', border_to_0=border_px)  # Save memory-mappable file
+        fname_new = cm.save_memmap([ci_movie_path], base_name=f'memmap_{save_name}', order='C', border_to_0=border_px)  # Save memory-mappable file
         
     else:  # if no motion correction, just memory map the file
         # save memory file to save_path
         logging.info('Saving memory-mappable file without motion correction')
         fname_new = cm.save_memmap([ci_movie_path], base_name=f'memmap_{save_name}',
                                 order='C', border_to_0=0, dview=cluster)
-            
+    
     # load memory mappable file
     logging.info('Loading memory-mappable file')
     Yr, dims, T = cm.load_memmap(fname_new)
@@ -477,6 +479,8 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
     # ^ Just out of curiosity, which is subsampling being used in above function when passing the ci_movie array?
     cm.stop_server(dview=cluster)
     
+    # Delete one of the motion corrected file
+    os.system(f'rm {f_order_file}')
     return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected, border_px
 
 def visualize_analysis(ci_movie, motion_correct=False, plot=False, already_set=False):

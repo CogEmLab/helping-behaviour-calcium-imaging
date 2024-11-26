@@ -8,7 +8,7 @@ import pandas as pd
 from tifffile import imread
 from tqdm import tqdm
 
-session_file = pd.read_csv('data/updated_session_file_MiniscopeCW_all_Moises.csv')
+session_file = pd.read_csv('data/in-silico-session-file.csv')
 
 session_file['Mouse'] = session_file['Mouse'].astype(str)
 session_file['Mouse'] = session_file['Mouse'].apply(lambda x: x.zfill(4))

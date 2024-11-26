@@ -23,12 +23,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
     logging.basicConfig(filename='batch_cnmfe_synthetic.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     # Check if miniscope folder exist, if yes, seach for files
-    miniscope_folder = os.path.join(GLOBAL_PATH, 'miniscope')
-    if os.path.isdir(miniscope_folder):
-        miniscope_paths = glob(f'{miniscope_folder}/**.tiff', recursive=True)
-    else:
-        logging.warning(f'Miniscope folder {miniscope_folder} does not exist. Skipping it.')
-        miniscope_paths = []
+    miniscope_paths = glob(f'{GLOBAL_PATH}/**/miniscope/**.tiff', recursive=True)
 
     # Create an output doc path, we will save all metadata information there
     output_file_path = os.path.normpath(os.path.join(GLOBAL_PATH, 'cnmfe_output_updated.csv'))
@@ -150,7 +145,8 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         imwrite(peak_to_noise_ratio_path, peak_to_noise_ratio)
         
         # Copy the motion corrected file to the save directory
-        save_motion_corrected = fname_new.replace('data', 'processed-data').replace('miniscope', 'cnmfe_data')
+        save_motion_corrected = os.path.join(os.path.dirname(path).replace('data', 'processed-data').replace('miniscope', 'cnmfe_data'), os.path.basename(fname_new))
+        print(save_motion_corrected)
         os.makedirs(os.path.dirname(save_motion_corrected), exist_ok=True)
         os.system(f'cp {fname_new} {save_motion_corrected}')
 
@@ -168,7 +164,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         output_dict['Correlation Image Path'].append(correlation_image_path)
         output_dict['Peak-to-Noise Ratio Path'].append(peak_to_noise_ratio_path)
         output_dict['CNMFE Model Path'].append(cnmfe_save_dir)
-        output_dict['Motion Corrected Path'].append(save_motion_corrected)
+        output_dict['Motion Corrected Path'].append(fname_new)
         output_dict['Session Duration'].append(session_duration)
         output_dict['Session Outcome'].append(session_outcome)
         output_dict['Final Outcome'].append(final_outcome)
@@ -179,8 +175,9 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         # Assert that all lists have the same size
         assert all(len(x) == len(output_dict['Session']) for x in output_dict.values()), 'All lists should have the same size'
         
-    # Save the output dataframe
-    output_df = pd.DataFrame(output_dict)
-    output_df.to_csv(f'{GLOBAL_PATH}/cnmfe_output_updated.csv', index=False)
+        # Save the output dataframe
+        output_df = pd.DataFrame(output_dict)
+        output_df.to_csv(f'{GLOBAL_PATH}/cnmfe_output_updated.csv', index=False)
+        
     logging.info(f'Batch CNMFE processing complete for cohort {GLOBAL_PATH}')
 

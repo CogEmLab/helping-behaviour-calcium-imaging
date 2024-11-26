@@ -81,7 +81,7 @@ def get_params_cnmfe(parameters=None, config=None):
     
     # Parameters for source extraction and deconvolution
     p = int(config['cnmfe']['p'])                                         # order of the autoregressive system
-    K = type(config['cnmfe']['K'])                                        # upper bound on number of components per patch, in general None for CNMFE
+    K = None                                         # upper bound on number of components per patch, in general None for CNMFE
     gSig = np.array(config['cnmfe']['gSig'])                              # expected half-width of neurons in pixels 
     gSiz = 2*gSig + 1                                                     # half-width of bounding box created around neurons during initialization
     merge_thr = float(config['cnmfe']['merge_thr'])                       # merging threshold, max correlation allowed
@@ -90,7 +90,7 @@ def get_params_cnmfe(parameters=None, config=None):
     tsub = int(config['cnmfe']['tsub'])                                   # downsampling factor in time for initialization, increase if you have memory problems
     ssub = int(config['cnmfe']['ssub'])                                   # downsampling factor in space for initialization, increase if you have memory problems
     gnb = int(config['cnmfe']['gnb'])                                     # number of background components (rank) if positive, set to 0 for CNMFE
-    low_rank_background = type(config['cnmfe']['low_rank_background'])    # None leaves background of each patch intact (use True if gnb>0)
+    low_rank_background = None                           # None leaves background of each patch intact (use True if gnb>0)
     nb_patch = int(config['cnmfe']['nb_patch'])                           # number of background components (rank) per patch (0 for CNMFE)
     min_corr = float(config['cnmfe']['min_corr'])                         # min peak value from correlation image
     min_pnr = int(config['cnmfe']['min_pnr'])                             # min peak to noise ration from PNR image
@@ -100,6 +100,11 @@ def get_params_cnmfe(parameters=None, config=None):
     SNR_lowest = float(config['cnmfe']['SNR_lowest'])
     rval_lowest = float(config['cnmfe']['rval_lowest'])
     use_cuda = bool(config['cnmfe']['use_cuda'])                          # flag for gpu acceleration
+    method_init = str(config['cnmfe']['method_init'])    
+    only_init = bool(config['cnmfe']['only_init'])  
+    update_background_components = bool(config['cnmfe']['update_background_components'])  
+    center_psf = bool(config['cnmfe']['center_psf'])  
+    del_duplicates = bool(config['cnmfe']['del_duplicates'])               # whether to remove duplicates from initialization
 
     parameters.change_params(params_dict={'method_init': 'corr_pnr',       # use this for 1 photon
                                     'K': K,
@@ -111,23 +116,24 @@ def get_params_cnmfe(parameters=None, config=None):
                                     'ssub': ssub,
                                     'rf': rf,
                                     'stride': stride_cnmf,
-                                    'only_init': True,                     # set it to True to run CNMF-E
-                                    'nb': gnb,
                                     'nb_patch': nb_patch,
                                     'method_deconvolution': 'oasis',       # could use 'cvxpy' alternatively
                                     'low_rank_background': low_rank_background,
-                                    'update_background_components': True,  # sometimes setting to False improve the results
                                     'min_corr': min_corr,
                                     'min_pnr': min_pnr,
+                                    'nb': gnb,
                                     'normalize_init': False,               # just leave as is
-                                    'center_psf': True,                    # True for 1p
                                     'ssub_B': ssub_B,
                                     'ring_size_factor': ring_size_factor,
-                                    'del_duplicates': True,                # whether to remove duplicates from initialization
                                     'border_pix': 0,
                                     'min_SNR': min_SNR,
                                     'SNR_lowest': SNR_lowest,
                                     'rval_lowest': rval_lowest,
-                                    'use_cuda': use_cuda});  
+                                    'use_cuda': use_cuda,
+                                    'method_init': method_init,
+                                    'only_init': only_init,
+                                    'update_background_components': update_background_components,
+                                    'center_psf': center_psf,
+                                    'del_duplicates': del_duplicates});  
 
     return parameters
