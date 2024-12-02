@@ -32,8 +32,8 @@ def register_sessions(animal_data, dims):
         session_obj = Session(session)
         positions[session.Session] = session_obj.extract_neuron_positions(session_obj.get_neuron_labels())
         session_indexing[session.Session] = i
-        spatial.append(load_CNMF(session.CNMFE_Model_Path).estimates.A.toarray())
-        templates.append(imread(session.Peak_to_Noise_Ratio_Path))  # Assuming "Peak_to_Noise_Ratio_Path" is a valid column
+        spatial.append(load_CNMF(session.model_path).estimates.A.toarray())
+        templates.append(imread(session.path_to_pnr))  # Assuming "Peak_to_Noise_Ratio_Path" is a valid column
 
     # Register the sessions
     A_union, assignments, __ = register_multisession(A=spatial, templates=templates, dims=dims)
@@ -109,5 +109,5 @@ def main(session_file_path, output_base_dir):
 # Execute the script
 if __name__ == "__main__":
     session_file_path = 'data/in-silico-session-file.csv'
-    output_base_dir = 'processed-data'
+    output_base_dir = 'processed-data/registration'
     main(session_file_path, output_base_dir)
