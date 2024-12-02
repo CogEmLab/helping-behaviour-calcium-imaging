@@ -11,12 +11,14 @@ from src.utils import shuffle_signal
 from collections import defaultdict
 from src.plotting import *
 from scipy.stats import ks_2samp
+from src.utils import load_session_file
 
 # Load the configuration
 config = load_config('tech_docs/functional_connectivity_config.yaml')
 
 # Access the configuration values
-SESSION_FILE = config['session_file']
+SESSION_FILE = load_session_file(config['session_file_dir'])
+print(SESSION_FILE)
 IMG_DIMS = tuple(config['img_dims'])
 THRESHOLD = config['threshold']
 SESSION_ORDER = config['session_order']
@@ -194,7 +196,7 @@ def main():
     fig, axes = setup_plot(FIG_SIZE, GRID_SPEC)
 
     # Load the session file
-    session_df = pd.read_csv(SESSION_FILE)
+    session_df = SESSION_FILE
 
     # Remove habituation sessions
     session_df = session_df[~session_df['Session'].str.contains('Hab')]
@@ -221,6 +223,7 @@ def main():
         
     # Save the results
     results = pd.DataFrame(results)
+    results.to_csv('processed_data/shuffling_test.csv')
 
     # Sample 1,000 rows only from true distribution (we want to plot how it is for the actual data)
     only_true_label = results[results['Label'] == 'True']

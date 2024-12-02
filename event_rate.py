@@ -18,7 +18,7 @@ from elephant.statistics import mean_firing_rate, isi
 # Load the configuration
 # config = load_config(...)
 
-SESSION_FILE = 'data/session_file_MiniscopeCW_all_Moises_latest.csv'
+SESSION_FILE = 'data/session_file_backup/SESSION_FILE_event_associated_cells_definition_2024-10-25_10-51-23.csv'
 
 def process_session(row, results):
     """Processes a session to calculate mean correlations and return a DataFrame."""
@@ -32,7 +32,7 @@ def process_session(row, results):
     accepted_components = session.load_accepted_components()
 
     # Remove padding
-    dff = dff[accepted_components, 1:]
+    dff = dff[:, 1:]
 
     # Get the transient duration
     transient_duration = 0.4 * session.calcium_fps

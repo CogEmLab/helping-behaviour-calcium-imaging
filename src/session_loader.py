@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from tifffile import imread
-from src.utils import get_behaviour_timestamps, smooth_and_shrink_label
+from .utils import get_behaviour_timestamps, smooth_and_shrink_label
 from typing import List, Dict, Tuple
 from skimage.measure import regionprops_table
 
@@ -25,7 +25,7 @@ class Session:
         self.latency = data_row['LatencyMinConverted']
         self.session_outcome = data_row['Session Outcome']
         self.final_outcome = data_row['Final Outcome']
-        self.calcium_fps = data_row['FPS (CI downsampled)']
+        self.calcium_fps = data_row['CI_FPS_downsampled']
         self.victim_lib_timecode = data_row['TimeVictimHeadCrossing(s)']
         self.victim_insr_timecode = data_row['TimeVictimInsertion(s)']
         self.day_of_helping = data_row['DayofHelping']
@@ -147,8 +147,8 @@ class Session:
         self.animal_id = str(self.animal_id).zfill(4)
 
         try:
-            registration_file = np.load(os.path.join(f'processed-data/{self.cohort}', 'registration', f'{self.animal_id}_accepted_only_registered_ids.npy'))
-            indexing_scheme = np.load(os.path.join(f'processed-data/{self.cohort}', 'registration', f'{self.animal_id}_accepted_only_session_indexing.npy'), allow_pickle=True).item()
+            registration_file = np.load(os.path.join(f'processed-data/{self.cohort}', 'registration', f'{self.animal_id}_registered_ids.npy'))
+            indexing_scheme = np.load(os.path.join(f'processed-data/{self.cohort}', 'registration', f'{self.animal_id}_session_indexing.npy'), allow_pickle=True).item()
             return registration_file, indexing_scheme
         except Exception as e:
             print(f"Error loading registration file: {str(e)}")

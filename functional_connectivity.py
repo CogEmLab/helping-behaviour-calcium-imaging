@@ -222,7 +222,6 @@ def main(SESSION_FILE):
 
     # Filter the session file
     SESSION_FILE = SESSION_FILE[SESSION_FILE['Excluded'] != True]
-    SESSION_FILE = SESSION_FILE[SESSION_FILE['Mouse'] == 5593]
 
     correlation_values, correlation_values_lib, correlation_values_rand = [], [], []
     sampled_distances_all, sampled_correlations_all = [], []
