@@ -584,3 +584,36 @@ def load_session_file(dir_path):
     # session_file['Mouse'] = session_file['Mouse'].astype(str).str.zfill(4)
 
     return session_file
+
+def compute_distances(assignments, positions):
+    """
+    Compute distances between neuron pairs based on registration status.
+
+    Parameters:
+    - assignments: 2D numpy array (neurons x sessions) with registration IDs or NaN.
+    - positions: Dictionary with session IDs as keys and neuron position arrays as values.
+
+    Returns:
+    - registered_distances: List of distances for neuron pairs that are registered in at least one shared session.
+    - non_registered_distances: List of distances for neuron pairs where no sessions overlap in registration.
+    """
+    registered_distances = []
+    non_registered_distances = []
+
+    # Combine positions across sessions into a single array
+    session_positions = np.concatenate(list(positions.values()), axis=0)
+
+    # Iterate over all pairs of neurons
+    for i in range(assignments.shape[0]):
+        for j in range(i + 1, assignments.shape[0]):
+            # Compute the Euclidean distance
+            dist = np.linalg.norm(session_positions[i] - session_positions[j])
+            
+            # Check if there is at least one shared session where both neurons are registered
+            shared_sessions = ~np.isnan(assignments[i, :]) & ~np.isnan(assignments[j, :])
+            if np.any(shared_sessions):  # At least one session where both are registered
+                registered_distances.append(dist)
+            else:  # No sessions where both are registered
+                non_registered_distances.append(dist)
+
+    return registered_distances, non_registered_distances

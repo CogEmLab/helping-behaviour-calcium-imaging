@@ -9,6 +9,41 @@ from scipy.optimize import curve_fit
 from scipy.stats import ks_2samp
 from scipy.stats import false_discovery_control
 
+def plot_registration_validation(data, cohort, animal, output_path):
+    """
+    Plot the percentage of registered components vs. the number of sessions.
+
+    Parameters:
+    ----------
+    data : dict
+        Dictionary containing 'Percentage' and 'K' keys with corresponding values.
+    cohort : str
+        Cohort identifier for the title and labels.
+    animal : str
+        Animal identifier for the title and labels.
+    output_path : str
+        Path to save the generated plot.
+    """
+
+    # Create the plot
+    plt.figure(figsize=(8, 6))
+    ax = sns.barplot(y='Percentage', x='K', data=data, color='k', alpha=0.6, label=f'Cohort {cohort}')
+    sns.swarmplot(y='Percentage', x='K', data=data, color='green', s=3, alpha=0.7)
+
+    plt.title(f'% of Registered Components vs. Number of Sessions\nCohort {cohort}, Animal {animal}')
+    plt.ylabel('Percentage (%)')
+    plt.xlabel('Number of Sessions (K)')
+    plt.legend()
+    
+    # Remove unnecessary spines
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+
+    plt.tight_layout()
+    # Save and close the plot
+    plt.savefig(output_path)
+    plt.close()
+
 def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third_dist_values=None, ax=None, 
                            significance_color='r', second_dist_color='grey', third_dist_color='b',
                            p_value_threshold=0.05, filename=None, legend=False, 
