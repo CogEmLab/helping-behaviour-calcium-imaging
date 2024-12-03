@@ -12,6 +12,7 @@ from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from scipy import ndimage
 from src.plotting import *
 import cv2
+from collections import defaultdict
 
 def shuffle_signal(DF_F_Z_scored, bin_time_seconds=3, fps=30):
     """
@@ -617,3 +618,17 @@ def compute_distances(assignments, positions):
                 non_registered_distances.append(dist)
 
     return registered_distances, non_registered_distances
+
+def calculate_registration_stats(assignments):
+    """Calculate the percentage of neurons registered across sessions."""
+    data = defaultdict(list)
+    N = assignments.shape[0]
+    K = range(1, assignments.shape[1] + 1)
+
+    for k in K:
+        reg_matrix_filtered = assignments[np.sum(~np.isnan(assignments), axis=1) >= k]
+        n = reg_matrix_filtered.shape[0]
+        data['Percentage'].append(round(n / N * 100, 2))
+        data['K'].append(k)
+
+    return pd.DataFrame(data)

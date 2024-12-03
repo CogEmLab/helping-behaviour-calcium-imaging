@@ -8,32 +8,39 @@ import os
 from scipy.optimize import curve_fit
 from scipy.stats import ks_2samp
 from scipy.stats import false_discovery_control
+import pandas as pd
 
-def plot_registration_validation(data, cohort, animal, output_path):
+def plot_registration_validation(data, cohort, output_path):
     """
-    Plot the percentage of registered components vs. the number of sessions.
+    Plot combined percentage of registered components vs. the number of sessions for all animals in a cohort.
 
     Parameters:
     ----------
-    data : dict
-        Dictionary containing 'Percentage' and 'K' keys with corresponding values.
+    data : DataFrame
+        Data containing 'Percentage', 'K', and 'Animal' columns.
     cohort : str
         Cohort identifier for the title and labels.
-    animal : str
-        Animal identifier for the title and labels.
     output_path : str
         Path to save the generated plot.
     """
+    plt.figure(figsize=(10, 8))
 
-    # Create the plot
-    plt.figure(figsize=(8, 6))
-    ax = sns.barplot(y='Percentage', x='K', data=data, color='k', alpha=0.6, label=f'Cohort {cohort}')
-    sns.swarmplot(y='Percentage', x='K', data=data, color='green', s=3, alpha=0.7)
+    # Barplot for averages
+    ax = sns.barplot(
+        data=data, x='K', y='Percentage', 
+        ci=None, estimator=np.mean, color='k', alpha=0.6
+    )
+    
+    # Swarmplot for individual points
+    sns.swarmplot(
+        data=data, x='K', y='Percentage', hue='Animal', 
+        dodge=True, palette='Set2', s=4, alpha=0.7
+    )
 
-    plt.title(f'% of Registered Components vs. Number of Sessions\nCohort {cohort}, Animal {animal}')
+    plt.title(f'% of Registered Components vs. Number of Sessions\nCohort {cohort}')
     plt.ylabel('Percentage (%)')
     plt.xlabel('Number of Sessions (K)')
-    plt.legend()
+    plt.legend(title='Animal', bbox_to_anchor=(1.05, 1), loc='upper left')
     
     # Remove unnecessary spines
     ax.spines['top'].set_visible(False)
@@ -796,72 +803,85 @@ def plot_heatmap(matrix, title=None, xlabel='Time (s)', aligned=True, filename=N
     return ax
 
 
-def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), ylabel='Y-axis Label'):
-    '''
-    Function to plot boxplots for two sets of data.
-    Performs statistical tests if conditions are met and annotates the plot accordingly.
+def plot_boxplots(data1, data2, ax, hue1=None, hue2=None, title='', labels=('Group 1', 'Group 2'), ylabel='Y-axis Label'):
+    """
+    Function to plot boxplots for two sets of data with optional hue-based swarm plots.
+    Includes error handling for statistical tests to avoid crashes on invalid data.
 
     Parameters:
         data1 (np.array): Data for the first group.
         data2 (np.array): Data for the second group.
         ax (matplotlib.axes.Axes): The axis to plot on.
+        hue1 (np.array or list): Optional grouping variable for data1.
+        hue2 (np.array or list): Optional grouping variable for data2.
         title (str): Title of the plot.
         labels (tuple): Labels for the boxplot groups.
         ylabel (str): Label for the Y-axis.
 
     Returns:
-        ax (matplotlib.axes.Axes): The axis with the boxplots plotted on it.    
-    '''
+        ax (matplotlib.axes.Axes): The axis with the boxplots and swarmplots plotted on it.
+    """
 
-    # Plot the boxplots without connecting lines
-    bp = ax.boxplot([data1, data2], labels=labels, showmeans=False)
-    
-    # Customize boxplot appearance
-    for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
-        plt.setp(bp[element], color='black')
-    
-    # Add scatter plot of the data points (small and black)
-    for i, data in enumerate([data1, data2], start=1):
-        ax.scatter(np.random.normal(i, 0.04, size=len(data)), data, 
-                   alpha=0.7, s=3, color='black', zorder=3)
-    
+    # Combine data and hue into a DataFrame for easier handling
+    combined_data = pd.DataFrame({
+        'Data': np.concatenate([data1, data2]),
+        'Group': np.concatenate([[labels[0]] * len(data1), [labels[1]] * len(data2)]),
+    })
+    if hue1 is not None and hue2 is not None:
+        combined_data['Hue'] = np.concatenate([hue1, hue2])
+    else:
+        combined_data['Hue'] = None
+
+    # Boxplot
+    sns.boxplot(
+        data=combined_data, x='Group', y='Data', ax=ax, 
+        color='k', showmeans=False, linewidth=1.5, fliersize=0
+    )
+
+    # Swarmplot
+    sns.swarmplot(
+        data=combined_data, x='Group', y='Data', hue='Hue', 
+        dodge=True, palette='Set2', size=3, alpha=0.7, ax=ax
+    )
+
+    # Remove the hue legend if not required
+    if hue1 is None and hue2 is None:
+        ax.legend_.remove()
+    else:
+        ax.legend(title='Hue', bbox_to_anchor=(1.05, 1), loc='upper left')
+
     # Add labels and title
     ax.set_ylabel(ylabel)
     ax.set_title(title)
 
-    # Test for normality and equal variance
-    _, normality_p1 = stats.shapiro(data1)
-    _, normality_p2 = stats.shapiro(data2)
-    _, equal_var_p = stats.levene(data1, data2)
+    # Perform statistical tests with error handling
+    try:
+        _, normality_p1 = stats.shapiro(data1)
+        _, normality_p2 = stats.shapiro(data2)
+        _, equal_var_p = stats.levene(data1, data2)
 
-    # Determine if conditions for parametric test are met
-    normality_met = normality_p1 > 0.05 and normality_p2 > 0.05
-    equal_var_met = equal_var_p > 0.05
-
-    # Perform statistical test
-    if normality_met and equal_var_met:
-        _, p_value = stats.ttest_ind(data1, data2)
-    else:
-        _, p_value = stats.mannwhitneyu(data1, data2)
-
-    # Add significance annotation if p-value is significant
-    if p_value < 0.05:
-        y_max = max(np.max(data1), np.max(data2))
-        y_min = min(np.min(data1), np.min(data2))
-        y_range = y_max - y_min
-        line_height = y_max + 0.1 * y_range
-        
-        if p_value < 0.001:
-            stars = '***'
-        elif p_value < 0.01:
-            stars = '**'
+        # Choose test based on assumptions
+        if normality_p1 > 0.05 and normality_p2 > 0.05 and equal_var_p > 0.05:
+            _, p_value = stats.ttest_ind(data1, data2)
         else:
-            stars = '*'
-        
-        ax.plot([1, 1, 2, 2], [line_height, line_height*1.05, line_height*1.05, line_height], lw=1.5, c='black')
-        ax.text(1.5, line_height*1.05, stars, ha='center', va='bottom', color='black')
+            _, p_value = stats.mannwhitneyu(data1, data2)
 
-    # Turn off the top and right spines
+        # Add significance annotation
+        if p_value < 0.05:
+            y_max = max(np.max(data1), np.max(data2))
+            y_min = min(np.min(data1), np.min(data2))
+            y_range = y_max - y_min
+            line_height = y_max + 0.1 * y_range
+
+            stars = '***' if p_value < 0.001 else '**' if p_value < 0.01 else '*'
+            ax.plot([0, 0, 1, 1], [line_height, line_height * 1.05, line_height * 1.05, line_height],
+                    lw=1.5, color='black')
+            ax.text(0.5, line_height * 1.05, stars, ha='center', va='bottom', color='black')
+
+    except Exception as e:
+        print(f"Statistical test failed: {e}")
+
+    # Remove unnecessary spines
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 

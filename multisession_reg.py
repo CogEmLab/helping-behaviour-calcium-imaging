@@ -9,7 +9,7 @@ from tqdm import tqdm
 from collections import defaultdict
 from src.session_loader import Session
 from src.plotting import plot_boxplots, plot_registration_validation
-from src.utils import compute_distances, load_session_file
+from src.utils import compute_distances, load_session_file, calculate_registration_stats
 
 def preprocess_session_file(file_path):
     """Load and preprocess the session file."""
@@ -40,20 +40,6 @@ def register_sessions(animal_data, dims):
     A_union, assignments, __ = register_multisession(A=spatial, templates=templates, dims=dims)
     return A_union, assignments, positions, session_indexing
 
-def calculate_registration_stats(assignments):
-    """Calculate the percentage of neurons registered across sessions."""
-    data = defaultdict(list)
-    N = assignments.shape[0]
-    K = range(1, assignments.shape[1] + 1)
-
-    for k in K:
-        reg_matrix_filtered = assignments[np.sum(~np.isnan(assignments), axis=1) >= k]
-        n = reg_matrix_filtered.shape[0]
-        data['Percentage'].append(round(n / N * 100, 2))
-        data['K'].append(k)
-
-    return pd.DataFrame(data)
-
 def save_results(output_dir, cohort, animal, assignments, A_union, session_indexing):
     """Save registration results to disk."""
     os.makedirs(output_dir, exist_ok=True)
@@ -61,39 +47,95 @@ def save_results(output_dir, cohort, animal, assignments, A_union, session_index
     np.save(os.path.join(output_dir, f'{animal}_registered_spatial.npy'), A_union)
     np.save(os.path.join(output_dir, f'{animal}_session_indexing.npy'), session_indexing)
 
-def process_animal(cohort, animal, animal_data, dims, output_dir):
-    """Process a single animal: register sessions, calculate statistics, and plot results."""
-    # Register sessions
-    A_union, assignments, positions, session_indexing = register_sessions(animal_data, dims)
-
-    # Registration validation
+def gather_registration_data(assignments, cohort, animal, registration_data):
+    """Add registration stats for an animal to the collective cohort data."""
     data_df = calculate_registration_stats(assignments)
-    plot_registration_validation(
-        data=data_df, cohort=cohort, animal=animal, 
-        output_path=os.path.join(output_dir, f'{animal}_registration_validation.png')
-    )
+    data_df['Animal'] = animal  # Track which animal this data belongs to
+    data_df['Cohort'] = cohort
+    registration_data.append(data_df)
 
-    # Compute distances
-    registered_distances, non_registered_distances = compute_distances(assignments, positions)
+def gather_distance_data(registered_distances, non_registered_distances, cohort, animal, distance_data):
+    """Add average distances for an animal to the collective cohort data."""
+    avg_registered = np.mean(registered_distances)
+    avg_non_registered = np.mean(non_registered_distances)
+    distance_data.append({
+        'Animal': animal,
+        'Cohort': cohort,
+        'Category': 'Registered',
+        'Distance': avg_registered
+    })
+    distance_data.append({
+        'Animal': animal,
+        'Cohort': cohort,
+        'Category': 'Non-Registered',
+        'Distance': avg_non_registered
+    })
 
-    # Plot boxplots for distances
-    fig, ax = plt.subplots(figsize=(8, 6))
+def plot_combined_distances(distance_data, output_path):
+    """
+    Plot combined boxplots for distances across all animals in a cohort.
+
+    Parameters:
+        distance_data (pd.DataFrame): A DataFrame containing 'Cohort', 'Animal', 'Distance', and 'Type'.
+        output_path (str): Path to save the generated plot.
+    """
+    fig, ax = plt.subplots(figsize=(10, 7))
+
+    # Extract data by type
+    registered_data = distance_data[distance_data['Type'] == 'Registered']
+    non_registered_data = distance_data[distance_data['Type'] == 'Non-Registered']
+
+    # Plot boxplots with hue for each animal
     plot_boxplots(
-        np.array(registered_distances),
-        np.array(non_registered_distances),
-        ax,
-        title=f'Distances: Registered vs. Non-Registered Components (Cohort {cohort})',
-        labels=('Registered', 'Non-Registered'),
-        ylabel='Distance (pixels)'
+        registered_data['Distance'].values,
+        non_registered_data['Distance'].values,
+        ax=ax,
+        hue1=registered_data['Animal'].values,
+        hue2=non_registered_data['Animal'].values,
+        title="Combined Distances: Registered vs Non-Registered Components",
+        labels=("Registered", "Non-Registered"),
+        ylabel="Distance (pixels)"
     )
-    plt.savefig(os.path.join(output_dir, f'{animal}_distance_boxplot.png'))
+
+    plt.tight_layout()
+    plt.savefig(output_path)
     plt.close()
 
-    # Save registration results
-    save_results(output_dir, cohort, animal, assignments, A_union, session_indexing)
+def process_cohort(session_file, cohort, dims, cohort_dir):
+    """Process all animals in a cohort."""
+    mice = session_file[session_file['Cohort'] == cohort]['Mouse'].unique()
+    registration_data = []
+    distance_data = []
+
+    for animal in tqdm(mice, desc=f"Processing Cohort {cohort}"):
+        animal_data = load_animal_data(session_file, animal)
+        A_union, assignments, positions, session_indexing = register_sessions(animal_data, dims)
+
+        # Gather validation and distance data
+        gather_registration_data(assignments, cohort, animal, registration_data)
+        registered_distances, non_registered_distances = compute_distances(assignments, positions)
+        gather_distance_data(registered_distances, non_registered_distances, cohort, animal, distance_data)
+
+        # Save registration results
+        save_results(cohort_dir, cohort, animal, assignments, A_union, session_indexing)
+
+    # Combine and plot registration validation
+    combined_registration_data = pd.concat(registration_data, ignore_index=True)
+    plot_registration_validation(
+        combined_registration_data,
+        cohort,
+        os.path.join(cohort_dir, f'{cohort}_registration_validation_combined.png')
+    )
+
+    # Combine and plot average distances
+    combined_distance_data = pd.DataFrame(distance_data)
+    plot_combined_distances(
+        combined_distance_data,
+        os.path.join(cohort_dir, f'{cohort}_distance_boxplot_combined.png')
+    )
 
 def main(session_file_path, output_base_dir):
-    """Main function to process all animals in all cohorts."""
+    """Main function to process all cohorts."""
     session_file = preprocess_session_file(session_file_path)
     cohorts = session_file['Cohort'].unique()
     dims = (400, 640)  # Assumes fixed imaging dimensions
@@ -101,11 +143,7 @@ def main(session_file_path, output_base_dir):
     for cohort in cohorts:
         cohort_dir = os.path.join(output_base_dir, cohort)
         os.makedirs(cohort_dir, exist_ok=True)
-
-        mice = session_file[session_file['Cohort'] == cohort]['Mouse'].unique()
-        for animal in tqdm(mice, desc=f"Processing Cohort {cohort}"):
-            animal_data = load_animal_data(session_file, animal)
-            process_animal(cohort, animal, animal_data, dims, cohort_dir)
+        process_cohort(session_file, cohort, dims, cohort_dir)
 
 # Execute the script
 if __name__ == "__main__":
