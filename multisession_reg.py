@@ -7,9 +7,9 @@ import pandas as pd
 from tifffile import imread
 from tqdm import tqdm
 from collections import defaultdict
-from src.session_loader import Session, load_session_file
+from src.session_loader import Session
 from src.plotting import plot_boxplots, plot_registration_validation
-from src.utils import compute_distances
+from src.utils import compute_distances, load_session_file
 
 def preprocess_session_file(file_path):
     """Load and preprocess the session file."""
@@ -28,12 +28,13 @@ def register_sessions(animal_data, dims):
     positions = {}
     session_indexing = {}
 
-    for i, session in enumerate(animal_data.itertuples()):
+    for i, session in enumerate(animal_data.iterrows()):
+        session = session[1]
         session_obj = Session(session)
-        positions[session.Session] = session_obj.extract_neuron_positions(session_obj.get_neuron_labels())
-        session_indexing[session.Session] = i
-        spatial.append(load_CNMF(session.model_path).estimates.A.toarray())
-        templates.append(imread(session.path_to_pnr))  # Assuming "Peak_to_Noise_Ratio_Path" is a valid column
+        positions[session_obj.session] = session_obj.extract_neuron_positions(session_obj.get_neuron_labels())
+        session_indexing[session_obj.session] = i
+        spatial.append(load_CNMF(session_obj.model_path).estimates.A.toarray())
+        templates.append(imread(session_obj.path_to_pnr))  # Assuming "Peak_to_Noise_Ratio_Path" is a valid column
 
     # Register the sessions
     A_union, assignments, __ = register_multisession(A=spatial, templates=templates, dims=dims)
@@ -108,6 +109,6 @@ def main(session_file_path, output_base_dir):
 
 # Execute the script
 if __name__ == "__main__":
-    session_file_path = 'data/in-silico-session-file.csv'
+    session_file_path = 'data'
     output_base_dir = 'processed-data/registration'
     main(session_file_path, output_base_dir)
