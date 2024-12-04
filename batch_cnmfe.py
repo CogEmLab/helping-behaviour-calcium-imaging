@@ -1,5 +1,3 @@
-# TODO: also read a session file and extract total duration of the session from there
-# TODO: save outputs to a separate folder but similar structure
 import os
 import logging
 import pandas as pd
@@ -11,10 +9,12 @@ from tifffile import imwrite
 import os
 from collections import defaultdict
 
-# Define needed paths
+# Input directories
 paths = [os.path.normpath(p) for p in ['data/Oct_2024_synthetic']]
 session_file_paths = [os.path.normpath(p) for p in ['Oct_2024_synthetic_session_file.csv']]
 config_filepath = os.path.normpath('tech_docs/caiman_parameters.yaml')
+
+# Define required columns
 required_columns = ['session', 'pair', 'sex', 'miniscope video', 'ci_fps_downsampled', 'timevideoend(s)', 'session outcome', 'final outcome', 'timevictiminsertion(s)']
 
 for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):

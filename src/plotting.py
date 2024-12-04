@@ -835,7 +835,7 @@ def plot_boxplots(data1, data2, ax, hue1=None, hue2=None, title='', labels=('Gro
     # Boxplot
     sns.boxplot(
         data=combined_data, x='Group', y='Data', ax=ax, 
-        color='k', showmeans=False, linewidth=1.5, fliersize=0
+        color='k', showmeans=False, linewidth=1.5, fliersize=0, fill=False
     )
 
     # Swarmplot
@@ -844,11 +844,11 @@ def plot_boxplots(data1, data2, ax, hue1=None, hue2=None, title='', labels=('Gro
         dodge=True, palette='Set2', size=3, alpha=0.7, ax=ax
     )
 
-    # Remove the hue legend if not required
-    if hue1 is None and hue2 is None:
-        ax.legend_.remove()
-    else:
-        ax.legend(title='Hue', bbox_to_anchor=(1.05, 1), loc='upper left')
+    # # Remove the hue legend if not required
+    # if hue1 is None and hue2 is None:
+    #     ax.legend_.remove()
+    # else:
+    #     ax.legend(title='Hue', bbox_to_anchor=(1.05, 1), loc='upper left')
 
     # Add labels and title
     ax.set_ylabel(ylabel)

@@ -9,3 +9,4 @@ test_viz
 tech_docs
 src/__pycache__
 src/.ipynb_checkpoints
+batch_cnmfe_synthetic.log
