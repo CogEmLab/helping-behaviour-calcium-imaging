@@ -10,7 +10,7 @@ from scipy.stats import ks_2samp
 from scipy.stats import false_discovery_control
 import pandas as pd
 
-def plot_registration_validation(data, cohort, output_path):
+def plot_registration_validation(data, cohort, output_path=None, ax=None):
     """
     Plot combined percentage of registered components vs. the number of sessions for all animals in a cohort.
 
@@ -20,36 +20,49 @@ def plot_registration_validation(data, cohort, output_path):
         Data containing 'Percentage', 'K', and 'Animal' columns.
     cohort : str
         Cohort identifier for the title and labels.
-    output_path : str
-        Path to save the generated plot.
+    output_path : str, optional
+        Path to save the generated plot. If None, the plot is not saved.
+    ax : matplotlib axis object, optional
+        The axis to plot on. If None, a new figure and axis are created.
+
+    Returns:
+    -------
+    ax : matplotlib axis
+        The axis with the plot.
     """
-    plt.figure(figsize=(10, 8))
+    if ax is None:
+        plt.figure(figsize=(10, 8))
+        ax = plt.gca()
 
     # Barplot for averages
-    ax = sns.barplot(
+    sns.barplot(
         data=data, x='K', y='Percentage', 
-        ci=None, estimator=np.mean, color='k', alpha=0.6
+        ci=None, estimator=np.mean, color='k', alpha=1, ax=ax, fill=False
     )
     
     # Swarmplot for individual points
     sns.swarmplot(
         data=data, x='K', y='Percentage', hue='Animal', 
-        dodge=True, palette='Set2', s=4, alpha=0.7
+        dodge=True, palette='Set2', s=3, alpha=0.6, ax=ax
     )
 
-    plt.title(f'% of Registered Components vs. Number of Sessions\nCohort {cohort}')
-    plt.ylabel('Percentage (%)')
-    plt.xlabel('Number of Sessions (K)')
-    plt.legend(title='Animal', bbox_to_anchor=(1.05, 1), loc='upper left')
+    ax.set_title(f'% of Registered Components vs. Number of Sessions\nCohort {cohort}')
+    ax.set_ylabel('Percentage (%)')
+    ax.set_xlabel('Number of Sessions (K)')
+    ax.legend(title='Animal', bbox_to_anchor=(1.05, 1), loc='upper left')
     
     # Remove unnecessary spines
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
     plt.tight_layout()
-    # Save and close the plot
-    plt.savefig(output_path)
-    plt.close()
+    if output_path is not None:
+        # Save and close the plot
+        plt.savefig(output_path)
+        plt.close()
+    
+    return ax
+
 
 def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third_dist_values=None, ax=None, 
                            significance_color='r', second_dist_color='grey', third_dist_color='b',
@@ -880,6 +893,7 @@ def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), yla
     return ax
 
 def plot_values_over_days(data, x_column, y_column, ax=None, order=None, title=None, hue_column=None, figsize=(10, 6), filename=None):
+    #TODO: Add mixed models statistical test
     """
     Plot values as a bar plot over days with optional swarm plot overlay and save the figure.
     
