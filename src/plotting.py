@@ -802,7 +802,7 @@ def plot_heatmap(matrix, title=None, xlabel='Time (s)', aligned=True, filename=N
         ax.axvline(int((window_to_use * FPS) / 2), color='black', linestyle='dashed', linewidth=2, label='Victim crossing')
     return ax
 
-def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), ylabel='Y-axis Label'):
+def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), ylabel='Y-axis Label', colors1=None, colors2=None):
     '''
     Function to plot boxplots for two sets of data.
     Performs statistical tests if conditions are met and annotates the plot accordingly.
@@ -814,6 +814,8 @@ def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), yla
         title (str): Title of the plot.
         labels (tuple): Labels for the boxplot groups.
         ylabel (str): Label for the Y-axis.
+        colors1 (list): Colors for the first group if specified.
+        colors2 (list): Colors for the second group if specified.
 
     Returns:
         ax (matplotlib.axes.Axes): The axis with the boxplots plotted on it.    
@@ -826,46 +828,50 @@ def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), yla
     for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
         plt.setp(bp[element], color='black')
     
-    # Add scatter plot of the data points (small and black)
+    # Add scatter plot of the data points (small and black or specified colors)
     for i, data in enumerate([data1, data2], start=1):
+        color = 'black' if colors1 is None and colors2 is None else [colors1, colors2][i-1]
         ax.scatter(np.random.normal(i, 0.04, size=len(data)), data, 
-                   alpha=0.7, s=3, color='black', zorder=3)
+                   alpha=0.7, s=3, color=color, zorder=3)
     
     # Add labels and title
     ax.set_ylabel(ylabel)
     ax.set_title(title)
 
-    # Test for normality and equal variance
-    _, normality_p1 = stats.shapiro(data1)
-    _, normality_p2 = stats.shapiro(data2)
-    _, equal_var_p = stats.levene(data1, data2)
+    try:
+        # Test for normality and equal variance
+        _, normality_p1 = stats.shapiro(data1)
+        _, normality_p2 = stats.shapiro(data2)
+        _, equal_var_p = stats.levene(data1, data2)
 
-    # Determine if conditions for parametric test are met
-    normality_met = normality_p1 > 0.05 and normality_p2 > 0.05
-    equal_var_met = equal_var_p > 0.05
+        # Determine if conditions for parametric test are met
+        normality_met = normality_p1 > 0.05 and normality_p2 > 0.05
+        equal_var_met = equal_var_p > 0.05
 
-    # Perform statistical test
-    if normality_met and equal_var_met:
-        _, p_value = stats.ttest_ind(data1, data2)
-    else:
-        _, p_value = stats.mannwhitneyu(data1, data2)
-
-    # Add significance annotation if p-value is significant
-    if p_value < 0.05:
-        y_max = max(np.max(data1), np.max(data2))
-        y_min = min(np.min(data1), np.min(data2))
-        y_range = y_max - y_min
-        line_height = y_max + 0.1 * y_range
-        
-        if p_value < 0.001:
-            stars = '***'
-        elif p_value < 0.01:
-            stars = '**'
+        # Perform statistical test
+        if normality_met and equal_var_met:
+            _, p_value = stats.ttest_ind(data1, data2)
         else:
-            stars = '*'
-        
-        ax.plot([1, 1, 2, 2], [line_height, line_height*1.05, line_height*1.05, line_height], lw=1.5, c='black')
-        ax.text(1.5, line_height*1.05, stars, ha='center', va='bottom', color='black')
+            _, p_value = stats.mannwhitneyu(data1, data2)
+
+        # Add significance annotation if p-value is significant
+        if p_value < 0.05:
+            y_max = max(np.max(data1), np.max(data2))
+            y_min = min(np.min(data1), np.min(data2))
+            y_range = y_max - y_min
+            line_height = y_max + 0.1 * y_range
+            
+            if p_value < 0.001:
+                stars = '***'
+            elif p_value < 0.01:
+                stars = '**'
+            else:
+                stars = '*'
+            
+            ax.plot([1, 1, 2, 2], [line_height, line_height*1.05, line_height*1.05, line_height], lw=1.5, c='black')
+            ax.text(1.5, line_height*1.05, stars, ha='center', va='bottom', color='black')
+    except Exception as e:
+        print(f"Statistical test failed: {e}")
 
     # Turn off the top and right spines
     ax.spines['top'].set_visible(False)
