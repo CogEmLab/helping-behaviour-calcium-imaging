@@ -9,7 +9,8 @@ from tqdm import tqdm
 from collections import defaultdict
 from src.session_loader import Session
 from src.plotting import plot_boxplots, plot_registration_validation
-from src.utils import compute_distances, load_session_file, calculate_registration_stats
+from src.utils import load_session_file
+from src.registration_utils import *
 
 def preprocess_session_file(file_path):
     """Load and preprocess the session file."""
@@ -71,35 +72,46 @@ def gather_distance_data(registered_distances, non_registered_distances, cohort,
         'Distance': avg_non_registered
     })
 
-def plot_combined_distances(distance_data, output_path):
+def plot_combined_distances(distance_data,ax=None, output_path=None):
     """
     Plot combined boxplots for distances across all animals in a cohort.
 
     Parameters:
         distance_data (pd.DataFrame): A DataFrame containing 'Cohort', 'Animal', 'Distance', and 'Type'.
+        ax (matplotlib.axes._subplots.AxesSubplot): The axis to plot on. If None, a new figure and axis are created.
         output_path (str): Path to save the generated plot.
     """
-    fig, ax = plt.subplots(figsize=(10, 7))
+    if ax is None:
+        plt.figure(figsize=(10, 7))
+        ax = plt.gca()
 
     # Extract data by type
     registered_data = distance_data[distance_data['Type'] == 'Registered']
     non_registered_data = distance_data[distance_data['Type'] == 'Non-Registered']
+
+    # Generate an array of animal-color codes
+    registered_colors = [f'C{i}' for i in range(len(registered_data['Animal'].unique()))]
+    non_registered_colors = [f'C{i}' for i in range(len(non_registered_data['Animal'].unique()))]
 
     # Plot boxplots with hue for each animal
     plot_boxplots(
         registered_data['Distance'].values,
         non_registered_data['Distance'].values,
         ax=ax,
-        hue1=registered_data['Animal'].values,
-        hue2=non_registered_data['Animal'].values,
-        title="Combined Distances: Registered vs Non-Registered Components",
         labels=("Registered", "Non-Registered"),
-        ylabel="Distance (pixels)"
+        ylabel="Distance (pixels)",
+        title="Combined Distances: Registered vs Non-Registered Components",
+        colors1=registered_colors,
+        colors2=non_registered_colors
     )
 
-    plt.tight_layout()
-    plt.savefig(output_path)
-    plt.close()
+    if not output_path is None:
+        # Save the plot
+        plt.tight_layout()
+        plt.savefig(output_path)
+        plt.close()
+    
+    return ax
 
 def process_cohort(session_file, cohort, dims, cohort_dir):
     """Process all animals in a cohort."""
@@ -113,26 +125,29 @@ def process_cohort(session_file, cohort, dims, cohort_dir):
 
         # Gather validation and distance data
         gather_registration_data(assignments, cohort, animal, registration_data)
-        registered_distances, non_registered_distances = compute_distances(assignments, positions)
+        registered_distances, non_registered_distances = compute_distances(assignments, session_indexing, positions)
         gather_distance_data(registered_distances, non_registered_distances, cohort, animal, distance_data)
 
         # Save registration results
         save_results(cohort_dir, cohort, animal, assignments, A_union, session_indexing)
 
+    plot_combined_validation(registration_data, distance_data, cohort_dir, cohort)
+
+def plot_combined_validation(registration_data, distance_data, output_dir, cohort):
+    """Plot combined registration validation and average distances across all animals in a cohort."""
     # Combine and plot registration validation
     combined_registration_data = pd.concat(registration_data, ignore_index=True)
-    plot_registration_validation(
-        combined_registration_data,
-        cohort,
-        os.path.join(cohort_dir, f'{cohort}_registration_validation_combined.png')
-    )
-
+    # Create a grid for validation plot to fit 2 plots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
+    plot_registration_validation(combined_registration_data, cohort, ax=ax1)
+    
     # Combine and plot average distances
     combined_distance_data = pd.DataFrame(distance_data)
-    plot_combined_distances(
-        combined_distance_data,
-        os.path.join(cohort_dir, f'{cohort}_distance_boxplot_combined.png')
-    )
+    plot_combined_distances(combined_distance_data, ax=ax2)
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'combined_validation.png'))
+    plt.close()
 
 def main(session_file_path, output_base_dir):
     """Main function to process all cohorts."""
@@ -141,12 +156,12 @@ def main(session_file_path, output_base_dir):
     dims = (400, 640)  # Assumes fixed imaging dimensions
 
     for cohort in cohorts:
-        cohort_dir = os.path.join(output_base_dir, cohort)
+        cohort_dir = os.path.join(output_base_dir, cohort, 'registration')
         os.makedirs(cohort_dir, exist_ok=True)
         process_cohort(session_file, cohort, dims, cohort_dir)
 
 # Execute the script
 if __name__ == "__main__":
     session_file_path = 'data'
-    output_base_dir = 'processed-data/registration'
+    output_base_dir = 'processed-data'
     main(session_file_path, output_base_dir)
