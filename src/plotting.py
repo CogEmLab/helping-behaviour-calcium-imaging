@@ -63,7 +63,6 @@ def plot_registration_validation(data, cohort, output_path=None, ax=None):
     
     return ax
 
-
 def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third_dist_values=None, ax=None, 
                            significance_color='r', second_dist_color='grey', third_dist_color='b',
                            p_value_threshold=0.05, filename=None, legend=False, 
@@ -956,3 +955,35 @@ def plot_values_over_days(data, x_column, y_column, ax=None, order=None, title=N
     
 
     return fig, ax
+
+def plot_rigid_shifts(motion_corrector, save_dir=None, save_name=None, ax=None):
+    """
+    Plot the rigid shifts during motion correction.
+
+    Parameters:
+        motion_corrector: The motion corrector object.
+        save_dir: The directory to save the plot.
+        ax: The axis to plot on. If None, create a new figure.
+
+    Returns:
+        ax: The axis with the plot.
+    """
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(6, 3))
+    else:
+        fig = ax.get_figure()
+
+    ax.plot(motion_corrector.shifts_rig[:, 0], 'k-', label='x shifts')
+    ax.plot(motion_corrector.shifts_rig[:, 1], '--', color='gray', label='y shifts')
+
+    ax.legend()
+    ax.set_xlabel('Frames')
+    ax.set_ylabel('Pixels')
+
+    # Save plot
+    if save_dir is not None and save_name is not None:
+        fig.savefig(f'{save_dir}/rigid_shifts_{save_name}.png')
+        # Close the plot to avoid memory leak
+        plt.close(fig)
+
+    return ax
