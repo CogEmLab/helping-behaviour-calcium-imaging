@@ -10,6 +10,7 @@ import os
 from collections import defaultdict
 import datetime
 import yaml
+from src.plotting import quality_control_plotting
 
 with open('batch_cnmfe_params.yaml', 'r') as f:
     params = yaml.safe_load(f)
@@ -41,8 +42,11 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
     # Check if all required columns are present
     if not all(x in session_df.columns for x in required_columns):
         logging.warning(f'Session file {session_file_path} is missing one or more of the required columns: {required_columns}. Skipping it.')
-        continue
-    
+        
+        
+    SNR_dict = defaultdict(list)
+    max_shifts_dict = defaultdict(list)
+
     for path in tqdm(miniscope_paths):
         
         # Extract session and mouse name from path
@@ -176,7 +180,13 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
         # Get SNR values (for accepted components only)
         SNR = cnmfe_model.estimates.SNR_comp
-        
+
+        # Create a dictionary to save SNR values for each animal and session
+        SNR_dict[mouse].extend(SNR)
+    
+        # Similarly, get the maximum shift values
+        max_shifts_dict[mouse].extend(border_px)
+
         # Check if SNR values contain only int, if not, remove that component from accepted_components
         if not all(isinstance(x, int) for x in SNR):
 
@@ -203,3 +213,26 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
     logging.info(f'Batch CNMFE processing complete for cohort {GLOBAL_PATH}')
 
+    quality_control_plotting(SNR_dict, max_shifts_dict, save_dir_quality_control)
+
+    logging.info(f'Quality control plots saved to {save_dir_quality_control}')
+
+    # Normalize number of components
+    session_df['Normalized components'] = session_df['Num Accepted'] / session_df['Ca Imaging Length(s)']
+    # For each unique mouse, sum the normalized components over all days
+    sum_normalized_components = session_df.groupby(['Mouse'])['Normalized components'].sum()
+    # Add the sum of normalized components to the data
+    session_df = session_df.join(sum_normalized_components, on='Mouse', rsuffix='_sum')
+    # Compute K_id(Num Accepted components for animal i and day d) as k_id (normalized by Session Duration) /sum(k_il over all days) for each animal i and day d
+    session_df['Normalized components'] = (session_df['Normalized components'] / session_df['Normalized components_sum']) * 100
+    # Remove the sum of normalized components
+    session_df = session_df.drop(columns=['Normalized components_sum'])
+    # Round Ca Imaging Length(s) and Normalized components to 2 decimal places
+    session_df['Ca Imaging Length(s)'] = session_df['Ca Imaging Length(s)'].round(2)
+    session_df['Normalized components'] = session_df['Normalized components'].round(2)
+
+    # Save session file
+    now = datetime.now().strftime('%Y-%m-%d')
+    session_df.to_csv(f'{GLOBAL_PATH}/SESSION_FILE_{os.path.basename(__file__)[:-3]}_{now}.csv', index=False)
+
+    logging.info(f'Session file saved to {GLOBAL_PATH}')

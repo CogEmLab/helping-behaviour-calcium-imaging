@@ -987,3 +987,104 @@ def plot_rigid_shifts(motion_corrector, save_dir=None, save_name=None, ax=None):
         plt.close(fig)
 
     return ax
+
+def quality_control_plotting(SNR_dict, max_shifts_dict, save_dir):
+    """
+    Create quality control boxplots for SNR and Maximum Shifts.
+    
+    Parameters:
+    -----------
+    SNR_dict : dict
+        Dictionary with animal names as keys and lists of SNR values
+    max_shifts_dict : dict
+        Dictionary with animal names as keys and lists of maximum shift values
+    save_dir : str
+        Directory to save the quality control plots
+    """
+    # Ensure output directory exists
+    os.makedirs(save_dir, exist_ok=True)
+    
+    # Prepare data for plotting
+    plt.style.use('dark_background')
+    
+    # SNR Boxplot
+    plt.figure(figsize=(10, 6))
+    
+    # Prepare data for boxplot
+    snr_data = []
+    snr_labels = []
+    for animal, snr_values in SNR_dict.items():
+        snr_data.append(snr_values)
+        snr_labels.append(animal)
+    
+    # Create boxplot with individual points
+    bp = plt.boxplot(snr_data, labels=snr_labels, patch_artist=True, 
+                     boxprops=dict(facecolor='darkgrey', color='white'),
+                     medianprops=dict(color='white'))
+    
+    # Add scatter plot
+    for i, snr_values in enumerate(snr_data):
+        # Scatter plot with jitter
+        x = np.random.normal(i+1, 0.04, size=len(snr_values))
+        plt.scatter(x, snr_values, alpha=0.5, color='lightgrey', s=20)
+    
+    plt.title('Signal-to-Noise Ratio (SNR) by Animal', color='white')
+    plt.xlabel('Animal', color='white')
+    plt.ylabel('SNR', color='white')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir, 'SNR_boxplot.png'), 
+                dpi=300, facecolor='black')
+    plt.close()
+    
+    # Maximum Shifts Boxplot
+    plt.figure(figsize=(10, 6))
+    
+    # Prepare data for boxplot
+    max_shifts_data = []
+    max_shifts_labels = []
+    for animal, shifts in max_shifts_dict.items():
+        max_shifts_data.append(shifts)
+        max_shifts_labels.append(animal)
+    
+    # Create boxplot with individual points
+    bp = plt.boxplot(max_shifts_data, labels=max_shifts_labels, patch_artist=True, 
+                     boxprops=dict(facecolor='darkgrey', color='white'),
+                     medianprops=dict(color='white'))
+    
+    # Add scatter plot
+    for i, shifts in enumerate(max_shifts_data):
+        # Scatter plot with jitter
+        x = np.random.normal(i+1, 0.04, size=len(shifts))
+        plt.scatter(x, shifts, alpha=0.5, color='lightgrey', s=20)
+    
+    plt.title('Maximum Motion Shifts by Animal', color='white')
+    plt.xlabel('Animal', color='white')
+    plt.ylabel('Maximum Shift (pixels)', color='white')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir, 'MaxShifts_boxplot.png'), 
+                dpi=300, facecolor='black')
+    plt.close()
+    
+    # Save summary statistics
+    with open(os.path.join(save_dir, 'quality_control_summary.txt'), 'w') as f:
+        f.write("SNR Summary:\n")
+        for animal, snr_values in SNR_dict.items():
+            f.write(f"{animal}:\n")
+            f.write(f"  Mean: {np.mean(snr_values):.2f}\n")
+            f.write(f"  Median: {np.median(snr_values):.2f}\n")
+            f.write(f"  Std Dev: {np.std(snr_values):.2f}\n")
+            f.write(f"  Min: {np.min(snr_values):.2f}\n")
+            f.write(f"  Max: {np.max(snr_values):.2f}\n\n")
+        
+        f.write("\nMaximum Shifts Summary:\n")
+        for animal, shifts in max_shifts_dict.items():
+            f.write(f"{animal}:\n")
+            f.write(f"  Mean: {np.mean(shifts):.2f}\n")
+            f.write(f"  Median: {np.median(shifts):.2f}\n")
+            f.write(f"  Std Dev: {np.std(shifts):.2f}\n")
+            f.write(f"  Min: {np.min(shifts):.2f}\n")
+            f.write(f"  Max: {np.max(shifts):.2f}\n\n")
+    
+    print(f"Quality control plots and summary saved to {save_dir}")
