@@ -16,22 +16,27 @@ Finally, the script plots random traces of the dF/F for each model and saves the
 import logging
 import matplotlib
 matplotlib.use('Agg') # To avoid displaying plots
-import os
 import numpy as np
 from glob import glob
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
-from plotting import plot_random_traces
-
+import sys
+import os
 
 # Move one directory up, because scrip is located in subfolder 'preprocessing-scripts'
-os.chdir('..')
+parent_dir = os.path.dirname(os.getcwd())
+os.chdir(parent_dir)
+
+# Add parent directory to the Python path
+sys.path.insert(0, parent_dir)
+
+from src.plotting import plot_random_traces
 
 GLOBAL_DIR = 'processed-data/'
-SKIP = True
+SKIP = False
 
 # Find all files in the directory and subdirectories with the extension .hdf5; 
 # as of 10.2024 it will find all full models and all models with only accepted components. Be careful here!
-files = glob(GLOBAL_DIR + '**/**/**/*video.hdf5', recursive=True)
+files = glob(GLOBAL_DIR + 'Oct_2024_synthetic/**/**/*.hdf5', recursive=True)
 
 for file in files:
    
