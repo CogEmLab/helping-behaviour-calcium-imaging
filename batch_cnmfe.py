@@ -12,7 +12,7 @@ import datetime
 import yaml
 from src.plotting import quality_control_plotting
 
-with open('batch_cnmfe_params.yaml', 'r') as f:
+with open('cnmfe_batch_params.yaml', 'r') as f:
     params = yaml.safe_load(f)
 
 paths = [os.path.normpath(p) for p in params['paths']]
@@ -27,6 +27,9 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
     # Configure logging, move logging to tech docs, save the path to it and add there time
     log_filename = os.path.join('tech_docs', f'batch_cnmfe_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+    # Create log file
+    os.makedirs(os.path.dirname(log_filename), exist_ok=True)
+    # Set up logging
     logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     # Check if miniscope folder exist, if yes, seach for files
     miniscope_paths = glob(f'{GLOBAL_PATH}/**/miniscope/**.tiff', recursive=True)
@@ -42,7 +45,6 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
     # Check if all required columns are present
     if not all(x in session_df.columns for x in required_columns):
         logging.warning(f'Session file {session_file_path} is missing one or more of the required columns: {required_columns}. Skipping it.')
-        
         
     SNR_dict = defaultdict(list)
     max_shifts_dict = defaultdict(list)
@@ -70,7 +72,6 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         if len(idx) != 1:
             logging.error(f'No single entry found for {filename} in the session file. Cannot extract needed metadata.')
             continue
-        session_entry = session_df.loc[idx[0]]
         
         # Assert that session in sesison entry corresponds to session
         assert session_entry['session'].values[0] == session
