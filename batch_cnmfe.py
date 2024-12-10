@@ -8,36 +8,27 @@ from tqdm import tqdm
 from tifffile import imwrite
 import os
 from collections import defaultdict
+import datetime
+import yaml
 
-# Input directories
-paths = [os.path.normpath(p) for p in ['data/Oct_2024_synthetic']]
-session_file_paths = [os.path.normpath(p) for p in ['Oct_2024_synthetic_session_file.csv']]
-config_filepath = os.path.normpath('tech_docs/caiman_parameters.yaml')
+with open('batch_cnmfe_params.yaml', 'r') as f:
+    params = yaml.safe_load(f)
+
+paths = [os.path.normpath(p) for p in params['paths']]
+session_file_paths = [os.path.normpath(p) for p in params['session_file_paths']]
+config_filepath = os.path.normpath(params['config_filepath'])
+skip_if_exists = params['skip_if_exists']
 
 # Define required columns
 required_columns = ['session', 'pair', 'sex', 'miniscope video', 'ci_fps_downsampled', 'timevideoend(s)', 'session outcome', 'final outcome', 'timevictiminsertion(s)']
 
 for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
-    # Configure logging
-    logging.basicConfig(filename='batch_cnmfe_synthetic.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
+    # Configure logging, move logging to tech docs, save the path to it and add there time
+    log_filename = os.path.join('tech_docs', f'batch_cnmfe_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
+    logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     # Check if miniscope folder exist, if yes, seach for files
     miniscope_paths = glob(f'{GLOBAL_PATH}/**/miniscope/**.tiff', recursive=True)
-
-    # Create an output doc path, we will save all metadata information there
-    output_file_path = os.path.normpath(os.path.join(GLOBAL_PATH, 'cnmfe_output_updated.csv'))
-
-    if os.path.isfile(output_file_path):
-        # Read the existing output file
-        output_df = pd.read_csv(output_file_path)
-        # In Mouse column, if there are only 3 characters, add a 0 in front
-        output_df['Mouse'] = [str(x).zfill(4) for x in output_df['Mouse']]
-        # Convert the dataframe to a defaultdict list
-        output_dict = output_df.to_dict(orient='list', into=defaultdict(list))
-    else:
-        # Create an empty defaultdict list
-        output_dict = defaultdict(list)
 
     # Define the path to the session file
     session_file_path  = os.path.normpath(os.path.join(GLOBAL_PATH, session_file_path))
@@ -70,8 +61,12 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
             FPS = 30 # Assuming default=30
             logging.info(f'No FPS found in session file, setting to default=30.')
 
-        # Find in session file entry with the given filename in Miniscope video TIFF column
-        session_entry = session_df[session_df['miniscope video'] == filename]
+        # Find index of session file entry with the given filename in Miniscope video TIFF column
+        idx = session_df.index[session_df['miniscope video'] == filename].tolist()
+        if len(idx) != 1:
+            logging.error(f'No single entry found for {filename} in the session file. Cannot extract needed metadata.')
+            continue
+        session_entry = session_df.loc[idx[0]]
         
         # Assert that session in sesison entry corresponds to session
         assert session_entry['session'].values[0] == session
@@ -119,13 +114,10 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
         logging.info(f'Processing {session} {mouse}, Sex: {sex}, Session duration: {session_duration}, Session outcome: {session_outcome}, Final outcome: {final_outcome}, Time victim inserted: {time_victim_inserted}')
 
-        # Check if the file has already been processed only if there is an output file
-        if os.path.isfile(output_file_path):
-            if output_df[(output_df['Session'] == session) & (output_df['Mouse'] == mouse)].shape[0] > 0: 
-                logging.info(f'{session} {mouse} has already been processed')
-                continue
-            else:
-                logging.info(f'{session} {mouse} has not been processed yet')
+        # Check if the file has already been processed only
+        if os.path.exists(os.path.join(save_dir_model, f'{filename}.hdf5')) and skip_if_exists:
+            logging.info(f'File {filename} has already been processed. Skipping it.')
+            continue
 
         try:
             cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected, border_px = analyze_data(path, save_dir_docs, config_filepath, fps=FPS, motion_correct=True, plot=True)
@@ -153,31 +145,19 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         # Delete the motion corrected file
         os.system(f'rm {fname_new}')
 
-        # Append the information to each column accordingly
-        output_dict['Session'].append(session)
-        output_dict['Mouse'].append(str(mouse).zfill(4))
-        output_dict['Total Components'].append(total_components)
-        output_dict['Num Accepted'].append(num_accepted)
-        output_dict['Num Rejected'].append(num_rejected)
-        output_dict['FPS'].append(FPS)
-        output_dict['Dimensions'].append(dims)
-        output_dict['Correlation Image Path'].append(correlation_image_path)
-        output_dict['Peak-to-Noise Ratio Path'].append(peak_to_noise_ratio_path)
-        output_dict['CNMFE Model Path'].append(cnmfe_save_dir)
-        output_dict['Motion Corrected Path'].append(fname_new)
-        output_dict['Session Duration'].append(session_duration)
-        output_dict['Session Outcome'].append(session_outcome)
-        output_dict['Final Outcome'].append(final_outcome)
-        output_dict['Time Victim Inserted'].append(time_victim_inserted)
-        output_dict['Sex'].append(sex)
-        output_dict['Maximum Shift'].append(float(border_px))
+        session_df.loc[idx[0], 'Total Components'] = total_components
+        session_df.loc[idx[0], 'Num Accepted'] = num_accepted
+        session_df.loc[idx[0], 'Num Rejected'] = num_rejected
+        session_df.loc[idx[0], 'Dimensions'] = dims
+        session_df.loc[idx[0], 'Correlation Image Path'] = correlation_image_path
+        session_df.loc[idx[0], 'Peak-to-Noise Ratio Path'] = peak_to_noise_ratio_path
+        session_df.loc[idx[0], 'CNMFE Model Path'] = cnmfe_save_dir
+        session_df.loc[idx[0], 'Motion Corrected Path'] = fname_new
+        session_df.loc[idx[0], 'Maximum Shift'] = float(border_px)
+        session_df.loc[idx[0], 'CNMFE Log File Location'] = log_filename
 
-        # Assert that all lists have the same size
-        assert all(len(x) == len(output_dict['Session']) for x in output_dict.values()), 'All lists should have the same size'
-        
-        # Save the output dataframe
-        output_df = pd.DataFrame(output_dict)
-        output_df.to_csv(f'{GLOBAL_PATH}/cnmfe_output_updated.csv', index=False)
-        
+        now = datetime.now().strftime('%Y-%m-%d')
+        session_df.to_csv(f'{GLOBAL_PATH}/SESSION_FILE_{os.path.basename(__file__)[:-3]}_{now}.csv', index=False)
+
     logging.info(f'Batch CNMFE processing complete for cohort {GLOBAL_PATH}')
 

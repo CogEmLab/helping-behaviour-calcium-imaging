@@ -1,0 +1,9 @@
+paths:
+  - data/Oct_2024_synthetic
+
+session_file_paths:
+  - Oct_2024_synthetic_session_file.csv
+
+config_filepath: tech_docs/caiman_parameters.yaml
+
+skip_if_exists: True # otherwise will overwrite
