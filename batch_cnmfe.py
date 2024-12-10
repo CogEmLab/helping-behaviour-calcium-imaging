@@ -84,10 +84,14 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         save_dir_model = os.path.join(OUTPUT_DIR, session, 'cnmfe_model')
         save_dir_data = os.path.join(OUTPUT_DIR, session, 'cnmfe_data')
         save_dir_docs = os.path.join(OUTPUT_DIR, session, 'cnmfe_docs')
+        save_dir_npy = os.path.join(OUTPUT_DIR, session, 'npy_data')
+        save_dir_quality_control = os.path.join(OUTPUT_DIR, session, 'quality_control')
 
         os.makedirs(save_dir_model, exist_ok=True)
         os.makedirs(save_dir_data, exist_ok=True)
         os.makedirs(save_dir_docs, exist_ok=True)
+        os.makedirs(save_dir_npy, exist_ok=True)
+        os.makedirs(save_dir_quality_control, exist_ok=True)
 
         # Extract the mouse name from the session file
         mouse = str(session_entry['pair'].values[0].split('-')[0])
@@ -124,6 +128,28 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         except Exception as e:
             logging.error(f'Error processing {session} {mouse}: {str(e)}')
 
+         # Get dF/F; detrend only (1p protocol)
+        cnmfe_model.estimates.detrend_df_f(detrend_only=True)
+        # Get dF/F
+        DF_F = cnmfe_model.estimates.F_dff
+        # Check if dF/F shape matches the number of accepted components after component selection
+        assert DF_F.shape[0] == num_accepted
+        # ^ Good that you check this!
+
+        # This is the work-around for the non-helper animal (848) where session is damaged after certain moment.
+        if '2021-10-27-10-25-03_video' in filename:
+            logging.info('For file %s, cutting dF/F to 6000 frames', filename)
+            DF_F = DF_F[:, :6000]
+        elif '2021-10-29-10-43-11_video' in filename:
+            logging.info('For file %s, cutting dF/F to 8000 frames', filename)
+            DF_F = DF_F[:, :8000]
+
+        # Normalize dF/F to have a mean of 0 and a standard deviation of 1
+        DF_F_Z_scored = (DF_F - DF_F.mean(axis=1)[:, None]) / DF_F.std(axis=1)[:, None]
+        # ^ I saw your traces and this seems to be OK but when I did my analysis earlier where I only used the S Matrix for later steps
+        # ^ I have normalized using the SNR value that you also obtain from Caiman. This could help you to filter out noisy data.
+        # ^ Maybe keep it as an option for later, or to experiment with it.
+
         # Save cnmfe model
         cnmfe_save_dir = os.path.join(save_dir_model, f'{filename}.hdf5')
         cnmfe_model.save(cnmfe_save_dir)
@@ -136,6 +162,9 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         peak_to_noise_ratio_path = os.path.join(save_dir_data, f'peak_to_noise_ratio_{filename}.tif')
         imwrite(peak_to_noise_ratio_path, peak_to_noise_ratio)
         
+        # Save dF/F
+        np.save(os.path.join(save_dir_npy, f'{filename}.npy'), DF_F_Z_scored)
+        
         # Copy the motion corrected file to the save directory
         save_motion_corrected = os.path.join(os.path.dirname(path).replace('data', 'processed-data').replace('miniscope', 'cnmfe_data'), os.path.basename(fname_new))
         print(save_motion_corrected)
@@ -145,6 +174,19 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         # Delete the motion corrected file
         os.system(f'rm {fname_new}')
 
+        # Get SNR values (for accepted components only)
+        SNR = cnmfe_model.estimates.SNR_comp
+        
+        # Check if SNR values contain only int, if not, remove that component from accepted_components
+        if not all(isinstance(x, int) for x in SNR):
+
+            try:
+                plot_random_traces(DF_F_Z_scored, snr=SNR, filename=os.path.join(save_dir_docs, f'{filename}_random_traces.png'))
+                logging.info('Plot saved to: %s', save_dir_docs)
+            except Exception as e:
+                logging.error('Error: %s', e)
+                logging.error('Could not plot random traces for %s', filename)
+                
         session_df.loc[idx[0], 'Total Components'] = total_components
         session_df.loc[idx[0], 'Num Accepted'] = num_accepted
         session_df.loc[idx[0], 'Num Rejected'] = num_rejected

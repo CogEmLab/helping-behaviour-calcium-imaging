@@ -471,6 +471,9 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
     num_accepted = len(cnmfe_model.estimates.idx_components)
     num_rejected = len(cnmfe_model.estimates.idx_components_bad)
 
+    # Select only the accepted components, onte it will change the indexing everywhere in the model. Discarded components could be restored.
+    cnmfe_model.estimates.select_components(use_object=True, save_discarded_components=True)
+
     # Compute some summary images (correlation and peak to noise)
     gsig_tmp = (3,3)
     logging.info('Computing summary images')
