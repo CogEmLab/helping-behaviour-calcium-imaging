@@ -957,6 +957,7 @@ def plot_values_over_days(data, x_column, y_column, ax=None, order=None, title=N
     return fig, ax
 
 def plot_rigid_shifts(motion_corrector, save_dir=None, save_name=None, ax=None):
+    #todo: fix. it doesn't work
     """
     Plot the rigid shifts during motion correction.
 
@@ -973,8 +974,8 @@ def plot_rigid_shifts(motion_corrector, save_dir=None, save_name=None, ax=None):
     else:
         fig = ax.get_figure()
 
-    ax.plot(motion_corrector.shifts_rig[:, 0], 'k-', label='x shifts')
-    ax.plot(motion_corrector.shifts_rig[:, 1], '--', color='gray', label='y shifts')
+    ax.plot(motion_corrector.shifts_rig[0], 'k-', label='x shifts')
+    ax.plot(motion_corrector.shifts_rig[1], '--', color='gray', label='y shifts')
 
     ax.legend()
     ax.set_xlabel('Frames')

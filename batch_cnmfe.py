@@ -46,6 +46,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
     if not all(x in session_df.columns for x in required_columns):
         logging.warning(f'Session file {session_file_path} is missing one or more of the required columns: {required_columns}. Skipping it.')
         
+        
     SNR_dict = defaultdict(list)
     max_shifts_dict = defaultdict(list)
 
@@ -90,7 +91,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         save_dir_data = os.path.join(OUTPUT_DIR, session, 'cnmfe_data')
         save_dir_docs = os.path.join(OUTPUT_DIR, session, 'cnmfe_docs')
         save_dir_npy = os.path.join(OUTPUT_DIR, session, 'npy_data')
-        save_dir_quality_control = os.path.join(OUTPUT_DIR, session, 'quality_control')
+        save_dir_quality_control = os.path.join(OUTPUT_DIR, 'quality_control')
 
         os.makedirs(save_dir_model, exist_ok=True)
         os.makedirs(save_dir_data, exist_ok=True)
@@ -129,7 +130,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
             continue
 
         try:
-            cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected, border_px = analyze_data(path, save_dir_docs, config_filepath, fps=FPS, motion_correct=True, plot=True)
+            cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected, border_px = analyze_data(path, save_dir_docs, config_filepath, fps=FPS, motion_correct=True)
         except Exception as e:
             logging.error(f'Error processing {session} {mouse}: {str(e)}')
 
@@ -186,7 +187,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         SNR_dict[mouse].extend(SNR)
     
         # Similarly, get the maximum shift values
-        max_shifts_dict[mouse].extend(border_px)
+        max_shifts_dict[mouse].extend([border_px])
 
         # Check if SNR values contain only int, if not, remove that component from accepted_components
         if not all(isinstance(x, int) for x in SNR):
@@ -198,42 +199,45 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
                 logging.error('Error: %s', e)
                 logging.error('Could not plot random traces for %s', filename)
                 
-        session_df.loc[idx[0], 'Total Components'] = total_components
-        session_df.loc[idx[0], 'Num Accepted'] = num_accepted
-        session_df.loc[idx[0], 'Num Rejected'] = num_rejected
-        session_df.loc[idx[0], 'Dimensions'] = dims
-        session_df.loc[idx[0], 'Correlation Image Path'] = correlation_image_path
-        session_df.loc[idx[0], 'Peak-to-Noise Ratio Path'] = peak_to_noise_ratio_path
-        session_df.loc[idx[0], 'CNMFE Model Path'] = cnmfe_save_dir
-        session_df.loc[idx[0], 'Motion Corrected Path'] = fname_new
-        session_df.loc[idx[0], 'Maximum Shift'] = float(border_px)
-        session_df.loc[idx[0], 'CNMFE Log File Location'] = log_filename
+        session_df.loc[idx[0], 'total components'] = total_components
+        session_df.loc[idx[0], 'num accepted'] = num_accepted
+        session_df.loc[idx[0], 'num rejected'] = num_rejected
+        session_df.loc[idx[0], 'dimensions'] = str(dims)
+        session_df.loc[idx[0], 'correlation image path'] = correlation_image_path
+        session_df.loc[idx[0], 'peak-to-noise ratio path'] = peak_to_noise_ratio_path
+        session_df.loc[idx[0], 'cnmfe model path'] = cnmfe_save_dir
+        session_df.loc[idx[0], 'motion corrected path'] = fname_new
+        session_df.loc[idx[0], 'maximum shift'] = float(border_px)
+        session_df.loc[idx[0], 'cnmfe log file location'] = log_filename
 
-        now = datetime.now().strftime('%Y-%m-%d')
-        session_df.to_csv(f'{GLOBAL_PATH}/SESSION_FILE_{os.path.basename(__file__)[:-3]}_{now}.csv', index=False)
+        session_df.to_csv(f'{GLOBAL_PATH}/SESSION_FILE_{os.path.basename(__file__)[:-3]}.csv', index=False)
 
     logging.info(f'Batch CNMFE processing complete for cohort {GLOBAL_PATH}')
 
-    quality_control_plotting(SNR_dict, max_shifts_dict, save_dir_quality_control)
+    try:
+        quality_control_plotting(SNR_dict, max_shifts_dict, save_dir_quality_control)
+    except Exception as e:
+        logging.error('Error: %s', e)
+        logging.error('Could not plot quality control plots')
 
     logging.info(f'Quality control plots saved to {save_dir_quality_control}')
 
+    print(session_df)    
     # Normalize number of components
-    session_df['Normalized components'] = session_df['Num Accepted'] / session_df['Ca Imaging Length(s)']
+    session_df['normalized_components'] = session_df['num accepted'] / session_df['ca imaging length(s)']
     # For each unique mouse, sum the normalized components over all days
-    sum_normalized_components = session_df.groupby(['Mouse'])['Normalized components'].sum()
+    sum_normalized_components = session_df.groupby(['mouse'])['normalized_components'].sum()
     # Add the sum of normalized components to the data
-    session_df = session_df.join(sum_normalized_components, on='Mouse', rsuffix='_sum')
+    session_df = session_df.join(sum_normalized_components, on='mouse', rsuffix='_sum')
     # Compute K_id(Num Accepted components for animal i and day d) as k_id (normalized by Session Duration) /sum(k_il over all days) for each animal i and day d
-    session_df['Normalized components'] = (session_df['Normalized components'] / session_df['Normalized components_sum']) * 100
+    session_df['normalized_components'] = (session_df['normalized_components'] / session_df['normalized_components_sum']) * 100
     # Remove the sum of normalized components
-    session_df = session_df.drop(columns=['Normalized components_sum'])
+    session_df = session_df.drop(columns=['normalized_components_sum'])
     # Round Ca Imaging Length(s) and Normalized components to 2 decimal places
-    session_df['Ca Imaging Length(s)'] = session_df['Ca Imaging Length(s)'].round(2)
-    session_df['Normalized components'] = session_df['Normalized components'].round(2)
+    session_df['ca imaging length(s)'] = session_df['ca imaging length(s)'].round(2)
+    session_df['normalized_components'] = session_df['normalized_components'].round(2)
 
     # Save session file
-    now = datetime.now().strftime('%Y-%m-%d')
-    session_df.to_csv(f'{GLOBAL_PATH}/SESSION_FILE_{os.path.basename(__file__)[:-3]}_{now}.csv', index=False)
+    session_df.to_csv(f'{GLOBAL_PATH}/SESSION_FILE_{os.path.basename(__file__)[:-3]}.csv', index=False)
 
     logging.info(f'Session file saved to {GLOBAL_PATH}')
