@@ -101,16 +101,17 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, plot=
         plt.xlabel("Frame")
         plt.ylabel("Signal Amplitude")
         plt.legend()
-        plt.show()
+        plt.show(block=True)
 
     return p_value
 
-# Example usage
-signal = np.random.normal(0, 1, 1000)  # Example signal
-signal[450:550] += 2  # Add an "event"
-event_window = (450, 550)
-event_duration = 1.0  # Assuming each sample represents 0.01 time units
+if __name__ == "__main__":
+    # Example usage
+    signal = np.random.normal(0, 1, 1000)  # Example signal
+    signal[450:550] += 2  # Add an "event"
+    event_window = (450, 550)
+    event_duration = 1.0  # Assuming each sample represents 0.01 time units
 
-p_value = calculate_event_specificity(signal, event_window, event_duration, 100, plot=True)
-print(f"P-value: {p_value}")
+    p_value = calculate_event_specificity(signal, event_window, event_duration, 100, plot=True)
+    print(f"P-value: {p_value}")
 
