@@ -55,15 +55,28 @@ def process_session(row, plot):
         print('snr', snr)
         p_value = calculate_event_specificity(signal, event_window, event_duration, session.calcium_fps, snr, plot=False)
         p_values.append(p_value)
-    print(p_values)
+    
+    # Sort liberation cell IDs based on p-values in ascending order
+    sorted_indices = np.argsort(p_values)
+    sorted_liberation_cells_ids = liberation_cells_ids[sorted_indices]
+    sorted_p_values = np.array(p_values)[sorted_indices]
 
-    # # Load the metadata for liberation components
-    # liberation_associated_metadata = session.load_liberation_metadata('Liberation')
-    # # Get the IDs of the liberation cells; it will return None if metadata for this session is empty
-    # liberation_cells_ids = session.get_event_associated_cells_ids('Liberation')
-
-    # print(liberation_cells_ids)
-
+    # Plot the sorted signals
+    if plot:
+        plt.figure(figsize=(12, 8))
+        for idx, cell_id in enumerate(sorted_liberation_cells_ids):
+            plt.plot(dff_signal[cell_id], label=f'Cell {cell_id} (p={sorted_p_values[idx]:.3f})')
+        
+        plt.title('Sorted Liberation Cells by P-Value')
+        plt.xlabel('Time')
+        plt.ylabel('DFF Signal')
+        plt.legend(loc='upper right')
+        plt.tight_layout()
+        
+        # Save figure to file
+        plt.savefig(f'liberation_cells_sorted_{session.session_id}.png')
+        plt.close()
+        
 def main(SESSION_FILE):
 
     # Filter the session file
