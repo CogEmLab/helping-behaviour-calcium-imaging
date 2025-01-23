@@ -87,7 +87,8 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, plot=
         logging.info("Plotting the signal and detected peaks.")
         plt.figure(figsize=(10, 6))
         plt.plot(signal, label='Signal', alpha=0.7)
-        plt.scatter(peaks, background_signal[peaks], color='red', label='Background Peaks')
+        plt.scatter(peaks[peaks < event_window[0]], background_signal[peaks[peaks < event_window[0]]], color='red', label='Background Peaks')
+        plt.scatter(peaks[peaks >= event_window[0]] + event_duration*fps, background_signal[peaks[peaks >= event_window[0]]], color='red', label='Background Peaks')
         event_peaks, _ = find_peaks(
             event_signal,
             distance=3 * transient_duration,
