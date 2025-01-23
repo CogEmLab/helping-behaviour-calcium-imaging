@@ -1,6 +1,6 @@
 import matplotlib
-# matplotlib.use('Agg')  # Set the backend to 'Agg' before importing pyplot
-# matplotlib.rcParams['axes.unicode_minus'] = False
+matplotlib.use('Agg')  # Set the backend to 'Agg' before importing pyplot
+matplotlib.rcParams['axes.unicode_minus'] = False
 import datetime
 import os
 import numpy as np
@@ -58,14 +58,16 @@ def process_session(row, plot):
     
     # Sort liberation cell IDs based on p-values in ascending order
     sorted_indices = np.argsort(p_values)
+    liberation_cells_ids = np.array(liberation_cells_ids)
     sorted_liberation_cells_ids = liberation_cells_ids[sorted_indices]
     sorted_p_values = np.array(p_values)[sorted_indices]
 
     # Plot the sorted signals
+    plot=True
     if plot:
         plt.figure(figsize=(12, 8))
         for idx, cell_id in enumerate(sorted_liberation_cells_ids):
-            plt.plot(dff_signal[cell_id], label=f'Cell {cell_id} (p={sorted_p_values[idx]:.3f})')
+            plt.plot(dff_signal[cell_id] - 5*idx, label=f'Cell {cell_id} (p={sorted_p_values[idx]:.3f})')
         
         plt.title('Sorted Liberation Cells by P-Value')
         plt.xlabel('Time')
@@ -74,7 +76,7 @@ def process_session(row, plot):
         plt.tight_layout()
         
         # Save figure to file
-        plt.savefig(f'liberation_cells_sorted_{session.session_id}.png')
+        plt.savefig(f'figures/liberation_cells_sorted_{session.session}_{session.animal_id}.png')
         plt.close()
         
 def main(SESSION_FILE):
