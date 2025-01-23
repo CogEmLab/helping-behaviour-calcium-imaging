@@ -32,6 +32,15 @@ def process_session(row, plot):
     session.get_neuron_labels()
     dff_signal = session.load_dff_signal()
     snr_values = session.load_snr_values()
+    number_of_liberation_cells = session.number_of_liberation_cells
+    
+    if isnan(number_of_liberation_cells):
+        return None
+
+    # Load the metadata for liberation components
+    liberation_associated_metadata = session.load_liberation_metadata('Liberation')
+    # Get the IDs of the liberation cells; it will return None if metadata for this session is empty
+    liberation_cells_ids = session.get_event_associated_cells_ids('Liberation')
     victim_lib_timecode = session.victim_lib_timecode * session.calcium_fps
 
     if isnan(victim_lib_timecode):
@@ -40,10 +49,9 @@ def process_session(row, plot):
     event_window = tuple((int(victim_lib_timecode - 30 * session.calcium_fps), int(victim_lib_timecode + 30 * session.calcium_fps)))
     print(event_window)
     event_duration = 60
-    
 
     p_values = []
-    for signal, snr in zip(dff_signal, snr_values):
+    for signal, snr in zip(dff_signal[liberation_cells_ids], snr_values[liberation_cells_ids]):
         print('snr', snr)
         p_value = calculate_event_specificity(signal, event_window, event_duration, session.calcium_fps, snr, plot=False)
         p_values.append(p_value)
