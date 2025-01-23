@@ -6,7 +6,7 @@ from scipy import stats
 from elephant.statistics import mean_firing_rate
 import logging
 
-def calculate_event_specificity(signal, event_window, event_duration, fps, plot=False):
+def calculate_event_specificity(signal, event_window, event_duration, fps, noise_level, plot=False):
     """
     Calculate the p-value for event specificity of a calcium imaging signal.
 
@@ -41,7 +41,7 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, plot=
     transient_duration = 0.4 * fps  # Assume transient lasts ~0.4 seconds
 
     # Set the noise level threshold for detecting peaks
-    noise_level = 1  # Arbitrary value, may need dynamic adjustment based on signal characteristics
+    # noise_level = 1  # Arbitrary value, may need dynamic adjustment based on signal characteristics
 
     logging.info("Detecting peaks in the background signal.")
 
@@ -50,18 +50,19 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, plot=
         background_signal,
         distance=3 * transient_duration,  # Enforce minimum separation between peaks
         width=transient_duration,         # Ensure peak width matches transient duration
-        height=noise_level * 1.5          # Set threshold for peak height relative to noise
+        height=noise_level          # Set threshold for peak height relative to noise
     )
 
     if len(peaks) == 0:
         logging.warning("No peaks detected in the background signal. Returning NaN.")
-        return np.nan
+        lambda_background = float(0 + 0.0000005)
 
-    # Convert detected peak positions to a time-based event train (in seconds)
-    event_train = peaks / fps
+    else:
+        # Convert detected peak positions to a time-based event train (in seconds)
+        event_train = peaks / fps
 
-    # Calculate the mean firing rate (events per second) in the background signal
-    lambda_background = mean_firing_rate(event_train)  # Assumes `mean_firing_rate` is defined elsewhere
+        # Calculate the mean firing rate (events per second) in the background signal
+        lambda_background = mean_firing_rate(event_train)  # Assumes `mean_firing_rate` is defined elsewhere
     logging.info(f"Mean firing rate in the background: {lambda_background:.3f} events/sec.")
 
     logging.info("Detecting peaks in the event window.")
@@ -71,7 +72,7 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, plot=
         event_signal,
         distance=3 * transient_duration,  # Enforce minimum separation between peaks
         width=transient_duration,         # Ensure peak width matches transient duration
-        height=noise_level * 1.5          # Set threshold for peak height relative to noise
+        height=noise_level          # Set threshold for peak height relative to noise
     )[0])
 
     logging.info(f"Number of peaks detected in the event window: {k}.")
@@ -82,18 +83,21 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, plot=
 
     logging.info(f"Calculated p-value: {p_value:.5f}.")
 
+    if p_value < 0.01:
+        plot=True
+
     # Optional plotting
     if plot:
         logging.info("Plotting the signal and detected peaks.")
         plt.figure(figsize=(10, 6))
         plt.plot(signal, label='Signal', alpha=0.7)
         plt.scatter(peaks[peaks < event_window[0]], background_signal[peaks[peaks < event_window[0]]], color='red', label='Background Peaks')
-        plt.scatter(peaks[peaks >= event_window[0]] + event_duration*fps, background_signal[peaks[peaks >= event_window[0]]], color='red', label='Background Peaks')
+        plt.scatter(peaks[peaks >= event_window[0]] + event_duration*fps, background_signal[peaks[peaks >= event_window[0]]], color='red')
         event_peaks, _ = find_peaks(
             event_signal,
             distance=3 * transient_duration,
             width=transient_duration,
-            height=noise_level * 1.5
+            height=noise_level
         )
         event_peaks += event_window[0]  # Adjust indices to match full signal
         plt.scatter(event_peaks, signal[event_peaks], color='blue', label='Event Peaks')

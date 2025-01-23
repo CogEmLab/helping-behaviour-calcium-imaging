@@ -14,6 +14,7 @@ from src.functional_connectivity_utils import *
 import networkx as nx
 from src.utils import load_session_file
 from src.specificity import calculate_event_specificity
+from math import isnan
 
 # Load the configuration
 
@@ -30,16 +31,22 @@ def process_session(row, plot):
     pnr = session.load_pnr_image()
     session.get_neuron_labels()
     dff_signal = session.load_dff_signal()
+    snr_values = session.load_snr_values()
     victim_lib_timecode = session.victim_lib_timecode * session.calcium_fps
+
+    if isnan(victim_lib_timecode):
+        return None
+    
     event_window = tuple((int(victim_lib_timecode - 30 * session.calcium_fps), int(victim_lib_timecode + 30 * session.calcium_fps)))
     print(event_window)
     event_duration = 60
     
+
     p_values = []
-    for signal in dff_signal:
-        p_value = calculate_event_specificity(signal, event_window, event_duration, session.calcium_fps, plot=True)
+    for signal, snr in zip(dff_signal, snr_values):
+        print('snr', snr)
+        p_value = calculate_event_specificity(signal, event_window, event_duration, session.calcium_fps, snr, plot=False)
         p_values.append(p_value)
-        exit()
     print(p_values)
 
     # # Load the metadata for liberation components
