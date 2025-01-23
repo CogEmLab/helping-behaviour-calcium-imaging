@@ -67,18 +67,20 @@ def process_session(row, plot):
     if plot:
         plt.figure(figsize=(12, 8))
         for idx, cell_id in enumerate(sorted_liberation_cells_ids):
-            plt.plot(dff_signal[cell_id] - 5*idx, label=f'Cell {cell_id} (p={sorted_p_values[idx]:.3f})')
+            plt.plot(dff_signal[cell_id] - 5*idx, color='black')
+            if sorted_p_values[idx] < 0.01:
+                plt.text(len(dff_signal[cell_id])/2, dff_signal[cell_id].max() - 5*idx, '*', ha='center', va='bottom', color='black')
         
         plt.title('Sorted Liberation Cells by P-Value')
         plt.xlabel('Time')
         plt.ylabel('DFF Signal')
-        plt.legend(loc='upper right')
+        plt.legend().set_visible(False)
         plt.tight_layout()
         
         # Save figure to file
-        plt.savefig(f'figures/liberation_cells_sorted_{session.session}_{session.animal_id}.png')
+        plt.savefig(f'figures/liberation_cells_sorted_{session.session}_{session.animal_id}.png', transparent=True)
         plt.close()
-        
+
 def main(SESSION_FILE):
 
     # Filter the session file
