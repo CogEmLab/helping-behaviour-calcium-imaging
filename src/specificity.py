@@ -15,6 +15,7 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, noise
     event_window (tuple): Start and end indices of the event window within the signal (e.g., (start_frame, end_frame)).
     event_duration (float): Duration of the event window in time units (e.g., seconds).
     fps (int): Frames per second of the calcium imaging data, used to convert between frame indices and time.
+    noise_level (float): Threshold for peak detection in the background signal. Get from SNR of the signal.
     plot (bool): If True, plots the signal with detected peaks for visual evaluation.
 
     Returns:
@@ -41,7 +42,7 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, noise
     transient_duration = 0.4 * fps  # Assume transient lasts ~0.4 seconds
 
     # Set the noise level threshold for detecting peaks
-    # noise_level = 1  # Arbitrary value, may need dynamic adjustment based on signal characteristics
+    noise_level = noise_level * 0.9
 
     logging.info("Detecting peaks in the background signal.")
 
@@ -55,7 +56,7 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, noise
 
     if len(peaks) == 0:
         logging.warning("No peaks detected in the background signal. Returning NaN.")
-        lambda_background = float(0 + 0.0000005)
+        lambda_background = float(0) + 1e-10
 
     else:
         # Convert detected peak positions to a time-based event train (in seconds)
@@ -63,8 +64,8 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, noise
 
         # Calculate the mean firing rate (events per second) in the background signal
         lambda_background = mean_firing_rate(event_train)  # Assumes `mean_firing_rate` is defined elsewhere
-    logging.info(f"Mean firing rate in the background: {lambda_background:.3f} events/sec.")
 
+    logging.info(f"Mean firing rate in the background: {lambda_background:.3f} events/sec.")
     logging.info("Detecting peaks in the event window.")
 
     # Detect peaks in the event window using the same parameters as for the background
@@ -102,7 +103,7 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, noise
         event_peaks += event_window[0]  # Adjust indices to match full signal
         plt.scatter(event_peaks, signal[event_peaks], color='blue', label='Event Peaks')
         plt.axvspan(event_window[0], event_window[1], color='yellow', alpha=0.3, label='Event Window')
-        plt.title("Calcium Imaging Signal with Detected Peaks")
+        plt.title("Calcium Imaging Signal with Detected Peaks\np-value: {:.5f}, Noise Level: {:.2f}".format(p_value, noise_level))
         plt.xlabel("Frame")
         plt.ylabel("Signal Amplitude")
         plt.legend()
