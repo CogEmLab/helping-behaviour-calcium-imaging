@@ -1,13 +1,10 @@
 import matplotlib
 matplotlib.use('Agg')  # Set the backend to 'Agg' before importing pyplot
 matplotlib.rcParams['axes.unicode_minus'] = False
-import datetime
-import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import seaborn as sns
 from src.plotting import *
 from src.session_loader import Session
 from src.functional_connectivity_utils import *
@@ -16,100 +13,100 @@ from src.utils import load_session_file
 from src.specificity import calculate_event_specificity
 from math import isnan
 
-# Load the configuration
-
 # Access the configuration values
 SESSION_FILE = load_session_file('data')
 
-def process_session(row, plot):
-    """Processes a session to calculate mean correlations and return a DataFrame."""
-
-    # Create a session object
+def process_session(row):
+    """Processes a session to calculate selectivity data."""
     session = Session(row)
 
     # Load the data
-    pnr = session.load_pnr_image()
-    session.get_neuron_labels()
     dff_signal = session.load_dff_signal()
     snr_values = session.load_snr_values()
-    number_of_liberation_cells = session.number_of_liberation_cells
-    
-    if isnan(number_of_liberation_cells):
-        return None
-
-    # # Load the metadata for liberation components
-    # liberation_associated_metadata = session.load_liberation_metadata('Liberation')
-    # # Get the IDs of the liberation cells; it will return None if metadata for this session is empty
-    # liberation_cells_ids = session.get_event_associated_cells_ids('Liberation')
+    liberation_cells_ids = session.get_event_associated_cells_ids('Liberation')
     victim_lib_timecode = session.victim_lib_timecode * session.calcium_fps
 
     if isnan(victim_lib_timecode):
         return None
-    
-    event_window = tuple((int(victim_lib_timecode - 30 * session.calcium_fps), int(victim_lib_timecode + 30 * session.calcium_fps)))
-    print(event_window)
+
+    event_window = tuple((int(victim_lib_timecode - 30 * session.calcium_fps), 
+                          int(victim_lib_timecode + 30 * session.calcium_fps)))
     event_duration = 60
 
     p_values = []
     for signal, snr in zip(dff_signal, snr_values):
-        print('snr', snr)
         p_value = calculate_event_specificity(signal, event_window, event_duration, session.calcium_fps, snr, plot=False)
         p_values.append(p_value)
-    
-    # Sort liberation cell IDs based on p-values in ascending order
+
+    p_values = np.array(p_values)
+    liberation_p_values = p_values[liberation_cells_ids] if liberation_cells_ids is not None else np.array([])
+
+    # Plot the top 5 highest and lowest p-value signals
     sorted_indices = np.argsort(p_values)
-    sorted_p_values = np.array(p_values)[sorted_indices]
+    lowest_indices = sorted_indices[:5]
+    highest_indices = sorted_indices[-5:]
 
-    # Plot the sorted signals with window of liberation
     plt.figure(figsize=(12, 8))
-    for idx, cell_id in enumerate(sorted_indices[:5]):
-        if sorted_p_values[idx] < 0.01:
-            color='tab:red'
-        else:
-            color='black'
+    for idx, cell_idx in enumerate(lowest_indices):
+        plt.plot(dff_signal[cell_idx] - 5 * idx, label=f'Lowest #{idx+1} (p={p_values[cell_idx]:.4f})')
+    for idx, cell_idx in enumerate(highest_indices):
+        plt.plot(dff_signal[cell_idx] - 5 * (idx + 5), label=f'Highest #{idx+1} (p={p_values[cell_idx]:.4f})')
 
-        plt.plot(dff_signal[cell_id] - 10 * idx, color=color, label='Low P-Value')
-                
-    for idx, cell_id in enumerate(sorted_indices[-5:]):
-        if sorted_p_values[-idx-1] < 0.01:
-            color='tab:green'
-        else:
-            color='tab:blue'
-
-        plt.plot(dff_signal[cell_id] + 10 * (idx+1), color=color, label='High P-Value')
-
-    # Highlight the window of liberation
-    plt.axvspan(event_window[0], event_window[1], color='lightgray', alpha=0.3, label='Window of Liberation')
-
-    plt.title(f'Sorted Liberation Cells by P-Value (Lowest P-Value: {sorted_p_values[0]:.2f}, Highest P-Value: {sorted_p_values[-1]:.2f})')
+    plt.title(f'Top 5 Lowest and Highest P-Value Signals (Session: {session.session})')
     plt.xlabel('Time')
     plt.ylabel('DFF Signal')
-    plt.tight_layout()
     plt.legend()
-    
-    # Save figure to file
-    plt.savefig(f'figures/specificity/liberation_cells_sorted_{session.session}_{session.animal_id}.png', transparent=True)
+    plt.tight_layout()
+    plt.savefig(f'figures/top_signals_{session.session}_{session.animal_id}.png', transparent=True)
     plt.close()
 
-    
+    return {
+        'p_values': p_values,
+        'liberation_p_values': liberation_p_values,
+        'total_neurons': len(p_values),
+        'selective_neurons': (p_values < 0.05).sum(),
+        'selective_percentage': 100 * (p_values < 0.05).sum() / len(p_values),
+        'liberation_cells': len(liberation_cells_ids) if liberation_cells_ids is not None else 0,
+        'liberation_selective_percentage': 100 * (liberation_p_values < 0.05).sum() / len(liberation_p_values) if liberation_p_values.size > 0 else None
+    }
 
 def main(SESSION_FILE):
-
-    # Filter the session file
     SESSION_FILE = SESSION_FILE[SESSION_FILE['Excluded'] != True]
 
-    # Get random index for plotting 
-    idx = np.random.randint(0, len(SESSION_FILE))
-    for i, row in tqdm(SESSION_FILE.iterrows()):
+    all_p_values = []
+    all_liberation_p_values = []
+    results = []
 
-        if i == idx:
-            print('Plotting session with index:', i)
-            plot=True
-        else:
-            plot=False
+    for _, row in tqdm(SESSION_FILE.iterrows()):
+        session_result = process_session(row)
+        if session_result:
+            all_p_values.extend(session_result['p_values'])
+            all_liberation_p_values.extend(session_result['liberation_p_values'])
+            results.append(session_result)
 
-        # Process the session
-        process_session(row, plot)
- 
+    all_p_values = np.array(all_p_values)
+    all_liberation_p_values = np.array(all_liberation_p_values)
+
+    # Plot histogram of p-values
+    plt.figure(figsize=(8, 6))
+    plt.hist(all_p_values, bins=50, color='gray', alpha=0.7, label='All Neurons')
+    if all_liberation_p_values.size > 0:
+        plt.hist(all_liberation_p_values, bins=50, color='red', alpha=0.7, label='Liberation Cells')
+    plt.axvline(0.05, color='blue', linestyle='--', label='p=0.05 Threshold')
+    plt.xlabel('P-Value')
+    plt.ylabel('Frequency')
+    plt.title('Histogram of P-Values Across All Sessions')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig('figures/p_value_histogram_all_sessions.png', transparent=True)
+    plt.close()
+
+    # Save results to a CSV file
+    results_df = pd.DataFrame(results)
+    results_df.to_csv('selectivity_results.csv', index=False)
+
+    # Print summary statistics
+    print(results_df.describe())
+
 if __name__ == "__main__":
     main(SESSION_FILE=SESSION_FILE)
