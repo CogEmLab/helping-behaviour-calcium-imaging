@@ -42,7 +42,7 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, noise
     transient_duration = 0.4 * fps  # Assume transient lasts ~0.4 seconds
 
     # Set the noise level threshold for detecting peaks
-    noise_level = noise_level * 0.9
+    noise_level = noise_level * 0.6
 
     logging.info("Detecting peaks in the background signal.")
 
@@ -84,12 +84,12 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, noise
 
     logging.info(f"Calculated p-value: {p_value:.5f}.")
 
-    if p_value < 0.01:
-        plot=False
+    if p_value < 0.01 or p_value > 0.95:
+        plot=True
 
     # Optional plotting
     if plot:
-        logging.info("Plotting the signal and detected peaks.")
+        logging.info("Saving the signal and detected peaks to a file.")
         plt.figure(figsize=(10, 6))
         plt.plot(signal, label='Signal', alpha=0.7)
         plt.scatter(peaks[peaks < event_window[0]], background_signal[peaks[peaks < event_window[0]]], color='red', label='Background Peaks')
@@ -103,11 +103,12 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, noise
         event_peaks += event_window[0]  # Adjust indices to match full signal
         plt.scatter(event_peaks, signal[event_peaks], color='blue', label='Event Peaks')
         plt.axvspan(event_window[0], event_window[1], color='yellow', alpha=0.3, label='Event Window')
+        plt.plot([0, len(signal)], [noise_level, noise_level], color='black', linestyle='--', label='Noise Level')
         plt.title("Calcium Imaging Signal with Detected Peaks\np-value: {:.5f}, Noise Level: {:.2f}".format(p_value, noise_level))
         plt.xlabel("Frame")
         plt.ylabel("Signal Amplitude")
         plt.legend()
-        plt.show(block=True)
+        plt.savefig(f'figures/specificity/signal_example_{p_value}_{noise_level}.png', dpi=300)
 
     return p_value
 

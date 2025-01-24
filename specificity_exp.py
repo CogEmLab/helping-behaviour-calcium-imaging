@@ -37,10 +37,10 @@ def process_session(row, plot):
     if isnan(number_of_liberation_cells):
         return None
 
-    # Load the metadata for liberation components
-    liberation_associated_metadata = session.load_liberation_metadata('Liberation')
-    # Get the IDs of the liberation cells; it will return None if metadata for this session is empty
-    liberation_cells_ids = session.get_event_associated_cells_ids('Liberation')
+    # # Load the metadata for liberation components
+    # liberation_associated_metadata = session.load_liberation_metadata('Liberation')
+    # # Get the IDs of the liberation cells; it will return None if metadata for this session is empty
+    # liberation_cells_ids = session.get_event_associated_cells_ids('Liberation')
     victim_lib_timecode = session.victim_lib_timecode * session.calcium_fps
 
     if isnan(victim_lib_timecode):
@@ -51,35 +51,47 @@ def process_session(row, plot):
     event_duration = 60
 
     p_values = []
-    for signal, snr in zip(dff_signal[liberation_cells_ids], snr_values[liberation_cells_ids]):
+    for signal, snr in zip(dff_signal, snr_values):
         print('snr', snr)
         p_value = calculate_event_specificity(signal, event_window, event_duration, session.calcium_fps, snr, plot=False)
         p_values.append(p_value)
     
     # Sort liberation cell IDs based on p-values in ascending order
     sorted_indices = np.argsort(p_values)
-    liberation_cells_ids = np.array(liberation_cells_ids)
-    sorted_liberation_cells_ids = liberation_cells_ids[sorted_indices]
     sorted_p_values = np.array(p_values)[sorted_indices]
 
-    # Plot the sorted signals
-    plot=True
-    if plot:
-        plt.figure(figsize=(12, 8))
-        for idx, cell_id in enumerate(sorted_liberation_cells_ids):
-            plt.plot(dff_signal[cell_id] - 5*idx, color='black')
-            if sorted_p_values[idx] < 0.01:
-                plt.text(len(dff_signal[cell_id])/2, dff_signal[cell_id].max() - 5*idx, '*', ha='center', va='bottom', color='black')
-        
-        plt.title('Sorted Liberation Cells by P-Value')
-        plt.xlabel('Time')
-        plt.ylabel('DFF Signal')
-        plt.legend().set_visible(False)
-        plt.tight_layout()
-        
-        # Save figure to file
-        plt.savefig(f'figures/liberation_cells_sorted_{session.session}_{session.animal_id}.png', transparent=True)
-        plt.close()
+    # Plot the sorted signals with window of liberation
+    plt.figure(figsize=(12, 8))
+    for idx, cell_id in enumerate(sorted_indices[:5]):
+        if sorted_p_values[idx] < 0.01:
+            color='tab:red'
+        else:
+            color='black'
+
+        plt.plot(dff_signal[cell_id] - 10 * idx, color=color, label='Low P-Value')
+                
+    for idx, cell_id in enumerate(sorted_indices[-5:]):
+        if sorted_p_values[-idx-1] < 0.01:
+            color='tab:green'
+        else:
+            color='tab:blue'
+
+        plt.plot(dff_signal[cell_id] + 10 * (idx+1), color=color, label='High P-Value')
+
+    # Highlight the window of liberation
+    plt.axvspan(event_window[0], event_window[1], color='lightgray', alpha=0.3, label='Window of Liberation')
+
+    plt.title(f'Sorted Liberation Cells by P-Value (Lowest P-Value: {sorted_p_values[0]:.2f}, Highest P-Value: {sorted_p_values[-1]:.2f})')
+    plt.xlabel('Time')
+    plt.ylabel('DFF Signal')
+    plt.tight_layout()
+    plt.legend()
+    
+    # Save figure to file
+    plt.savefig(f'figures/specificity/liberation_cells_sorted_{session.session}_{session.animal_id}.png', transparent=True)
+    plt.close()
+
+    
 
 def main(SESSION_FILE):
 
