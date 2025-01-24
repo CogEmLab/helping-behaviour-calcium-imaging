@@ -17,16 +17,19 @@ from math import isnan
 SESSION_FILE = load_session_file('data')
 
 def process_session(row):
+    print(row)
     """Processes a session to calculate selectivity data."""
     session = Session(row)
 
     # Load the data
+    session.load_caiman_model()
     dff_signal = session.load_dff_signal()
     snr_values = session.load_snr_values()
     liberation_cells_ids = session.get_event_associated_cells_ids('Liberation')
     victim_lib_timecode = session.victim_lib_timecode * session.calcium_fps
+    number_of_liberation_cells = session.number_of_liberation_cells
 
-    if isnan(victim_lib_timecode):
+    if isnan(number_of_liberation_cells) or isnan(victim_lib_timecode):
         return None
 
     event_window = tuple((int(victim_lib_timecode - 30 * session.calcium_fps), 
