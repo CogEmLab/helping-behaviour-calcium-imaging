@@ -5,19 +5,12 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-from src.plotting import *
 from src.session_loader import Session
-from src.functional_connectivity_utils import *
-import networkx as nx
-from src.utils import load_session_file
 from src.specificity import calculate_event_specificity
+from src.plotting import plot_boxplots
 from math import isnan
 
-# Access the configuration values
-SESSION_FILE = load_session_file('data')
-
 def process_session(row):
-    print(row)
     """Processes a session to calculate selectivity data."""
     session = Session(row)
 
@@ -44,23 +37,27 @@ def process_session(row):
     p_values = np.array(p_values)
     liberation_p_values = p_values[liberation_cells_ids] if liberation_cells_ids is not None else np.array([])
 
-    # Plot the top 5 highest and lowest p-value signals
+    # Plot the top 5 highest and lowest p-value signals with liberation window
     sorted_indices = np.argsort(p_values)
     lowest_indices = sorted_indices[:5]
     highest_indices = sorted_indices[-5:]
 
     plt.figure(figsize=(12, 8))
     for idx, cell_idx in enumerate(lowest_indices):
-        plt.plot(dff_signal[cell_idx] - 5 * idx, label=f'Lowest #{idx+1} (p={p_values[cell_idx]:.4f})')
+        plt.plot(dff_signal[cell_idx] - 10 * idx, label=f'Lowest #{idx+1} (p={p_values[cell_idx]:.4f})')
     for idx, cell_idx in enumerate(highest_indices):
-        plt.plot(dff_signal[cell_idx] - 5 * (idx + 5), label=f'Highest #{idx+1} (p={p_values[cell_idx]:.4f})')
+        plt.plot(dff_signal[cell_idx] - 10 * (idx + 5), label=f'Highest #{idx+1} (p={p_values[cell_idx]:.4f})')
+
+    # Highlight the liberation window
+    liberation_start, liberation_end = event_window
+    plt.axvspan(liberation_start, liberation_end, color='yellow', alpha=0.3, label='Liberation Window')
 
     plt.title(f'Top 5 Lowest and Highest P-Value Signals (Session: {session.session})')
     plt.xlabel('Time')
     plt.ylabel('DFF Signal')
     plt.legend()
     plt.tight_layout()
-    plt.savefig(f'figures/top_signals_{session.session}_{session.animal_id}.png', transparent=True)
+    plt.savefig(f'figures/specificity/top_signals_{session.session}_{session.animal_id}.png')
     plt.close()
 
     return {
@@ -78,6 +75,8 @@ def main(SESSION_FILE):
 
     all_p_values = []
     all_liberation_p_values = []
+    selective_percentages = []
+    liberation_selective_percentages = []
     results = []
 
     for _, row in tqdm(SESSION_FILE.iterrows()):
@@ -85,6 +84,8 @@ def main(SESSION_FILE):
         if session_result:
             all_p_values.extend(session_result['p_values'])
             all_liberation_p_values.extend(session_result['liberation_p_values'])
+            selective_percentages.append(session_result['selective_percentage'])
+            liberation_selective_percentages.append(session_result['liberation_selective_percentage'])
             results.append(session_result)
 
     all_p_values = np.array(all_p_values)
@@ -101,12 +102,27 @@ def main(SESSION_FILE):
     plt.title('Histogram of P-Values Across All Sessions')
     plt.legend()
     plt.tight_layout()
-    plt.savefig('figures/p_value_histogram_all_sessions.png', transparent=True)
+    plt.savefig('figures/specificity/p_value_histogram_all_sessions.png')
+    plt.close()
+
+    # Plot boxplots comparing selective percentages
+    plt.figure(figsize=(8, 6))
+    ax = plt.gca()
+    plot_boxplots(
+        np.array(selective_percentages),
+        np.array([val for val in liberation_selective_percentages if val is not None]),
+        ax,
+        title='Selective vs Liberation Selective Percentages',
+        labels=('Selective %', 'Liberation Selective %'),
+        ylabel='Percentage',
+    )
+    plt.tight_layout()
+    plt.savefig('figures/specificity/selective_boxplots.png')
     plt.close()
 
     # Save results to a CSV file
     results_df = pd.DataFrame(results)
-    results_df.to_csv('selectivity_results.csv', index=False)
+    results_df.to_csv('figures/specificity/selectivity_results.csv', index=False)
 
     # Print summary statistics
     print(results_df.describe())
