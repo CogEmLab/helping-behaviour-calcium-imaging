@@ -15,12 +15,12 @@ from src.registration_utils import *
 def preprocess_session_file(file_path):
     """Load and preprocess the session file."""
     session_file = load_session_file(file_path)
-    session_file['Mouse'] = session_file['Mouse'].astype(str).apply(lambda x: x.zfill(4))
+    session_file['mouse'] = session_file['mouse'].astype(str).apply(lambda x: x.zfill(4))
     return session_file
 
 def load_animal_data(session_file, animal_id):
     """Load all data for a given animal."""
-    return session_file[session_file['Mouse'] == animal_id]
+    return session_file[session_file['mouse'] == animal_id]
 
 def register_sessions(animal_data, dims):
     """Register CNMF sessions and extract neuron positions."""
@@ -38,7 +38,7 @@ def register_sessions(animal_data, dims):
         templates.append(imread(session_obj.path_to_pnr))  # Assuming "Peak_to_Noise_Ratio_Path" is a valid column
 
     # Register the sessions
-    A_union, assignments, __ = register_multisession(A=spatial, templates=templates, dims=dims)
+    A_union, assignments, __ = register_multisession(A=spatial, templates=templates, dims=dims, max_thr=0, max_dist=5)
     return A_union, assignments, positions, session_indexing
 
 def save_results(output_dir, cohort, animal, assignments, A_union, session_indexing):
@@ -86,8 +86,8 @@ def plot_combined_distances(distance_data,ax=None, output_path=None):
         ax = plt.gca()
 
     # Extract data by type
-    registered_data = distance_data[distance_data['Type'] == 'Registered']
-    non_registered_data = distance_data[distance_data['Type'] == 'Non-Registered']
+    registered_data = distance_data[distance_data['Category'] == 'Registered']
+    non_registered_data = distance_data[distance_data['Category'] == 'Non-Registered']
 
     # Generate an array of animal-color codes
     registered_colors = [f'C{i}' for i in range(len(registered_data['Animal'].unique()))]
@@ -115,7 +115,7 @@ def plot_combined_distances(distance_data,ax=None, output_path=None):
 
 def process_cohort(session_file, cohort, dims, cohort_dir):
     """Process all animals in a cohort."""
-    mice = session_file[session_file['Cohort'] == cohort]['Mouse'].unique()
+    mice = session_file[session_file['cohort'] == cohort]['mouse'].unique()
     registration_data = []
     distance_data = []
 
@@ -152,11 +152,14 @@ def plot_combined_validation(registration_data, distance_data, output_dir, cohor
 def main(session_file_path, output_base_dir):
     """Main function to process all cohorts."""
     session_file = preprocess_session_file(session_file_path)
-    cohorts = session_file['Cohort'].unique()
+    cohorts = session_file['cohort'].unique()
     dims = (400, 640)  # Assumes fixed imaging dimensions
 
     for cohort in cohorts:
         cohort_dir = os.path.join(output_base_dir, cohort, 'registration')
+        if os.path.exists(cohort_dir):
+            print(f"Skipping cohort {cohort} as folder already exists")
+            continue
         os.makedirs(cohort_dir, exist_ok=True)
         process_cohort(session_file, cohort, dims, cohort_dir)
 
