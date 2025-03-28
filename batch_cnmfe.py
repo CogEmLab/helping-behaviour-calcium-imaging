@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to 'Agg' before importing pyplot
+matplotlib.rcParams['axes.unicode_minus'] = False
 import os
 import logging
 import pandas as pd
@@ -12,7 +15,7 @@ import datetime
 import yaml
 from src.plotting import quality_control_plotting
 
-with open('cnmfe_batch_params.yaml', 'r') as f:
+with open('tech_docs/cnmfe_batch_params.yaml', 'r') as f:
     params = yaml.safe_load(f)
 
 paths = [os.path.normpath(p) for p in params['paths']]
@@ -21,7 +24,7 @@ config_filepath = os.path.normpath(params['config_filepath'])
 skip_if_exists = params['skip_if_exists']
 
 # Define required columns
-required_columns = ['session', 'pair', 'sex', 'miniscope video', 'ci_fps_downsampled', 'timevideoend(s)', 'session outcome', 'final outcome', 'timevictiminsertion(s)']
+required_columns = ['excluded', 'session', 'pair', 'sex', 'miniscope video', 'fps (ci downsampled)', 'timevideoend(s)', 'session outcome', 'final outcome', 'timevictiminsertion(s)', 'mouse']
 
 for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
 
@@ -44,9 +47,13 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
     
     # Check if all required columns are present
     if not all(x in session_df.columns for x in required_columns):
+        print('here')
         logging.warning(f'Session file {session_file_path} is missing one or more of the required columns: {required_columns}. Skipping it.')
-        
-        
+
+    # Check if Ca Imaging Length(s) column is present, if not add it with default value of NaN
+    if 'ca imaging length(s)' not in session_df.columns:
+        session_df['ca imaging length(s)'] = np.nan
+
     SNR_dict = defaultdict(list)
     max_shifts_dict = defaultdict(list)
 
@@ -62,7 +69,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         # Read FPS from the session file
         session_entry = session_df[session_df['miniscope video'] == filename]
         if not session_entry.empty:
-            FPS = int(session_entry['ci_fps_downsampled'].values[0])
+            FPS = int(session_entry['fps (ci downsampled)'].values[0])
             logging.info(f'Setting FPS to {FPS} based on session file.')
         else:
             FPS = 30 # Assuming default=30
@@ -76,6 +83,10 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         
         # Assert that session in sesison entry corresponds to session
         assert session_entry['session'].values[0] == session
+
+        # Check if session entry is excluded
+        if session_entry['excluded'].values[0] == 'TRUE':
+            logging.info(f'Skipping {filename} in {session} because it is excluded.')
 
         if session_entry.shape[0] == 0:
             logging.error(f'No entry found for {filename} in the session file. Cannot extract needed metadata.')
@@ -134,7 +145,7 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         except Exception as e:
             logging.error(f'Error processing {session} {mouse}: {str(e)}')
 
-         # Get dF/F; detrend only (1p protocol)
+        # Get dF/F; detrend only (1p protocol)
         cnmfe_model.estimates.detrend_df_f(detrend_only=True)
         # Get dF/F
         DF_F = cnmfe_model.estimates.F_dff
@@ -206,10 +217,14 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
         session_df.loc[idx[0], 'correlation image path'] = correlation_image_path
         session_df.loc[idx[0], 'peak-to-noise ratio path'] = peak_to_noise_ratio_path
         session_df.loc[idx[0], 'cnmfe model path'] = cnmfe_save_dir
-        session_df.loc[idx[0], 'motion corrected path'] = fname_new
+        session_df.loc[idx[0], 'motion corrected path'] = save_motion_corrected
         session_df.loc[idx[0], 'maximum shift'] = float(border_px)
         session_df.loc[idx[0], 'cnmfe log file location'] = log_filename
 
+        # Update the ca imaging length(s) value in the session file with actual duration of DF_F in seconds
+        session_df.loc[idx[0], 'ca imaging length(s)'] = DF_F.shape[1] / FPS
+
+        # Save the session file
         session_df.to_csv(f'{GLOBAL_PATH}/SESSION_FILE_{os.path.basename(__file__)[:-3]}.csv', index=False)
 
     logging.info(f'Batch CNMFE processing complete for cohort {GLOBAL_PATH}')
@@ -233,9 +248,18 @@ for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
     session_df['normalized_components'] = (session_df['normalized_components'] / session_df['normalized_components_sum']) * 100
     # Remove the sum of normalized components
     session_df = session_df.drop(columns=['normalized_components_sum'])
+
+    # For each unique mouse, sum the normalized components over all days
+    components_sum = session_df.groupby(['mouse'])['num accepted'].sum()
+    # Add the sum of normalized components to the data
+    session_df = session_df.join(components_sum, on='mouse', rsuffix='_sum')
+    # Compute K_id(Num Accepted components for animal i and day d) as k_id (normalized by Session Duration) /sum(k_il over all days) for each animal i and day d
+    session_df['components_percent'] = (session_df['num accepted'] / session_df['num accepted_sum']) * 100
+
     # Round Ca Imaging Length(s) and Normalized components to 2 decimal places
     session_df['ca imaging length(s)'] = session_df['ca imaging length(s)'].round(2)
     session_df['normalized_components'] = session_df['normalized_components'].round(2)
+    session_df['components_percent'] = session_df['components_percent'].round(2)
 
     # Save session file
     session_df.to_csv(f'{GLOBAL_PATH}/SESSION_FILE_{os.path.basename(__file__)[:-3]}.csv', index=False)
