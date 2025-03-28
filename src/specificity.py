@@ -84,8 +84,8 @@ def calculate_event_specificity(signal, event_window, event_duration, fps, noise
 
     logging.info(f"Calculated p-value: {p_value:.5f}.")
 
-    if p_value < 0.01 or p_value > 0.95:
-        plot=True
+    # if p_value < 0.01 or p_value > 0.95:
+    #     plot=True
 
     # Optional plotting
     if plot:

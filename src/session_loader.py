@@ -17,41 +17,41 @@ class Session:
 
         # Initialize attributes
         self.row = data_row
-        self.cohort = data_row['Cohort']
-        self.session = data_row['Session']
-        self.animal_id = data_row['Mouse']
-        self.sex = data_row['Sex']
-        self.session_length = data_row['Ca Imaging Length(s)']
-        self.latency = data_row['LatencyMinConverted']
-        self.session_outcome = data_row['Session Outcome']
-        self.final_outcome = data_row['Final Outcome']
-        self.calcium_fps = data_row['CI_FPS_downsampled']
-        self.victim_lib_timecode = data_row['TimeVictimHeadCrossing(s)']
-        self.victim_insr_timecode = data_row['TimeVictimInsertion(s)']
-        self.day_of_helping = data_row['DayofHelping']
-        self.model_path = data_row['CNMFE Model Path'].replace('.hdf5', '_accepted_only.hdf5')
-        self.path_to_pnr = data_row['Peak-to-Noise Ratio Path']
-        self.number_of_components_total = data_row['Total Components']
-        self.number_of_accepted_components = data_row['Num Accepted']
+        self.cohort = data_row['cohort']
+        self.session = data_row['session']
+        self.animal_id = data_row['mouse']
+        self.sex = data_row['sex']
+        self.session_length = data_row['ca imaging length(s)']
+        self.latency = data_row['latencyminconverted']
+        self.session_outcome = data_row['session outcome']
+        self.final_outcome = data_row['final outcome']
+        self.calcium_fps = data_row['fps (ci downsampled)']
+        self.victim_lib_timecode = data_row['timevictimheadcrossing(s)']
+        self.victim_insr_timecode = data_row['timevictiminsertion(s)']
+        self.day_of_helping = data_row['dayofhelping']
+        self.model_path = data_row['cnmfe model path']
+        self.path_to_pnr = data_row['peak-to-noise ratio path']
+        self.number_of_components_total = data_row['total components']
+        self.number_of_accepted_components = data_row['num accepted']
 
         # Check if column Num of Liberation cells exist and and as an attribute (int)
-        if 'Num of Liberation cells' in data_row.keys():
-            self.number_of_liberation_cells = data_row['Num of Liberation cells']
+        if 'num of liberation cells' in data_row.keys():
+            self.number_of_liberation_cells = data_row['num of liberation cells']
         else:
             self.number_of_liberation_cells = None
         
         # Check if column Num of Random cells exist and and as an attribute (int)
-        if 'Num of Random cells' in data_row.keys():
-            self.number_of_random_cells = data_row['Num of Random cells']
+        if 'num of random cells' in data_row.keys():
+            self.number_of_random_cells = data_row['num of random cells']
         else:
             self.number_of_random_cells = None
 
-        # Construct the annotations path
-        annotations_filename = data_row['ManualAnnotationSide']
-        self.annotations_path = os.path.join('annotations', self.cohort, self.session, f'{annotations_filename}.csv')
+        # # Construct the annotations path
+        # annotations_filename = data_row['manualannotationside']
+        # self.annotations_path = os.path.join('annotations', self.cohort, self.session, f'{annotations_filename}.csv')
         
         # Construct the DFF path
-        self.dff_path = self.model_path.replace('_accepted_only.hdf5', '_Dff_z_scored.npy').replace('cnmfe_model', 'npy_data')
+        self.dff_path = self.model_path.replace('.hdf5', '.npy').replace('cnmfe_model', 'npy_data')
         
         # Construct the accepted components path
         output_dir = os.path.dirname(self.dff_path)
@@ -187,7 +187,9 @@ class Session:
                 or None if the file is not found or data for this session is not present
         """
         
-        metadata_path = self.row[f'{event_type} Associated Cells Metadata Path']
+        metadata_path = self.row.get(f'{event_type} Associated Cells Metadata Path')
+        if metadata_path is None:
+            return None
 
         if metadata_path is None or not os.path.exists(metadata_path):
             print(f"Warning: No {event_type} metadata found for Cohort: {self.cohort}, Mouse: {self.animal_id}, Session: {self.session}")

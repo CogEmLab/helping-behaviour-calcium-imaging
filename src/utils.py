@@ -1,3 +1,7 @@
+import matplotlib
+matplotlib.use('Agg')  # Set the backend to 'Agg' before importing pyplot
+matplotlib.rcParams['axes.unicode_minus'] = False
+
 import numpy as np
 import pandas as pd
 import caiman as cm
@@ -13,6 +17,8 @@ from scipy import ndimage
 from src.plotting import *
 import cv2
 from collections import defaultdict
+from elephant.statistics import mean_firing_rate, isi
+from scipy.signal import find_peaks
 
 def shuffle_signal(DF_F_Z_scored, bin_time_seconds=3, fps=30):
     """
@@ -339,26 +345,39 @@ def reevaluate_components(model_path, fname_new, fps=30):
 
     cnmfe_model = load_CNMF(model_path)
 
-    # # Upload the new parameters
-    cnmfe_model.params.quality['SNR_lowest'] = 2.0
-    cnmfe_model.params.quality['rval_lowest'] = 0.3
+    # Set A_thr to None
+    cnmfe_model.estimates.A_thr = None
+
+    # Upload the new parameters
+    cnmfe_model.params.quality['use_cnn'] = False
+    cnmfe_model.params.quality['SNR_lowest'] = 2.5
+    cnmfe_model.params.quality['rval_lowest'] = 0.4
     cnmfe_model.params.quality['min_SNR'] = 3.0
+    cnmfe_model.params.quality['rval_thr'] = 0.87
 
+    # Do reevaluation
     cnmfe_model.estimates.evaluate_components(ci_movie, cnmfe_model.params)
+    cnmfe_model.estimates.threshold_spatial_components(maxthr=0.9)
+    cnmfe_model.estimates.remove_duplicates(min_dist=12, select_comp=False)
+    cnmfe_model.estimates.remove_small_large_neurons(max_size_neuro=45, min_size_neuro=5, select_comp=False)
+    
+    # total_components = len(cnmfe_model.estimates.C)
+    # num_accepted = len(cnmfe_model.estimates.idx_components)
+    # num_rejected = len(cnmfe_model.estimates.idx_components_bad)
 
+    cnmfe_model.estimates.A_thr = None
+
+    # Get number of components
     total_components = len(cnmfe_model.estimates.C)
     num_accepted = len(cnmfe_model.estimates.idx_components)
     num_rejected = len(cnmfe_model.estimates.idx_components_bad)
 
-    # Compute some summary images (correlation and peak to noise)
-    gsig_tmp = (3,3)
-    correlation_image, peak_to_noise_ratio = cm.summary_images.correlation_pnr(ci_movie[::max(T//1000, 1)], # subsample if needed
-                                                                            gSig=gsig_tmp[0], # used for filter
-                                                                            swap_dim=False) # change swap dim if output looks weird, it is a problem with tiffile
-    
+    # Select only the accepted components, onte it will change the indexing everywhere in the model. Discarded components could be restored.
+    cnmfe_model.estimates.select_components(use_object=True, save_discarded_components=True)
+
     cm.stop_server(dview=cluster)
     
-    return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected
+    return cnmfe_model, ci_movie, fname_new, dims, total_components, num_accepted, num_rejected
 
 
 def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_correct=False, plot=False):
@@ -456,21 +475,27 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
 
     logging.info('CNMF-E analysis completed.')
 
-    quality_params = {'use_cnn' : False,
-                    'rval_thr' : 0.85,
-                    'SNR_lowest' : 2.0,
-                    'rval_lowest' : 0.3,
-                    'min_SNR' : 3.0,
-                    }
-    
-    cnmfe_model.params.change_params(params_dict=quality_params)
+    # Upload the new parameters
+    cnmfe_model.params.quality['use_cnn'] = False
+    cnmfe_model.params.quality['SNR_lowest'] = 2.5
+    cnmfe_model.params.quality['rval_lowest'] = 0.4
+    cnmfe_model.params.quality['min_SNR'] = 3.0
+    cnmfe_model.params.quality['rval_thr'] = 0.87
 
+    # Do reevaluation
     cnmfe_model.estimates.evaluate_components(ci_movie, cnmfe_model.params)
+    cnmfe_model.estimates.threshold_spatial_components(maxthr=0.9)
+    cnmfe_model.estimates.remove_duplicates(min_dist=12, select_comp=False)
+    cnmfe_model.estimates.remove_small_large_neurons(max_size_neuro=45, min_size_neuro=5, select_comp=False)
 
+    # Get numbers of components
     total_components = len(cnmfe_model.estimates.C)
     num_accepted = len(cnmfe_model.estimates.idx_components)
     num_rejected = len(cnmfe_model.estimates.idx_components_bad)
 
+    # Set A_thr to None
+    cnmfe_model.estimates.A_thr = None
+    
     # Select only the accepted components, onte it will change the indexing everywhere in the model. Discarded components could be restored.
     cnmfe_model.estimates.select_components(use_object=True, save_discarded_components=True)
 
@@ -566,3 +591,62 @@ def load_session_file(dir_path):
     # session_file['Mouse'] = session_file['Mouse'].astype(str).str.zfill(4)
 
     return session_file
+
+def compute_event_rates(dff, cohort, animal, session, snr_values, calcium_fps, distance, width):
+    # Ensure the directory exists
+    os.makedirs(f'tech_plots/snr/{cohort}/{animal}/{session}', exist_ok=True)
+
+    # Compute event rate for each neuron
+    event_rates = []
+    isis = []
+
+    for i, signal in enumerate(dff):
+        # Min-max normalize the signal and zero the mean
+        signal = (signal - np.min(signal)) / (np.max(signal) - np.min(signal))
+        signal = signal - np.mean(signal)
+
+        # Plot 20 random signals
+        if i % len(dff) // 20 == 0:
+            fig, ax = plt.subplots(figsize=(16, 4))
+            ax.plot(signal, color='black', label='Signal')
+
+            # Detect peaks
+            peaks, _ = find_peaks(signal, distance=distance, width=width, height=0.2)
+            if len(peaks) == 0:
+                event_rates.append(0)
+                isis.append(0)
+                continue
+
+            event_train = peaks / calcium_fps
+            rate = mean_firing_rate(event_train)
+            mean_isi = np.mean(isi(event_train))
+
+            event_rates.append(rate)
+            isis.append(mean_isi)
+
+            # Plot peaks
+            ax.plot(peaks, signal[peaks], '*', color='red', label=f'Peaks (height=0.2)', alpha=1)
+
+            ax.set_title(f'Signal with Peaks - Neuron {i}')
+            ax.set_xlabel('Time (frames)')
+            ax.set_ylabel('Signal Amplitude')
+            ax.legend()
+            ax.set_aspect('auto')
+            plt.savefig(f'tech_plots/snr/{cohort}/{animal}/{session}/neuron_{i}_peaks.png', bbox_inches='tight')
+            plt.close()
+        else:
+            # Detect peaks
+            peaks, _ = find_peaks(signal, distance=distance, width=width, height=0.2)
+            if len(peaks) == 0:
+                event_rates.append(0)
+                isis.append(0)
+                continue
+
+            event_train = peaks / calcium_fps
+            rate = mean_firing_rate(event_train)
+            mean_isi = np.mean(isi(event_train))
+
+            event_rates.append(rate)
+            isis.append(mean_isi)
+
+    return event_rates, isis

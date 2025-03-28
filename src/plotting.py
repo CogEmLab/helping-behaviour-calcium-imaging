@@ -345,10 +345,11 @@ def plot_scatter(
         directory = os.path.dirname(filename)
         if not os.path.exists(directory):
             os.makedirs(directory)
-        # Save the plot to both png and eps
+        # Save the plot to png, eps, and svg
         plt.savefig(filename + '.png', dpi=300)
         plt.savefig(filename + '.eps')
-        plt.close(plt.gcf()) # make sure to close the figure afterwards
+        plt.savefig(filename + '.svg')
+        plt.close(plt.gcf())  # Close the figure after saving
     else:
         return ax
 
@@ -435,7 +436,9 @@ def plot_matrix(matrix, ax=None, title='', xlabel='', ylabel='', cbar_label='', 
         fig.savefig(save_path, bbox_inches='tight')
         if save_path.endswith('.png'):
             eps_path = save_path.replace('.png', '.eps')
+            svg_path = save_path.replace('.png', '.svg')
             fig.savefig(eps_path, format='eps', bbox_inches='tight')
+            fig.savefig(svg_path, format='svg', bbox_inches='tight')
         plt.close(fig)
     
     return ax
@@ -610,6 +613,7 @@ def plot_correlated_traces(ax=None, traces=None, component_pairs=None, distances
 
         plt.savefig(f'{filename}', dpi=300, bbox_inches='tight')
         plt.savefig(f'{filename}'.replace('.png', '.eps'), format='eps', bbox_inches='tight')
+        plt.savefig(f'{filename}'.replace('.png', '.svg'), format='svg', bbox_inches='tight')
         plt.close()
 
 def plot_random_traces(DF_F_Z_scored, num_traces=10, fps=30, snr=None, ax=None, filename=None):
@@ -681,6 +685,7 @@ def plot_random_traces(DF_F_Z_scored, num_traces=10, fps=30, snr=None, ax=None, 
     if filename is not None:
         plt.savefig(filename, dpi=300, bbox_inches='tight')
         plt.savefig(str(filename).replace('.png', '.eps'), dpi=300, bbox_inches='tight')
+        plt.savefig(str(filename).replace('.png', '.svg'), dpi=300, bbox_inches='tight')
     
     return ax
 
@@ -1050,7 +1055,7 @@ def quality_control_plotting(SNR_dict, max_shifts_dict, save_dir):
     
     # Create boxplot with individual points
     bp = plt.boxplot(max_shifts_data, labels=max_shifts_labels, patch_artist=True, 
-                     boxprops=dict(facecolor='darkgrey', color='white'),
+                     boxprops=dict(color='white'),
                      medianprops=dict(color='white'))
     
     # Add scatter plot

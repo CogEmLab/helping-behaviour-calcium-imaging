@@ -251,6 +251,7 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_associat
     filename_eps = os.path.join(output_dir, f'NETWORK_{now.strftime("%Y-%m-%d_%H-%M-%S")}_{os.path.basename(__file__)[:-3]}_{str(session.animal_id)}{suffix}.eps')
     plt.savefig(filename_png, dpi=300)
     plt.savefig(filename_eps, format='eps')
+    plt.savefig(filename_png.replace('.png', '.svg'), format='svg')
     plt.close()
     
     return position_dict, G, colors, labels
