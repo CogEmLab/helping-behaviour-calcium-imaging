@@ -1,7 +1,3 @@
-import matplotlib
-matplotlib.use('Agg')  # Set the backend to 'Agg' before importing pyplot
-matplotlib.rcParams['axes.unicode_minus'] = False
-
 import numpy as np
 import pandas as pd
 import caiman as cm
@@ -16,9 +12,6 @@ from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from scipy import ndimage
 from src.plotting import *
 import cv2
-from collections import defaultdict
-from elephant.statistics import mean_firing_rate, isi
-from scipy.signal import find_peaks
 
 def shuffle_signal(DF_F_Z_scored, bin_time_seconds=3, fps=30):
     """
@@ -345,42 +338,50 @@ def reevaluate_components(model_path, fname_new, fps=30):
 
     cnmfe_model = load_CNMF(model_path)
 
-    # Set A_thr to None
-    cnmfe_model.estimates.A_thr = None
-
-    # Upload the new parameters
-    cnmfe_model.params.quality['use_cnn'] = False
+    # # Upload the new parameters
     cnmfe_model.params.quality['SNR_lowest'] = 2.5
     cnmfe_model.params.quality['rval_lowest'] = 0.4
     cnmfe_model.params.quality['min_SNR'] = 3.0
     cnmfe_model.params.quality['rval_thr'] = 0.87
 
-    # Do reevaluation
+    # Compute thresholded components
+    logging.info('Computing thresholded components...')
+    cnmfe_model.estimates.threshold_spatial_components(maxthr=0.90)  # Adjust parameters as needed
+    # Check if thresholded components were computed
+    if cnmfe_model.estimates.idx_components.size == 0:
+       raise ValueError("No components were thresholded. Please check your input data and parameters.")
+
     cnmfe_model.estimates.evaluate_components(ci_movie, cnmfe_model.params)
-    cnmfe_model.estimates.threshold_spatial_components(maxthr=0.9)
+    print(len(cnmfe_model.estimates.idx_components),' after removing bad param')    
+
+    # Remove duplicates
+    logging.info('Removing duplicate components...')
     cnmfe_model.estimates.remove_duplicates(min_dist=12, select_comp=False)
+    print(len(cnmfe_model.estimates.idx_components),' accepted after removing duplicates')   
+    print(len(cnmfe_model.estimates.idx_components_bad),' rejected after removing duplicates')
+
+    # Remove small and large neurons
+    logging.info('Removing small and large neurons...')
     cnmfe_model.estimates.remove_small_large_neurons(max_size_neuro=45, min_size_neuro=5, select_comp=False)
-    
-    # total_components = len(cnmfe_model.estimates.C)
-    # num_accepted = len(cnmfe_model.estimates.idx_components)
-    # num_rejected = len(cnmfe_model.estimates.idx_components_bad)
+    print(len(cnmfe_model.estimates.idx_components),' accepted after removing weird size neurons')   
+    print(len(cnmfe_model.estimates.idx_components_bad),' rejected after removing duplicates')
 
-    cnmfe_model.estimates.A_thr = None
-
-    # Get number of components
     total_components = len(cnmfe_model.estimates.C)
     num_accepted = len(cnmfe_model.estimates.idx_components)
     num_rejected = len(cnmfe_model.estimates.idx_components_bad)
 
-    # Select only the accepted components, onte it will change the indexing everywhere in the model. Discarded components could be restored.
-    cnmfe_model.estimates.select_components(use_object=True, save_discarded_components=True)
-
+    # Compute some summary images (correlation and peak to noise)
+    gsig_tmp = (3,3)
+    correlation_image, peak_to_noise_ratio = cm.summary_images.correlation_pnr(ci_movie[::max(T//1000, 1)], # subsample if needed
+                                                                            gSig=gsig_tmp[0], # used for filter
+                                                                            swap_dim=False) # change swap dim if output looks weird, it is a problem with tiffile
+    
     cm.stop_server(dview=cluster)
     
-    return cnmfe_model, ci_movie, fname_new, dims, total_components, num_accepted, num_rejected
+    return (cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected)
 
 
-def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_correct=False, plot=False):
+def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plot=False):
     """
     Analyze calcium imaging data using CNMF-E algorithm.
 
@@ -400,13 +401,10 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
         total_components: The total number of components.
         num_accepted: The number of accepted components.
         num_rejected: The number of rejected components.
-        border_px: Maximum shift in motion correction.
     """
     logging.info('Analyzing data...')
-    
-    # Load config file 
-    config = load_config(config_filepath)
-    
+    # Load parameters 
+    config = load_config('tech_docs\caiman_parameters.yaml')
     # Get the name of the file
     save_name = os.path.basename(ci_movie_path).split('.')[0]
 
@@ -414,103 +412,82 @@ def analyze_data(ci_movie_path, save_dir_docs, config_filepath, fps=30, motion_c
     cluster, n_processes = general_setup()
 
     # Get parameters for motion correction
-    logging.info('Getting parameters for motion correction')
     params_mc = get_params_mot_corr(ci_movie_path, config=config)
 
-    # Perform motion correction if True   
+    # Perform motion correction if True
     if motion_correct:
-        logging.info('Performing motion correction')
+        
         # do motion correction rigid
         motion_corrector = MotionCorrect(ci_movie_path, dview=cluster, **params_mc.get_group('motion'))
         motion_corrector.motion_correct(save_movie=True)
 
-        f_order_file = motion_corrector.fname_tot_rig[0]
-
-        # # Save motion corrected movie as memory-mappable file
+        # Save motion corrected movie as memory-mappable file
         pw_rigid = params_mc.get('motion', 'pw_rigid')  # Check if motion correction is rigid or piecewise rigid
-          # Get the filename of the motion corrected movie
+        fname_mc = motion_corrector.fname_tot_rig  # Get the filename of the motion corrected movie
 
         if pw_rigid:
             # If motion correction is rigid, calculate the maximum absolute shifts in x and y directions
-            logging.info('Calculating maximum absolute shifts in x and y directions')
             border_px = np.ceil(np.maximum(np.max(np.abs(motion_corrector.x_shifts_els)),
                                            np.max(np.abs(motion_corrector.y_shifts_els)))).astype(int)
         else:
             # If motion correction is piecewise rigid, calculate the maximum absolute shifts
-            logging.info('Calculating maximum absolute shifts')
             border_px = np.ceil(np.max(np.abs(motion_corrector.shifts_rig))).astype(int)
 
         border_nan = params_mc.get('motion', 'border_nan')  # Get the border_nan parameter
 
         border_px = 0 if border_nan == 'copy' else border_px  # Set border_px to 0 if border_nan is 'copy'
 
-        logging.info('Saving memory-mappable file')
-        fname_new = cm.save_memmap([ci_movie_path], base_name=f'memmap_{save_name}', order='C', border_to_0=border_px)  # Save memory-mappable file
+        fname_new = cm.save_memmap(fname_mc, base_name=f'memmap_{save_name}', order='C', border_to_0=border_px)  # Save memory-mappable file
         
     else:  # if no motion correction, just memory map the file
         # save memory file to save_path
-        logging.info('Saving memory-mappable file without motion correction')
+
         fname_new = cm.save_memmap([ci_movie_path], base_name=f'memmap_{save_name}',
                                 order='C', border_to_0=0, dview=cluster)
-    
+            
     # load memory mappable file
-    logging.info('Loading memory-mappable file')
     Yr, dims, T = cm.load_memmap(fname_new)
     ci_movie = Yr.T.reshape((T,) + dims, order='F')
 
     # get parameters for cnmfe
-    logging.info('Getting parameters for CNMF-E')
     cnmfe_params = get_params_cnmfe(params_mc, config=config)
     
     # run cnmfe
-    logging.info('Running CNMF-E')
     cnmfe_model = cnmf.CNMF(n_processes=n_processes, 
                         dview=cluster, 
                         params=cnmfe_params, center_psf=True, method_init='corr_pnr', only_init_patch=True)
+    
     cnmfe_model.fit(ci_movie)
 
     if plot:
-        logging.info('Plotting rigid shifts')
         plot_rigid_shifts(motion_corrector, save_dir_docs, save_name)
 
     logging.info('CNMF-E analysis completed.')
 
-    # Upload the new parameters
-    cnmfe_model.params.quality['use_cnn'] = False
-    cnmfe_model.params.quality['SNR_lowest'] = 2.5
-    cnmfe_model.params.quality['rval_lowest'] = 0.4
-    cnmfe_model.params.quality['min_SNR'] = 3.0
-    cnmfe_model.params.quality['rval_thr'] = 0.87
+    quality_params = {'use_cnn' : False,
+                    'rval_thr' : 0.85,
+                    'SNR_lowest' : 2.0,
+                    'rval_lowest' : 0.3,
+                    'min_SNR' : 3.0,
+                    }
+    
+    cnmfe_model.params.change_params(params_dict=quality_params)
 
-    # Do reevaluation
     cnmfe_model.estimates.evaluate_components(ci_movie, cnmfe_model.params)
-    cnmfe_model.estimates.threshold_spatial_components(maxthr=0.9)
-    cnmfe_model.estimates.remove_duplicates(min_dist=12, select_comp=False)
-    cnmfe_model.estimates.remove_small_large_neurons(max_size_neuro=45, min_size_neuro=5, select_comp=False)
 
-    # Get numbers of components
     total_components = len(cnmfe_model.estimates.C)
     num_accepted = len(cnmfe_model.estimates.idx_components)
     num_rejected = len(cnmfe_model.estimates.idx_components_bad)
 
-    # Set A_thr to None
-    cnmfe_model.estimates.A_thr = None
-    
-    # Select only the accepted components, onte it will change the indexing everywhere in the model. Discarded components could be restored.
-    cnmfe_model.estimates.select_components(use_object=True, save_discarded_components=True)
-
     # Compute some summary images (correlation and peak to noise)
     gsig_tmp = (3,3)
-    logging.info('Computing summary images')
     correlation_image, peak_to_noise_ratio = cm.summary_images.correlation_pnr(ci_movie[::max(T//1000, 1)], # subsample if needed
                                                                             gSig=gsig_tmp[0], # used for filter
                                                                             swap_dim=False) # change swap dim if output looks weird, it is a problem with tiffile
     # ^ Just out of curiosity, which is subsampling being used in above function when passing the ci_movie array?
     cm.stop_server(dview=cluster)
     
-    # Delete one of the motion corrected file
-    os.system(f'rm {f_order_file}')
-    return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected, border_px
+    return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected
 
 def visualize_analysis(ci_movie, motion_correct=False, plot=False, already_set=False):
     """
@@ -560,6 +537,28 @@ def visualize_analysis(ci_movie, motion_correct=False, plot=False, already_set=F
         
     return [(correlation_image, {'name': 'Correlation Image'}), (components_labels, {'name': 'Components Labels'}), (frames, {'name': 'Traces'})]
 
+def plot_rigid_shifts(motion_corrector, save_dir, save_name):
+    """
+    Plot the rigid shifts during motion correction.
+
+    Parameters:
+        motion_corrector: The motion corrector object.
+        save_dir: The directory to save the plot.
+
+    """
+    plt.plot(motion_corrector.shifts_rig)  # plot rigid shifts
+    plt.legend(['x shifts', 'y shifts'])
+    plt.xlabel('frames')
+    plt.ylabel('pixels')
+    plt.gcf().set_size_inches(6, 3)
+
+    # Save plot
+    plt.savefig(f'{save_dir}/rigid_shifts_{save_name}.png')
+    # Close the plot to avoid memory leak
+    plt.close()
+    
+    logging.info('Rigid shifts plot saved.')
+
 def load_session_file(dir_path):
     """
     Load a session file and prepare it for analysis.
@@ -591,62 +590,3 @@ def load_session_file(dir_path):
     # session_file['Mouse'] = session_file['Mouse'].astype(str).str.zfill(4)
 
     return session_file
-
-def compute_event_rates(dff, cohort, animal, session, snr_values, calcium_fps, distance, width):
-    # Ensure the directory exists
-    os.makedirs(f'tech_plots/snr/{cohort}/{animal}/{session}', exist_ok=True)
-
-    # Compute event rate for each neuron
-    event_rates = []
-    isis = []
-
-    for i, signal in enumerate(dff):
-        # Min-max normalize the signal and zero the mean
-        signal = (signal - np.min(signal)) / (np.max(signal) - np.min(signal))
-        signal = signal - np.mean(signal)
-
-        # Plot 20 random signals
-        if i % len(dff) // 20 == 0:
-            fig, ax = plt.subplots(figsize=(16, 4))
-            ax.plot(signal, color='black', label='Signal')
-
-            # Detect peaks
-            peaks, _ = find_peaks(signal, distance=distance, width=width, height=0.2)
-            if len(peaks) == 0:
-                event_rates.append(0)
-                isis.append(0)
-                continue
-
-            event_train = peaks / calcium_fps
-            rate = mean_firing_rate(event_train)
-            mean_isi = np.mean(isi(event_train))
-
-            event_rates.append(rate)
-            isis.append(mean_isi)
-
-            # Plot peaks
-            ax.plot(peaks, signal[peaks], '*', color='red', label=f'Peaks (height=0.2)', alpha=1)
-
-            ax.set_title(f'Signal with Peaks - Neuron {i}')
-            ax.set_xlabel('Time (frames)')
-            ax.set_ylabel('Signal Amplitude')
-            ax.legend()
-            ax.set_aspect('auto')
-            plt.savefig(f'tech_plots/snr/{cohort}/{animal}/{session}/neuron_{i}_peaks.png', bbox_inches='tight')
-            plt.close()
-        else:
-            # Detect peaks
-            peaks, _ = find_peaks(signal, distance=distance, width=width, height=0.2)
-            if len(peaks) == 0:
-                event_rates.append(0)
-                isis.append(0)
-                continue
-
-            event_train = peaks / calcium_fps
-            rate = mean_firing_rate(event_train)
-            mean_isi = np.mean(isi(event_train))
-
-            event_rates.append(rate)
-            isis.append(mean_isi)
-
-    return event_rates, isis

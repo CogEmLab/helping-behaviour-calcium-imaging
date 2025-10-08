@@ -60,7 +60,7 @@ def sample_random_event_cells(signal, session_loader, fps, window, plot_example=
         # Get the most active components within this window
         active_data, active_ids = get_most_active_components(signal_window, sum_data, f'figures/extraction_lib_cells/threshold_plots{suffix}', cohort=session_loader.cohort, session=session_loader.session, animal=session_loader.animal_id, ax=ax, suffix=suffix, plot_example=plot_example if i == 0 else False)
         # Randomly sample up to 10 components from the most active ones, ensuring no duplicates
-        sampled_ids = np.random.choice(active_ids, min(len(active_ids), 15), replace=False)
+        sampled_ids = np.random.choice(active_ids, min(len(active_ids), 10), replace=False)
 
         # Append the selected component IDs and corresponding data to the global lists, ensuring no duplicates
         new_ids = []
@@ -68,11 +68,9 @@ def sample_random_event_cells(signal, session_loader, fps, window, plot_example=
             if id not in selected_ids_all:
                 new_ids.append(i)
 
-        if len(new_ids) > 0:
-            selected_ids_all.extend(sampled_ids[new_ids])
-            selected_data_all.extend(active_data[new_ids])
+        selected_ids_all.extend(sampled_ids[new_ids])
+        selected_data_all.extend(active_data[new_ids])
 
-    print(selected_ids_all)
     # Convert the collected component IDs and data to numpy arrays for easier processing
     selected_ids_all = np.array(selected_ids_all)
     selected_data_all = np.array(selected_data_all)
@@ -112,7 +110,7 @@ def get_most_active_components(DF_F_Z_scored, dff_sum, path, cohort, session, an
     array_sorted = DF_F_Z_scored[sorted_idxs]
 
     # Compute the threshold as 1 sigma above the mean
-    threshold = np.mean(dff_sum) + np.std(dff_sum)
+    threshold = np.mean(dff_sum) + (np.std(dff_sum))
     # Get the components that are above the threshold
     mask = dff_sum[sorted_idxs] > threshold
     DF_F_Z_scored_selected = array_sorted[mask]

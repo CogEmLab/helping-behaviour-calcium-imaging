@@ -170,7 +170,7 @@ def compute_correlations(positions, signal, threshold,
 
     return distances, cross_correlation_bin, adjacency_matrix, correlated_pairs
 
-def build_graph(session, neuron_positions, adjacency_matrix, liberation_associated_cells_ids=None, random_event_associated_cells_ids=None, lib_tracking=None, suffix=None):    
+def build_graph(session, neuron_positions, adjacency_matrix, liberation_associated_cells_ids=None, random_event_associated_cells_ids=None, suffix=None):    
     """Build and plot a graph from the adjacency matrix.
 
     Parameters:
@@ -179,7 +179,6 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_associat
         adjacency_matrix (np.array): Adjacency matrix representing the graph.
         liberation_cells_ids (list): List of IDs of liberation cells, mapped to (new) IDs.
         random_event_cells_ids (list): List of IDs of random event cells, mapped to (new) IDs.
-        lib_tracking (list): List of bools indicating whether the given liberation cell was tracked or not. each ith element corresponds to ith element of liberation_associated_cells_ids array.
         suffix (str): Optional suffix to add to the filename.
 
     Returns:
@@ -217,20 +216,14 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_associat
 
     # If liberation cells are present, highlight them
     if liberation_associated_cells_ids is not None:
-        colors = ['tab:red' if i in liberation_associated_cells_ids and not i in random_event_associated_cells_ids else c for i, c in enumerate(colors)]
+        colors = ['tab:red' if i in liberation_associated_cells_ids else c for i, c in enumerate(colors)]
         labels.update({i: f'{str(i)}' for i in range(len(neuron_positions)) if i in liberation_associated_cells_ids})
 
     # If random event cells are present, highlight them
     if random_event_associated_cells_ids is not None:
         colors = ['tab:blue' if i in random_event_associated_cells_ids and not i in liberation_associated_cells_ids else c for i, c in enumerate(colors)]
         labels.update({i: f'{str(i)}' for i in range(len(neuron_positions)) if i in random_event_associated_cells_ids})
-
-    # If lib_tracking is not None, draw green circles around tracked cells
-    if lib_tracking is not None:
-        for i, track in enumerate(lib_tracking):
-            if track:
-                colors[liberation_associated_cells_ids[i]] = 'green'
-        
+            
     # Plot the graph
     __, ax = plt.subplots(1, 1, figsize=(8, 6))
     nx.draw_networkx_labels(G, pos=position_dict, ax=ax, labels=labels, font_size=6, font_color='k')
@@ -251,7 +244,6 @@ def build_graph(session, neuron_positions, adjacency_matrix, liberation_associat
     filename_eps = os.path.join(output_dir, f'NETWORK_{now.strftime("%Y-%m-%d_%H-%M-%S")}_{os.path.basename(__file__)[:-3]}_{str(session.animal_id)}{suffix}.eps')
     plt.savefig(filename_png, dpi=300)
     plt.savefig(filename_eps, format='eps')
-    plt.savefig(filename_png.replace('.png', '.svg'), format='svg')
     plt.close()
     
     return position_dict, G, colors, labels
@@ -275,3 +267,45 @@ def get_values(matrix: np.ndarray) -> np.ndarray:
     # Take only the values from the upper triangle
     value_list = matrix[upper_triangle_matrix_indices]
     return value_list
+
+def calculate_psth(dff_signal, border, fps=30):
+
+    # Remove the original indices from the signal
+    dff_signal = dff_signal[:, 1:]
+
+    # Input validation
+    if not isinstance(dff_signal, np.ndarray):
+        raise TypeError("signal must be numpy array")
+    if dff_signal is None or np.isnan(dff_signal).any():
+        return None, None, None, None
+    
+    """Calculates the PSTH for a given event timecode."""
+    pre_event_duration = 15  # seconds
+    post_event_duration = 15  # seconds
+
+    # Calculate frame indices based on border
+    start_pre = border
+    end_pre = border + pre_event_duration * fps
+    
+    end_post = border + post_event_duration * fps + pre_event_duration * fps
+
+    # Ensure indices are within bounds
+    if start_pre < 0 or end_post > dff_signal.shape[1]:
+        print("Warning: Index out of bounds.")
+        return np.zeros(0), 0  # Return empty array and length 0
+
+    # Extract signals
+    pre_event_signal = dff_signal[:, start_pre:end_pre]
+    post_event_signal = dff_signal[:, end_pre:end_post]
+
+    # Normalize by baseline mean (using a baseline period if needed)
+    baseline_mean = np.mean(dff_signal[:, start_pre - (10 * fps):start_pre], axis=1, keepdims=True)
+
+    # Average across neurons for each time bin
+    avg_pre_event = np.mean((pre_event_signal - baseline_mean) / baseline_mean, axis=0)
+    avg_post_event = np.mean((post_event_signal - baseline_mean) / baseline_mean, axis=0)
+
+    # Combine pre and post event averages
+    psth_combined = np.concatenate((avg_pre_event, avg_post_event))
+
+    return psth_combined, len(psth_combined)  # Return combined PSTH and its length
