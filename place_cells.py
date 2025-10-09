@@ -6,13 +6,18 @@ from scipy.stats import binned_statistic_2d, wilcoxon
 import matplotlib.pyplot as plt
 from src.plotting import plot_boxplots
 from src.place_cells_utils import *
+from src.place_cells_plotting import *
 from tqdm import tqdm
 import yaml
+import json
+# don't show any plots
+import matplotlib as mpl
+mpl.use('Agg')
 
 # Experiment parameters
 
 # Load configuration
-with open("tech_docs/place_cells_config.yml", "r") as f:
+with open("tech_docs/place_cells_pipeline_params.yml", "r") as f:
     config = yaml.safe_load(f)
 
 # Extract parameters
@@ -20,6 +25,7 @@ arena_size = tuple(config["arena_size"])
 n_bins_x = config["n_bins_x"]
 n_bins_y = config["n_bins_y"]
 n_shuffles = config["n_shuffles"]
+min_entries = config["min_entries"]
 quiet_window = config["quiet_window"]
 quiet_var_thresh = config["quiet_var_thresh"]
 k_thresh = config["k_thresh"]
@@ -44,7 +50,7 @@ except pd.errors.EmptyDataError:
     exit()
 
 def compute_place_cells(
-    signal_data, x_data, y_data, occupancy, arena_size, n_bins_x, n_bins_y, n_shuffles=1000
+    signal_data, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, output_dir, n_shuffles=1000, min_entries=5
 ):
     """
     Compute place cells based on spatial information and shuffle test.
@@ -74,8 +80,11 @@ def compute_place_cells(
         )
         tuning_maps.append(stat)
 
-    # Compute spatial info for each neuron
-    info_scores = np.array([spatial_information(tm, occupancy) for tm in tuning_maps])
+    # Compute spatial information per neuron
+    info_scores = [
+        spatial_information(tm, occupancy, entry_map=entry_map, min_entries=min_entries)
+        for tm in tuning_maps
+    ]
 
     # Shuffle-based null distribution
     shuffled_info = np.zeros((n_neurons, n_shuffles))
@@ -88,12 +97,25 @@ def compute_place_cells(
                 statistic='mean', bins=[n_bins_x, n_bins_y],
                 range=[[0, arena_size[0]], [0, arena_size[1]]]
             )
-            shuffled_info[n, s] = spatial_information(stat, occupancy)
-    
+            shuffled_info[n, s] = spatial_information(stat, occupancy, entry_map=entry_map, min_entries=min_entries)
+
+        if n == 0:
+            os.makedirs(output_dir, exist_ok=True)
+            plt.figure(figsize=(6, 4))
+            plt.hist(shuffled_info[0], bins=30, alpha=0.7, label='Shuffled')
+            plt.axvline(info_scores[0], color='red', linestyle='--', label='Observed')
+            plt.xlabel('Spatial Information (bits/event)')
+            plt.ylabel('Count')
+            plt.title(f'Shuffled Distribution (Neuron 0)')
+            plt.legend()
+            plt.tight_layout()
+            plt.savefig(os.path.join(output_dir, "shuffled_distribution.png"), dpi=300)
+            plt.close()
+
     # Determine place cells (p < 0.05)
     place_cells = [
         n for n in range(n_neurons)
-        if np.mean(shuffled_info[n] >= info_scores[n]) < 0.05
+        if np.mean(shuffled_info[n] >= info_scores[n]) < 0.01
     ]
 
     return info_scores, shuffled_info, place_cells
@@ -115,11 +137,17 @@ for idx, row in tqdm(sessions.iterrows()):
     cnmfe_path = str(row['cnmfe model path'])
     movement_path = str(row['DLC results'])
 
+    # if row['cohort'] != 'Oct_2021':
+    #     continue
+    
     # Check that both are valid paths
     if not os.path.isfile(cnmfe_path) or not os.path.isfile(movement_path):
         print(f"Skipping session {row['session']} due to invalid paths")
         continue
     
+    session_output_dir = os.path.join(output_folder, f"{row['mouse']}_{row['session']}")
+    os.makedirs(session_output_dir, exist_ok=True)
+
     # Load movement data
     movement_data = pd.read_csv(movement_path)
     x_data = movement_data['X Center'].to_numpy()
@@ -164,17 +192,97 @@ for idx, row in tqdm(sessions.iterrows()):
     )
     occupancy = occupancy / np.sum(occupancy)
 
+    # Compute entries
+    entry_map = compute_entries(x_data, y_data, n_bins_x, n_bins_y, arena_size=arena_size)
+
+     # --- Plot occupancy and entry maps ---
+    fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+    im0 = axes[0].imshow(occupancy.T, origin='lower', cmap='viridis')
+    axes[0].set_title("Occupancy map")
+    plt.colorbar(im0, ax=axes[0], fraction=0.046, pad=0.04)
+
+    im1 = axes[1].imshow(entry_map.T, origin='lower', cmap='magma')
+    axes[1].set_title("Entry map")
+    plt.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
+
+    for ax in axes:
+        ax.set_xlabel('X bins')
+        ax.set_ylabel('Y bins')
+
+    plt.tight_layout()
+    plt.savefig(os.path.join(session_output_dir, "occupancy_entry_maps.png"), dpi=300)
+    plt.close()
+
     print('Computing place cells using dF/F...')
     # --- ΔF/F ---
     df_info_scores, df_shuffled_info, df_place_cells = compute_place_cells(
-        df_f, x_data, y_data, occupancy, arena_size, n_bins_x, n_bins_y, n_shuffles
+        df_f, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "dfF"), n_shuffles, min_entries
     )
+
+    plot_tuning_maps(
+    signal_data=df_f,
+    x_data=x_data,
+    y_data=y_data,
+    place_cells=df_place_cells,
+    scores=df_info_scores,
+    arena_size=arena_size,
+    n_bins_x=n_bins_x,
+    n_bins_y=n_bins_y,
+    output_dir=session_output_dir,
+    title_prefix=f"{row['mouse']}_{row['session']}_dfF"
+)
 
     # --- Spikes ---
     S_binary_data = preprocess_spikes(cnmfe_model.estimates.C, S_data, x_data, quiet_window, quiet_var_thresh, k_thresh)
     print('Computing place cells using inferred spikes...')
     S_info_scores, S_shuffled_info, S_place_cells = compute_place_cells(
-        S_binary_data, x_data, y_data, occupancy, arena_size, n_bins_x, n_bins_y, n_shuffles
+        S_binary_data, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "spikes"), n_shuffles, min_entries
+    )
+
+
+    if len(S_place_cells) > 0:
+
+        # Plot tuning maps
+        plot_tuning_maps(
+        signal_data=S_binary_data,
+        x_data=x_data,
+        y_data=y_data,
+        place_cells=S_place_cells,
+        scores=S_info_scores,
+        arena_size=arena_size,
+        n_bins_x=n_bins_x,
+        n_bins_y=n_bins_y,
+        output_dir=session_output_dir,
+        title_prefix=f"{row['mouse']}_{row['session']}_spikes")
+
+        # --- Trajectories with spike events for each place cell ---
+        fig, axes = plt.subplots(
+            nrows=int(np.ceil(len(S_place_cells) / 4)), ncols=4,
+            figsize=(12, 3 * int(np.ceil(len(S_place_cells) / 4)))
+        )
+        axes = axes.flatten()
+
+        for i, n in enumerate(S_place_cells):
+            spike_frames = np.where(S_binary_data[n, :] > 0)[0]
+            axes[i].plot(x_data, y_data, color='lightgray', lw=0.5)
+            axes[i].scatter(x_data[spike_frames], y_data[spike_frames], c='r', s=2)
+            axes[i].set_title(f'Place cell {n} - Info: {S_info_scores[n]:.2f}')
+            axes[i].invert_yaxis()  # optional if your coordinate system is flipped
+            axes[i].axis('off')
+
+        for j in range(i+1, len(axes)):
+            axes[j].axis('off')
+
+        fig.suptitle(f"Spike Trajectories - Mouse {row['mouse']}, Session {row['session']}")
+        plt.tight_layout()
+        plt.savefig(os.path.join(session_output_dir, "spike_trajectories.png"), dpi=300)
+        plt.close()
+
+    plot_si_histogram(
+        df_info_scores=df_info_scores,
+        S_info_scores=S_info_scores,
+        output_dir=session_output_dir,
+        title_prefix=f"{row['mouse']}_{row['session']}"
     )
 
     # --- Paired statistical test on info scores ---
@@ -205,7 +313,7 @@ for idx, row in tqdm(sessions.iterrows()):
     # Save current results to temporary txt file
     with open(temp_output_path, 'w') as f:
         f.write(json.dumps(summary_rows))
-
+    
 # --- Convert summary to DataFrame and save ---
 summary_df = pd.DataFrame(summary_rows)
 summary_df.to_csv(output_summary_file, index=False)
