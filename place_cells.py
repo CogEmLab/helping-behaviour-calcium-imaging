@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from src.plotting import plot_boxplots
 from src.place_cells_utils import *
 from src.place_cells_plotting import *
+from scipy.ndimage.filters import uniform_filter
+from statsmodels.stats.multitest import multipletests
 from tqdm import tqdm
 import yaml
 import json
@@ -31,6 +33,7 @@ quiet_var_thresh = config["quiet_var_thresh"]
 k_thresh = config["k_thresh"]
 session_file = config["session_file"]
 output_folder = config["output_folder"]
+smoothing_filter = config["smoothing_filter"]
 
 # Create results folder if it doesn't exist
 if not os.path.exists(output_folder):
@@ -49,86 +52,6 @@ except pd.errors.EmptyDataError:
     print(f"Error: Unable to read session file at {session_file}. Skipping...")
     exit()
 
-def compute_place_cells(
-    signal_data, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, output_dir, n_shuffles=1000, min_entries=5
-):
-    """
-    Compute place cells based on spatial information and shuffle test.
-
-    Args:
-        signal_data (ndarray): shape (n_neurons, n_timepoints)
-        x_data, y_data (ndarray): position coordinates
-        occupancy (ndarray): occupancy map (normalized)
-        arena_size (tuple): (width, height) in cm
-        n_bins_x, n_bins_y (int): spatial bin counts
-        n_shuffles (int): number of temporal shuffles
-
-    Returns:
-        info_scores (ndarray): spatial information per neuron
-        shuffled_info (ndarray): shuffled info scores [n_neurons, n_shuffles]
-        place_cells (list[int]): indices of neurons classified as place cells
-    """
-    n_neurons, n_timepoints = signal_data.shape
-    tuning_maps = []
-    
-    # Compute spatial tuning maps
-    for n in range(n_neurons):
-        stat, _, _, _ = binned_statistic_2d(
-            x_data, y_data, signal_data[n, :],
-            statistic='mean', bins=[n_bins_x, n_bins_y],
-            range=[[0, arena_size[0]], [0, arena_size[1]]]
-        )
-        tuning_maps.append(stat)
-
-    # Compute spatial information per neuron
-    info_scores = [
-        spatial_information(tm, occupancy, entry_map=entry_map, min_entries=min_entries)
-        for tm in tuning_maps
-    ]
-
-    # Shuffle-based null distribution
-    shuffled_info = np.zeros((n_neurons, n_shuffles))
-    for n in range(n_neurons):
-        for s in range(n_shuffles):
-            shift = np.random.randint(100, n_timepoints - 100)
-            shuffled = np.roll(signal_data[n, :], shift)
-            stat, _, _, _ = binned_statistic_2d(
-                x_data, y_data, shuffled,
-                statistic='mean', bins=[n_bins_x, n_bins_y],
-                range=[[0, arena_size[0]], [0, arena_size[1]]]
-            )
-            shuffled_info[n, s] = spatial_information(stat, occupancy, entry_map=entry_map, min_entries=min_entries)
-
-        if n == 0:
-            os.makedirs(output_dir, exist_ok=True)
-            plt.figure(figsize=(6, 4))
-            plt.hist(shuffled_info[0], bins=30, alpha=0.7, label='Shuffled')
-            plt.axvline(info_scores[0], color='red', linestyle='--', label='Observed')
-            plt.xlabel('Spatial Information (bits/event)')
-            plt.ylabel('Count')
-            plt.title(f'Shuffled Distribution (Neuron 0)')
-            plt.legend()
-            plt.tight_layout()
-            plt.savefig(os.path.join(output_dir, "shuffled_distribution.png"), dpi=300)
-            plt.close()
-
-    # Determine place cells (p < 0.05)
-    place_cells = [
-        n for n in range(n_neurons)
-        if np.mean(shuffled_info[n] >= info_scores[n]) < 0.01
-    ]
-
-    return info_scores, shuffled_info, place_cells
-
-def preprocess_spikes(C, S, x_data, quiet_window, quiet_var_thresh, k_thresh):
-    n_neurons = S.shape[0]
-    S_binary_data = np.zeros_like(S)
-    for n in range(n_neurons):
-        quiet_mask = get_quiet_period_mask(C[n, :len(x_data)], window=quiet_window, var_thresh=quiet_var_thresh)
-        binary_S, _ = threshold_and_binarize(S[n, :], quiet_mask, k=k_thresh)
-        S_binary_data[n, :] = binary_S
-    return S_binary_data
-
 # Initialize summary storage
 summary_rows = []
 
@@ -145,7 +68,7 @@ for idx, row in tqdm(sessions.iterrows()):
         print(f"Skipping session {row['session']} due to invalid paths")
         continue
     
-    session_output_dir = os.path.join(output_folder, f"{row['mouse']}_{row['session']}")
+    session_output_dir = os.path.join(output_folder, str(row['cohort']), str(row['mouse']), str(row['session']))
     os.makedirs(session_output_dir, exist_ok=True)
 
     # Load movement data
@@ -190,6 +113,10 @@ for idx, row in tqdm(sessions.iterrows()):
         x_data, y_data, None, statistic='count', 
         bins=[n_bins_x, n_bins_y], range=[[0, arena_size[0]], [0, arena_size[1]]]
     )
+
+    occupancy[np.isnan(occupancy)] = 0
+    occupancy = uniform_filter(occupancy, size=smoothing_filter)
+
     occupancy = occupancy / np.sum(occupancy)
 
     # Compute entries
@@ -214,9 +141,10 @@ for idx, row in tqdm(sessions.iterrows()):
     plt.close()
 
     print('Computing place cells using dF/F...')
+
     # --- ΔF/F ---
-    df_info_scores, df_shuffled_info, df_place_cells = compute_place_cells(
-        df_f, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "dfF"), n_shuffles, min_entries
+    df_info_scores, df_shuffled_info, df_pvals_corrected, df_place_cells = compute_place_cells_fast(
+        df_f, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "dfF"), n_shuffles, min_entries, smoothing_filter
     )
 
     plot_tuning_maps(
@@ -228,6 +156,7 @@ for idx, row in tqdm(sessions.iterrows()):
     arena_size=arena_size,
     n_bins_x=n_bins_x,
     n_bins_y=n_bins_y,
+    smoothing_filter=smoothing_filter,
     output_dir=session_output_dir,
     title_prefix=f"{row['mouse']}_{row['session']}_dfF"
 )
@@ -235,48 +164,127 @@ for idx, row in tqdm(sessions.iterrows()):
     # --- Spikes ---
     S_binary_data = preprocess_spikes(cnmfe_model.estimates.C, S_data, x_data, quiet_window, quiet_var_thresh, k_thresh)
     print('Computing place cells using inferred spikes...')
-    S_info_scores, S_shuffled_info, S_place_cells = compute_place_cells(
-        S_binary_data, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "spikes"), n_shuffles, min_entries
+    S_info_scores, S_shuffled_info, S_pvals_corrected, S_place_cells = compute_place_cells_fast(
+        S_binary_data, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "spikes"), n_shuffles, min_entries, smoothing_filter
     )
 
-
     if len(S_place_cells) > 0:
-
-        # Plot tuning maps
         plot_tuning_maps(
-        signal_data=S_binary_data,
-        x_data=x_data,
-        y_data=y_data,
-        place_cells=S_place_cells,
-        scores=S_info_scores,
-        arena_size=arena_size,
-        n_bins_x=n_bins_x,
-        n_bins_y=n_bins_y,
-        output_dir=session_output_dir,
-        title_prefix=f"{row['mouse']}_{row['session']}_spikes")
-
-        # --- Trajectories with spike events for each place cell ---
-        fig, axes = plt.subplots(
-            nrows=int(np.ceil(len(S_place_cells) / 4)), ncols=4,
-            figsize=(12, 3 * int(np.ceil(len(S_place_cells) / 4)))
+            signal_data=S_binary_data,
+            x_data=x_data,
+            y_data=y_data,
+            place_cells=S_place_cells,
+            scores=S_info_scores,
+            arena_size=arena_size,
+            n_bins_x=n_bins_x,
+            n_bins_y=n_bins_y,
+            smoothing_filter=smoothing_filter,
+            output_dir=session_output_dir,
+            title_prefix=f"{row['mouse']}_{row['session']}_spikes"
         )
-        axes = axes.flatten()
+    # check that there are place cells in both datasets
+    if len(df_place_cells) == 0 or len(S_place_cells) == 0:
+        reliable_place_cells = []
+        n_reliable = 0
+        perc_reliable = 0
+        print("No place cells in one or both datasets.")
 
-        for i, n in enumerate(S_place_cells):
-            spike_frames = np.where(S_binary_data[n, :] > 0)[0]
-            axes[i].plot(x_data, y_data, color='lightgray', lw=0.5)
-            axes[i].scatter(x_data[spike_frames], y_data[spike_frames], c='r', s=2)
-            axes[i].set_title(f'Place cell {n} - Info: {S_info_scores[n]:.2f}')
-            axes[i].invert_yaxis()  # optional if your coordinate system is flipped
-            axes[i].axis('off')
+    else:
+        # Intersection of place cells
+        reliable_place_cells = list(set(df_place_cells).intersection(set(S_place_cells)))
 
-        for j in range(i+1, len(axes)):
-            axes[j].axis('off')
+        # Number and percentage
+        n_reliable = len(reliable_place_cells)
+        perc_reliable = 100 * n_reliable / n_neurons
 
-        fig.suptitle(f"Spike Trajectories - Mouse {row['mouse']}, Session {row['session']}")
-        plt.tight_layout()
-        plt.savefig(os.path.join(session_output_dir, "spike_trajectories.png"), dpi=300)
-        plt.close()
+        print(f"Reliable place cells: {n_reliable}/{n_neurons} ({perc_reliable:.1f}%)")
+
+        if len(reliable_place_cells) > 0:
+            # Plot tuning maps for reliable place cells
+            plot_tuning_maps(
+                signal_data=df_f,  # or S_binary_data, or even both
+                x_data=x_data,
+                y_data=y_data,
+                place_cells=reliable_place_cells,
+                scores=df_info_scores,  # or S_info_scores
+                arena_size=arena_size,
+                n_bins_x=n_bins_x,
+                n_bins_y=n_bins_y,
+                smoothing_filter=smoothing_filter,
+                output_dir=session_output_dir,
+                title_prefix=f"{row['mouse']}_{row['session']}_reliable"
+        )
+
+            print("Plotting population heatmaps for reliable place cells...")
+
+            tuning_maps = []
+            for n in reliable_place_cells:
+                stat, _, _, _ = binned_statistic_2d(
+                    x_data, y_data, df_f[n, :],
+                    statistic='mean', bins=[n_bins_x, n_bins_y],
+                    range=[[0, arena_size[0]], [0, arena_size[1]]]
+                )
+                stat[np.isnan(stat)] = 0
+                stat_smooth = uniform_filter(stat, size=smoothing_filter)
+                tuning_maps.append(stat_smooth)
+
+            tuning_maps = np.array(tuning_maps)  # shape: (n_cells, n_bins_x, n_bins_y)
+
+            # --- X-direction heatmap ---
+            # Average over Y bins to get activity along X
+            tuning_x = np.nanmean(tuning_maps, axis=2)
+            # Sort by the X position of max firing
+            sort_idx_x = np.argsort(np.argmax(tuning_x, axis=1))
+            sorted_tuning_x = tuning_x[sort_idx_x, :]
+
+            plt.figure(figsize=(8, len(reliable_place_cells) * 0.2 + 3))
+            plt.imshow(sorted_tuning_x, aspect='auto', cmap='hot', origin='lower')
+            plt.colorbar(label='Mean ΔF/F')
+            plt.xlabel('X bins')
+            plt.ylabel('Place cells (sorted by X peak)')
+            plt.title(f'{row["mouse"]}_{row["session"]} - Place cells (X-direction)')
+            plt.tight_layout()
+            plt.savefig(os.path.join(session_output_dir, "place_cells_heatmap_X.png"), dpi=300)
+            plt.close()
+
+            # --- Y-direction heatmap ---
+            tuning_y = np.nanmean(tuning_maps, axis=1)
+            sort_idx_y = np.argsort(np.argmax(tuning_y, axis=1))
+            sorted_tuning_y = tuning_y[sort_idx_y, :]
+
+            plt.figure(figsize=(8, len(reliable_place_cells) * 0.2 + 3))
+            plt.imshow(sorted_tuning_y, aspect='auto', cmap='hot', origin='lower')
+            plt.colorbar(label='Mean ΔF/F')
+            plt.xlabel('Y bins')
+            plt.ylabel('Place cells (sorted by Y peak)')
+            plt.title(f'{row["mouse"]}_{row["session"]} - Place cells (Y-direction)')
+            plt.tight_layout()
+            plt.savefig(os.path.join(session_output_dir, "place_cells_heatmap_Y.png"), dpi=300)
+            plt.close()
+
+
+            # --- Trajectories with spike events for each place cell ---
+            fig, axes = plt.subplots(
+                nrows=int(np.ceil(len(reliable_place_cells) / 4)), ncols=4,
+                figsize=(12, 3 * int(np.ceil(len(reliable_place_cells) / 4)))
+            )
+            axes = axes.flatten()
+
+            for i, n in enumerate(reliable_place_cells):
+                spike_frames = np.where(S_binary_data[n, :] > 0)[0]
+                axes[i].plot(x_data, y_data, color='lightgray', lw=0.5)
+                axes[i].scatter(x_data[spike_frames], y_data[spike_frames], c='r', s=2)
+                axes[i].set_title(f'Place cell {n} - Info: {df_info_scores[n]:.2f}')
+                axes[i].invert_yaxis()  # optional if your coordinate system is flipped
+                axes[i].axis('off')
+
+            for j in range(i+1, len(axes)):
+                axes[j].axis('off')
+
+            fig.suptitle(f"Spike Trajectories - Mouse {row['mouse']}, Session {row['session']}")
+            plt.tight_layout()
+            plt.savefig(os.path.join(session_output_dir, "spike_trajectories_reliable.png"), dpi=300)
+            plt.close()
 
     plot_si_histogram(
         df_info_scores=df_info_scores,
@@ -305,11 +313,17 @@ for idx, row in tqdm(sessions.iterrows()):
         'df_mean_info': np.mean(df_info_scores),
         'S_mean_info': np.mean(S_info_scores),
         'info_p_value': p_info,
+        'reliable_place_cells_count': n_reliable,
+        'reliable_place_cells_percent': perc_reliable,
+        # 'reliable_place_cells_ids': reliable_place_cells,
         'session_length_s': row.get('session length(s)', np.nan),
         'latency_min': row.get('latencyminconverted', np.nan)
     })
 
-    print(f"Processed session {row['session']} successfully. Place cells: dF/F: {len(df_place_cells)}, inferred spikes: {len(S_place_cells)}")
+    # Save all place cells indeces to the separae numpy file
+    np.save(os.path.join(session_output_dir, "place_cells.npy"), reliable_place_cells)
+    
+    print(f"Processed session {row['session']} successfully. Place cells: dF/F: {len(df_place_cells)}, inferred spikes: {len(S_place_cells)}, reliable: {n_reliable}")
     # Save current results to temporary txt file
     with open(temp_output_path, 'w') as f:
         f.write(json.dumps(summary_rows))

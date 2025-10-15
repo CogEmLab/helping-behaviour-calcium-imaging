@@ -1,3 +1,4 @@
+from scipy.ndimage.filters import uniform_filter
 
 
 def plot_si_histogram(df_info_scores, S_info_scores, output_dir, title_prefix=''):
@@ -31,7 +32,7 @@ def plot_si_histogram(df_info_scores, S_info_scores, output_dir, title_prefix=''
     plt.savefig(os.path.join(output_dir, f"{title_prefix}_SI_histogram.png"), dpi=300)
     plt.close()
 
-def plot_tuning_maps(signal_data, x_data, y_data, place_cells, scores, arena_size, n_bins_x, n_bins_y, output_dir, title_prefix=''):
+def plot_tuning_maps(signal_data, x_data, y_data, place_cells, scores, arena_size, n_bins_x, n_bins_y, smoothing_filter, output_dir, title_prefix=''):
     """
     Plot tuning maps for a set of place cells and save them.
 
@@ -65,6 +66,11 @@ def plot_tuning_maps(signal_data, x_data, y_data, place_cells, scores, arena_siz
             statistic='mean', bins=[n_bins_x, n_bins_y],
             range=[[0, arena_size[0]], [0, arena_size[1]]]
         )
+
+        # replace nan with 0
+        tm[np.isnan(tm)] = 0
+        tm = uniform_filter(tm, size=smoothing_filter)
+
         im = axes[i].imshow(tm.T, origin='lower', cmap='plasma')
         axes[i].set_title(f'Neuron {n} - Info: {scores[n]:.2f} ')
         axes[i].axis('off')
