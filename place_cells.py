@@ -9,10 +9,10 @@ from src.place_cells_utils import *
 from src.place_cells_plotting import *
 from scipy.ndimage.filters import uniform_filter
 from statsmodels.stats.multitest import multipletests
+from src.utils import compute_event_rates
 from tqdm import tqdm
 import yaml
 import json
-# don't show any plots
 import matplotlib as mpl
 mpl.use('Agg')
 
@@ -34,6 +34,7 @@ k_thresh = config["k_thresh"]
 session_file = config["session_file"]
 output_folder = config["output_folder"]
 smoothing_filter = config["smoothing_filter"]
+min_events = config["min_events"]
 
 # Create results folder if it doesn't exist
 if not os.path.exists(output_folder):
@@ -52,11 +53,38 @@ except pd.errors.EmptyDataError:
     print(f"Error: Unable to read session file at {session_file}. Skipping...")
     exit()
 
-# Initialize summary storage
-summary_rows = []
+print(f"Loaded {len(sessions)} sessions from {session_file}")
+
+try:
+    with open(temp_output_path, 'r') as f:
+        temp_output_file = f.read()
+    if temp_output_file:
+        summary_rows = json.loads(temp_output_file)
+except FileNotFoundError:
+    summary_rows = []
+
+# Filter out sessions that have already been processed
+processed_sessions = [row for row in summary_rows]
+
+print(f"Remaining sessions to process: {len(sessions) - len(processed_sessions)}")
+
+# # Initialize summary storage
+# summary_rows = []
 
 # Loop through sessions
 for idx, row in tqdm(sessions.iterrows()):
+
+    processed = False
+    # Check if there is any row in processed sessions with same animal and session
+    for pr_row in processed_sessions:
+        if pr_row['mouse'] == row['mouse'] and pr_row['session'] == row['session']:
+            print(f"Skipping session {pr_row['session']} and mouse {pr_row['mouse']} due to already processed")
+            processed = True
+    
+    if processed:
+        continue
+
+    # Get paths
     cnmfe_path = str(row['cnmfe model path'])
     movement_path = str(row['DLC results'])
 
@@ -75,6 +103,7 @@ for idx, row in tqdm(sessions.iterrows()):
     movement_data = pd.read_csv(movement_path)
     x_data = movement_data['X Center'].to_numpy()
     y_data = movement_data['Y Center'].to_numpy()
+    # running = (movement_data['Running'].to_numpy() > 0).astype(bool)
 
     # merge to one array
     # movement_data = np.column_stack((x_data, y_data))
@@ -102,12 +131,31 @@ for idx, row in tqdm(sessions.iterrows()):
         print(f"Skipping session {row['session']} due to empty data")
         continue
 
+    # Compute number of events for each neuron
+    # Get the transient duration
+    transient_duration = 0.4 * row['fps (ci downsampled)']
+    
+    # Compute the event rates
+    event_rates, __ = compute_event_rates(df_f, row['cohort'], row['mouse'], row['session'], row['fps (ci downsampled)'], distance=3*transient_duration, width=transient_duration)
+    session_duration = int(row['ca imaging length(s)'])
+    number_of_events = np.multiply(event_rates, session_duration) 
+    print('Mean number of events per neuron for session {}, cohort {} and animal {}: {}'.format(row['session'], row['cohort'], row['mouse'], np.mean(number_of_events)))
+
     # Crop calcium data according to the movement data shape 1
     df_f = df_f[:, :len(x_data)]
     S_data = S_data[:, :len(x_data)]
 
     print('Data for session {}, cohort {} and animal {} loaded successfully. Data shapes are: df_f ({}, {}), S ({}, {}), x_data {}, y_data {}'.format(row['session'], row['cohort'], row['mouse'], df_f.shape[0], df_f.shape[1], S_data.shape[0], S_data.shape[1], len(x_data), len(y_data)))
+    
+    # Restrict analysis only to running periods
+    # x_data = x_data[running]
+    # y_data = y_data[running]
+    # df_f = df_f[:, running]
+    # S_data = S_data[:, running]
 
+    print(f"Restricting analysis to running periods. Data shapes are: df_f ({df_f.shape[0]}, {df_f.shape[1]}), S ({S_data.shape[0]}, {S_data.shape[1]}), x_data {len(x_data)}, y_data {len(y_data)}")
+
+    # --- Occupancy and entry maps ---
     # Compute occupancy map
     occupancy, _, _, _ = binned_statistic_2d(
         x_data, y_data, None, statistic='count', 
@@ -147,26 +195,33 @@ for idx, row in tqdm(sessions.iterrows()):
         df_f, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "dfF"), n_shuffles, min_entries, smoothing_filter
     )
 
-    plot_tuning_maps(
-    signal_data=df_f,
-    x_data=x_data,
-    y_data=y_data,
-    place_cells=df_place_cells,
-    scores=df_info_scores,
-    arena_size=arena_size,
-    n_bins_x=n_bins_x,
-    n_bins_y=n_bins_y,
-    smoothing_filter=smoothing_filter,
-    output_dir=session_output_dir,
-    title_prefix=f"{row['mouse']}_{row['session']}_dfF"
-)
+    # Filter out place cells if number_of_events < min_events 
+    df_place_cells = [n for n in df_place_cells if number_of_events[n] >= min_events]
+
+    if len(df_place_cells) > 0:
+        plot_tuning_maps(
+        signal_data=df_f,
+        x_data=x_data,
+        y_data=y_data,
+        place_cells=df_place_cells,
+        scores=df_info_scores,
+        arena_size=arena_size,
+        n_bins_x=n_bins_x,
+        n_bins_y=n_bins_y,
+        smoothing_filter=smoothing_filter,
+        output_dir=session_output_dir,
+        title_prefix=f"{row['mouse']}_{row['session']}_dfF"
+    )
 
     # --- Spikes ---
-    S_binary_data = preprocess_spikes(cnmfe_model.estimates.C, S_data, x_data, quiet_window, quiet_var_thresh, k_thresh)
     print('Computing place cells using inferred spikes...')
+    S_binary_data = preprocess_spikes(cnmfe_model.estimates.C, S_data, x_data, quiet_window, quiet_var_thresh, k_thresh)
     S_info_scores, S_shuffled_info, S_pvals_corrected, S_place_cells = compute_place_cells_fast(
         S_binary_data, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "spikes"), n_shuffles, min_entries, smoothing_filter
     )
+
+    # Filter out place cells if number_of_events < min_events 
+    S_place_cells = [n for n in S_place_cells if number_of_events[n] >= min_events]
 
     if len(S_place_cells) > 0:
         plot_tuning_maps(
@@ -217,81 +272,15 @@ for idx, row in tqdm(sessions.iterrows()):
 
             print("Plotting population heatmaps for reliable place cells...")
 
-            tuning_maps = []
-            for n in reliable_place_cells:
-                stat, _, _, _ = binned_statistic_2d(
-                    x_data, y_data, df_f[n, :],
-                    statistic='mean', bins=[n_bins_x, n_bins_y],
-                    range=[[0, arena_size[0]], [0, arena_size[1]]]
+            for place_cells, prefix in zip(
+                [S_place_cells, df_place_cells, reliable_place_cells],
+                ["spikes", "dff", "reliable"]
+            ):
+                tuning_maps_place_cells = np.array(
+                    [binned_statistic_2d(x_data, y_data, S_binary_data[n, :], statistic='mean', bins=[n_bins_x, n_bins_y], range=[[0, arena_size[0]], [0, arena_size[1]]])[0] for n in place_cells]
                 )
-                stat[np.isnan(stat)] = 0
-                stat_smooth = uniform_filter(stat, size=smoothing_filter)
-                tuning_maps.append(stat_smooth)
 
-            tuning_maps = np.array(tuning_maps)  # shape: (n_cells, n_bins_x, n_bins_y)
-
-            # --- X-direction heatmap ---
-            # Average over Y bins to get activity along X
-            tuning_x = np.nanmean(tuning_maps, axis=2)
-            # Sort by the X position of max firing
-            sort_idx_x = np.argsort(np.argmax(tuning_x, axis=1))
-            sorted_tuning_x = tuning_x[sort_idx_x, :]
-
-            plt.figure(figsize=(8, len(reliable_place_cells) * 0.2 + 3))
-            plt.imshow(sorted_tuning_x, aspect='auto', cmap='hot', origin='lower')
-            plt.colorbar(label='Mean ΔF/F')
-            plt.xlabel('X bins')
-            plt.ylabel('Place cells (sorted by X peak)')
-            plt.title(f'{row["mouse"]}_{row["session"]} - Place cells (X-direction)')
-            plt.tight_layout()
-            plt.savefig(os.path.join(session_output_dir, "place_cells_heatmap_X.png"), dpi=300)
-            plt.close()
-
-            # --- Y-direction heatmap ---
-            tuning_y = np.nanmean(tuning_maps, axis=1)
-            sort_idx_y = np.argsort(np.argmax(tuning_y, axis=1))
-            sorted_tuning_y = tuning_y[sort_idx_y, :]
-
-            plt.figure(figsize=(8, len(reliable_place_cells) * 0.2 + 3))
-            plt.imshow(sorted_tuning_y, aspect='auto', cmap='hot', origin='lower')
-            plt.colorbar(label='Mean ΔF/F')
-            plt.xlabel('Y bins')
-            plt.ylabel('Place cells (sorted by Y peak)')
-            plt.title(f'{row["mouse"]}_{row["session"]} - Place cells (Y-direction)')
-            plt.tight_layout()
-            plt.savefig(os.path.join(session_output_dir, "place_cells_heatmap_Y.png"), dpi=300)
-            plt.close()
-
-
-            # --- Trajectories with spike events for each place cell ---
-            fig, axes = plt.subplots(
-                nrows=int(np.ceil(len(reliable_place_cells) / 4)), ncols=4,
-                figsize=(12, 3 * int(np.ceil(len(reliable_place_cells) / 4)))
-            )
-            axes = axes.flatten()
-
-            for i, n in enumerate(reliable_place_cells):
-                spike_frames = np.where(S_binary_data[n, :] > 0)[0]
-                axes[i].plot(x_data, y_data, color='lightgray', lw=0.5)
-                axes[i].scatter(x_data[spike_frames], y_data[spike_frames], c='r', s=2)
-                axes[i].set_title(f'Place cell {n} - Info: {df_info_scores[n]:.2f}')
-                axes[i].invert_yaxis()  # optional if your coordinate system is flipped
-                axes[i].axis('off')
-
-            for j in range(i+1, len(axes)):
-                axes[j].axis('off')
-
-            fig.suptitle(f"Spike Trajectories - Mouse {row['mouse']}, Session {row['session']}")
-            plt.tight_layout()
-            plt.savefig(os.path.join(session_output_dir, "spike_trajectories_reliable.png"), dpi=300)
-            plt.close()
-
-    plot_si_histogram(
-        df_info_scores=df_info_scores,
-        S_info_scores=S_info_scores,
-        output_dir=session_output_dir,
-        title_prefix=f"{row['mouse']}_{row['session']}"
-    )
+                plot_place_cells_heatmaps(tuning_maps_place_cells, place_cells, prefix, session_output_dir, row)
 
     # --- Paired statistical test on info scores ---
     # Wilcoxon signed-rank test for paired comparisons
@@ -316,14 +305,17 @@ for idx, row in tqdm(sessions.iterrows()):
         'reliable_place_cells_count': n_reliable,
         'reliable_place_cells_percent': perc_reliable,
         # 'reliable_place_cells_ids': reliable_place_cells,
-        'session_length_s': row.get('session length(s)', np.nan),
+        'session_length_s': row.get('ca imaging length(s)', np.nan),
         'latency_min': row.get('latencyminconverted', np.nan)
     })
 
-    # Save all place cells indeces to the separae numpy file
-    np.save(os.path.join(session_output_dir, "place_cells.npy"), reliable_place_cells)
-    
+    # Save all place cells indeces to the separae numpy files
+    np.save(os.path.join(session_output_dir, "place_cells_dfF.npy"), df_place_cells)
+    np.save(os.path.join(session_output_dir, "place_cells_S.npy"), S_place_cells)
+    np.save(os.path.join(session_output_dir, "place_cells_reliable.npy"), reliable_place_cells)
+
     print(f"Processed session {row['session']} successfully. Place cells: dF/F: {len(df_place_cells)}, inferred spikes: {len(S_place_cells)}, reliable: {n_reliable}")
+    
     # Save current results to temporary txt file
     with open(temp_output_path, 'w') as f:
         f.write(json.dumps(summary_rows))
@@ -332,26 +324,3 @@ for idx, row in tqdm(sessions.iterrows()):
 summary_df = pd.DataFrame(summary_rows)
 summary_df.to_csv(output_summary_file, index=False)
 print(f"Saved summary to {output_summary_file}")
-
-# --- Boxplot comparison of % place cells ---
-fig, ax = plt.subplots(figsize=(6,6))
-plot_boxplots(summary_df['df_place_cells_percent'].to_numpy(),
-              summary_df['S_place_cells_percent'].to_numpy(),
-              ax, title='Place cells: ΔF/F vs inferred spikes',
-              labels=('ΔF/F', 'Spikes'), ylabel='% of neurons')
-plt.tight_layout()
-plt.savefig(plot_output_path)
-plt.show()
-print(f"Saved boxplot to {plot_output_path}")
-
-# --- Scatter plot of ΔF/F vs spike place cells ---
-fig, ax = plt.subplots(figsize=(6,6))
-ax.scatter(summary_df['df_place_cells_percent'], summary_df['S_place_cells_percent'], alpha=0.7)
-ax.plot([0,100],[0,100],'r--', lw=1)  # identity line
-ax.set_xlabel('ΔF/F % place cells')
-ax.set_ylabel('Spikes % place cells')
-ax.set_title('Per-session comparison of place cell detection')
-plt.tight_layout()
-plt.savefig(scatter_output_path)
-plt.show()
-print(f"Saved scatter plot to {scatter_output_path}")
