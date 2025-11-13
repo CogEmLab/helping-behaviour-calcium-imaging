@@ -1,0 +1,125 @@
+# ======================================================
+# MASTER CONFIG FOR RESCUE PIPELINE
+# Combines: CaImAn, place cells, orientation tuning,
+# functional connectivity, I/O paths
+# ======================================================
+
+# ----------- PATHS -------------------------------------------------
+paths:
+  session_file: "data/SESSION_FILE_batch_cnmfe.csv"
+  annotations_dir: "annotations"
+  metadata_file: "processed-data"
+  results_root: "results"
+  dlc_column_orientation: "Egocentric orientation (to door)"
+
+# ----------- CAIMAN PARAMETERS -------------------------------------
+caiman:
+  motion_correction:
+    motion_correct: true   # flag for motion correction
+    fr: 30                 # movie frame rate #! this is actually not entirely correct for the full data, there are a few with 20. should be watched out in the script inself or else where
+    decay_time: 0.3        # length of a typical transient in seconds
+    pw_rigid: false        # flag for performing piecewise-rigid motion correction (otherwise just rigid) 
+    gSig_filt: [3, 3]      # sigma for high pass spatial filter applied before motion correction, used in 1p data
+    max_shifts: [5, 5]     # maximum allowed rigid shift
+    strides: [48, 48]      # start a new patch for pw-rigid motion correction every x pixels
+    overlaps: [24, 24]     # overlap between patches (size of patch = strides + overlaps)
+    max_deviation_rigid: 3 # maximum deviation allowed for patch with respect to rigid shifts
+    border_nan: "copy"     # replicate values along the boundaries
+
+  cnmfe:
+    p: 1                                  # order of the autoregressive system
+    gSig: [3, 3]                          # expected half-width of neurons in pixels 
+    merge_thr: 0.7                        # merging threshold, max correlation allowed
+    rf: 20                                # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
+    stride_cnmf: 10                       # amount of overlap between the patches in pixels 
+    tsub: 2                               # downsampling factor in time for initialization, increase if you have memory problems
+    ssub: 1                               # downsampling factor in space for initialization, increase if you have memory problems
+    gnb: 0                                # number of background components (rank) if positive, set to 0 for CNMFE
+    nb_patch: 0                           # number of background components (rank) per patch (0 for CNMFE)
+    min_corr: 0.8                         # min peak value from correlation image
+    min_pnr: 7                            # min peak to noise ration from PNR image
+    ssub_B: 2                             # additional downsampling factor in space for background (increase to 2 if slow)
+    ring_size_factor: 1.4                 # radius of ring is gSiz*ring_size_factor
+    min_SNR: 3.0                          #^ post-detection filter for 'accepted components'
+    SNR_lowest: 2.0                       #^ post-detection filter for 'accepted components'
+    rval_lowest: 0.3                      #^ post-detection filter for 'accepted components'
+    use_cuda: false
+    method_init: "corr_pnr"               # use this for 1 photon
+    only_init: true                       # set it to True to run CNMF-E
+    update_background_components: true    # sometimes setting to False improve the results
+    center_psf: true                      # True for 1p
+    del_duplicates: true                  # whether to remove duplicates from initialization
+
+# ----------- PLACE CELLS --------------------------------------------
+place_cells:
+  arena_size: [15, 10]              # width x height in cm
+  n_bins_x: 6                       # number of bins along x
+  n_bins_y: 5                       # number of bins along y
+  n_shuffles: 1000                  # number of shuffles for significance test
+  min_entries: 5                    # minimum number of entries to count the bin
+  smoothing_filter: 2               # smoothing filter for the uniform filter applied to tuning maps and occupancy maps
+  min_events: 3                     # minimum number of events for a place cell
+  output_subfolder: "place_cells"   # subfolder for the results
+  alpha: 0.05                       # alpha for significance in FDR corrected p values
+  occupancy_threshold: 0            # minimum percentage of time to be spent in the bin (0-1) to be counted in spatial information index computation
+  firing_rate_threshold: 0          # minimum average df/f or mean "spike" number in the bin to be counted in spatial information index computation #! ideally spikes and df/f should be somehow splitted; in general it is also questionable how much one needs this threshold
+
+# ----------- BINARIZATION OF DF/F  ----------------------------------
+dff_processing:
+  quiet_window: 200                 # window for quiet period detection (frames)
+  quiet_var_thresh: 0.5             # variance threshold for quiet periods
+  k_thresh: 4.5                     # threshold multiplier for binarization
+
+# ----------- ORIENTATION TUNING -------------------------------------
+orientation_tuning:
+  n_shuffles: 1000
+  quiet_window: 200
+  quiet_var_thresh: 0.5
+  k_thresh: 4.5
+  output_subfolder: "orientation_tuning"
+  n_angle_bins: 24   
+
+# ----------- FUNCTIONAL CONNECTIVITY --------------------------------
+functional_connectivity:
+  threshold: 0.3
+  img_dims: [400, 640]
+  fig_size: [30, 15]
+  grid_spec: [3, 6]
+  output_subfolder: "functional_connectivity"
+
+  session_order:
+    - "HBTD1"
+    - "HBTD2"
+    - "HBTD3"
+    - "HBTD4"
+    - "HBTD5"
+    - "HBTD6"
+    - "Stranger"
+    - "RECNvlCtx"
+    - "Toy"
+    - "Empty"
+    - "Pool"
+    - "REMNvlCtx"
+    - "REMHBTD"
+
+  days_of_helping_order:
+    - 0
+    - 1
+    - 2
+    - 3
+    - 4
+    - "5+"
+    - "Stranger"
+    - "RECNvlCtx"
+    - "REMNvlCtx"
+    - "REMHBTD"
+
+  colors:
+    scatter_plot_points: "#3A53A4"
+    significance_star: "#ED2024"
+    correlated_trace_example: "#2AC5F4"
+    shuffled_signal_example: "#9AD14D"
+
+# ================================================================
+# END OF MASTER CONFIG
+# ================================================================

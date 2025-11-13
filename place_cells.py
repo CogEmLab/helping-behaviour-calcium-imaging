@@ -4,37 +4,37 @@ import os
 from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from scipy.stats import binned_statistic_2d, wilcoxon
 import matplotlib.pyplot as plt
-from src.plotting import plot_boxplots
 from src.place_cells_utils import *
 from src.place_cells_plotting import *
 from scipy.ndimage.filters import uniform_filter
-from statsmodels.stats.multitest import multipletests
 from src.utils import compute_event_rates
 from tqdm import tqdm
-import yaml
 import json
 import matplotlib as mpl
+from src.loaders.config_loader import load_config
 mpl.use('Agg')
 
-# Experiment parameters
-
-# Load configuration
-with open("tech_docs/place_cells_pipeline_params.yml", "r") as f:
-    config = yaml.safe_load(f)
+# Load parameters 
+config = load_config(
+        "config\master.yaml",           
+        overrides=None                    
+    )
 
 # Extract parameters
-arena_size = tuple(config["arena_size"])
-n_bins_x = config["n_bins_x"]
-n_bins_y = config["n_bins_y"]
-n_shuffles = config["n_shuffles"]
-min_entries = config["min_entries"]
-quiet_window = config["quiet_window"]
-quiet_var_thresh = config["quiet_var_thresh"]
-k_thresh = config["k_thresh"]
-session_file = config["session_file"]
-output_folder = config["output_folder"]
-smoothing_filter = config["smoothing_filter"]
-min_events = config["min_events"]
+arena_size = tuple(config['place_cells']["arena_size"])
+n_bins_x = config['place_cells']["n_bins_x"]
+n_bins_y = config['place_cells']["n_bins_y"]
+n_shuffles = config['place_cells']["n_shuffles"]
+min_entries = config['place_cells']["min_entries"]
+quiet_window = config['dff_processing']["quiet_window"]
+quiet_var_thresh = config['dff_processing']["quiet_var_thresh"]
+k_thresh = config['dff_processing']["k_thresh"]
+session_file = config['paths']["session_file"]
+output_folder = config['place_cells']["output_subfolder"]
+smoothing_filter = config['place_cells']["smoothing_filter"]
+min_events = config['place_cells']["min_events"]
+transient_duration = config['caiman']['motion_correction']['decay_time']
+alpha = config['place_cells']["alpha"]
 
 # Create results folder if it doesn't exist
 if not os.path.exists(output_folder):
@@ -133,7 +133,7 @@ for idx, row in tqdm(sessions.iterrows()):
 
     # Compute number of events for each neuron
     # Get the transient duration
-    transient_duration = 0.4 * row['fps (ci downsampled)']
+    transient_duration = transient_duration * row['fps (ci downsampled)']
     
     # Compute the event rates
     event_rates, __ = compute_event_rates(df_f, row['cohort'], row['mouse'], row['session'], row['fps (ci downsampled)'], distance=3*transient_duration, width=transient_duration)
@@ -192,7 +192,7 @@ for idx, row in tqdm(sessions.iterrows()):
 
     # --- ΔF/F ---
     df_info_scores, df_shuffled_info, df_pvals_corrected, df_place_cells = compute_place_cells_fast(
-        df_f, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "dfF"), n_shuffles, min_entries, smoothing_filter
+        df_f, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "dfF"), n_shuffles, min_entries, smoothing_filter, alpha
     )
 
     # Filter out place cells if number_of_events < min_events 
@@ -217,7 +217,7 @@ for idx, row in tqdm(sessions.iterrows()):
     print('Computing place cells using inferred spikes...')
     S_binary_data = preprocess_spikes(cnmfe_model.estimates.C, S_data, x_data, quiet_window, quiet_var_thresh, k_thresh)
     S_info_scores, S_shuffled_info, S_pvals_corrected, S_place_cells = compute_place_cells_fast(
-        S_binary_data, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "spikes"), n_shuffles, min_entries, smoothing_filter
+        S_binary_data, x_data, y_data, occupancy, entry_map, arena_size, n_bins_x, n_bins_y, os.path.join(session_output_dir, "spikes"), n_shuffles, min_entries, smoothing_filter, alpha
     )
 
     # Filter out place cells if number_of_events < min_events 
