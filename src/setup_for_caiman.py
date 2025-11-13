@@ -5,10 +5,6 @@ from caiman.source_extraction.cnmf import params as params
 import numpy as np
 import yaml
 
-def load_config(config_path):
-    with open(config_path, 'r') as file:
-        return yaml.safe_load(file)
-
 def general_setup():
     
     if 'cluster' in locals():  # 'locals' contains list of current local variables
@@ -37,16 +33,16 @@ def get_params_mot_corr(ci_path, config):
     """
 
     # Read parameters from config
-    motion_correct = bool(config['motion_correction']['motion_correct'])          # flag for performing motion correction
-    frate = int(config['motion_correction']['fr'])                                # movie frame rate
-    decay_time = float(config['motion_correction']['decay_time'])                 # length of a typical transient in seconds
-    pw_rigid = bool(config['motion_correction']['pw_rigid'])                      # flag for performing piecewise-rigid motion correction (otherwise just rigid)
-    gSig_filt = tuple(config['motion_correction']['gSig_filt'])                   # sigma for high pass spatial filter applied before motion correction, used in 1p data
-    max_shifts = tuple(config['motion_correction']['max_shifts'])                 # maximum allowed rigid shift
-    strides = tuple(config['motion_correction']['strides'])                       # start a new patch for pw-rigid motion correction every x pixels
-    overlaps = tuple(config['motion_correction']['overlaps'])                     # overlap between patches (size of patch = strides + overlaps)
-    max_deviation_rigid = int(config['motion_correction']['max_deviation_rigid']) # maximum deviation allowed for patch with respect to rigid shifts
-    border_nan = str(config['motion_correction']['border_nan'])                   # replicate values along the boundaries
+    motion_correct = bool(config['caiman']['motion_correction']['motion_correct'])          # flag for performing motion correction
+    frate = int(config['caiman']['motion_correction']['fr'])                                # movie frame rate
+    decay_time = float(config['caiman']['motion_correction']['decay_time'])                 # length of a typical transient in seconds
+    pw_rigid = bool(config['caiman']['motion_correction']['pw_rigid'])                      # flag for performing piecewise-rigid motion correction (otherwise just rigid)
+    gSig_filt = tuple(config['caiman']['motion_correction']['gSig_filt'])                   # sigma for high pass spatial filter applied before motion correction, used in 1p data
+    max_shifts = tuple(config['caiman']['motion_correction']['max_shifts'])                 # maximum allowed rigid shift
+    strides = tuple(config['caiman']['motion_correction']['strides'])                       # start a new patch for pw-rigid motion correction every x pixels
+    overlaps = tuple(config['caiman']['motion_correction']['overlaps'])                     # overlap between patches (size of patch = strides + overlaps)
+    max_deviation_rigid = int(config['caiman']['motion_correction']['max_deviation_rigid']) # maximum deviation allowed for patch with respect to rigid shifts
+    border_nan = str(config['caiman']['motion_correction']['border_nan'])                   # replicate values along the boundaries
 
     # Organize into a dictionary
     mc_dict = {
@@ -80,31 +76,31 @@ def get_params_cnmfe(parameters=None, config=None):
     """
     
     # Parameters for source extraction and deconvolution
-    p = int(config['cnmfe']['p'])                                         # order of the autoregressive system
+    p = int(config['caiman']['cnmfe']['p'])                                         # order of the autoregressive system
     K = None                                         # upper bound on number of components per patch, in general None for CNMFE
-    gSig = np.array(config['cnmfe']['gSig'])                              # expected half-width of neurons in pixels 
+    gSig = np.array(config['caiman']['cnmfe']['gSig'])                              # expected half-width of neurons in pixels 
     gSiz = 2*gSig + 1                                                     # half-width of bounding box created around neurons during initialization
-    merge_thr = float(config['cnmfe']['merge_thr'])                       # merging threshold, max correlation allowed
-    rf = int(config['cnmfe']['rf'])                                       # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
-    stride_cnmf = int(config['cnmfe']['stride_cnmf'])                     # amount of overlap between the patches in pixels 
-    tsub = int(config['cnmfe']['tsub'])                                   # downsampling factor in time for initialization, increase if you have memory problems
-    ssub = int(config['cnmfe']['ssub'])                                   # downsampling factor in space for initialization, increase if you have memory problems
-    gnb = int(config['cnmfe']['gnb'])                                     # number of background components (rank) if positive, set to 0 for CNMFE
+    merge_thr = float(config['caiman']['cnmfe']['merge_thr'])                       # merging threshold, max correlation allowed
+    rf = int(config['caiman']['cnmfe']['rf'])                                       # half-size of the patches in pixels. e.g., if rf=40, patches are 80x80
+    stride_cnmf = int(config['caiman']['cnmfe']['stride_cnmf'])                     # amount of overlap between the patches in pixels 
+    tsub = int(config['caiman']['cnmfe']['tsub'])                                   # downsampling factor in time for initialization, increase if you have memory problems
+    ssub = int(config['caiman']['cnmfe']['ssub'])                                   # downsampling factor in space for initialization, increase if you have memory problems
+    gnb = int(config['caiman']['cnmfe']['gnb'])                                     # number of background components (rank) if positive, set to 0 for CNMFE
     low_rank_background = None                           # None leaves background of each patch intact (use True if gnb>0)
-    nb_patch = int(config['cnmfe']['nb_patch'])                           # number of background components (rank) per patch (0 for CNMFE)
-    min_corr = float(config['cnmfe']['min_corr'])                         # min peak value from correlation image
-    min_pnr = int(config['cnmfe']['min_pnr'])                             # min peak to noise ration from PNR image
-    ssub_B = int(config['cnmfe']['ssub_B'])                               # additional downsampling factor in space for background (increase to 2 if slow)
-    ring_size_factor = float(config['cnmfe']['ring_size_factor'])         # radius of ring is gSiz*ring_size_factor
-    min_SNR = float(config['cnmfe']['min_SNR'])                           # minimum SNR for accepting new components
-    SNR_lowest = float(config['cnmfe']['SNR_lowest'])
-    rval_lowest = float(config['cnmfe']['rval_lowest'])
-    use_cuda = bool(config['cnmfe']['use_cuda'])                          # flag for gpu acceleration
-    method_init = str(config['cnmfe']['method_init'])    
-    only_init = bool(config['cnmfe']['only_init'])  
-    update_background_components = bool(config['cnmfe']['update_background_components'])  
-    center_psf = bool(config['cnmfe']['center_psf'])  
-    del_duplicates = bool(config['cnmfe']['del_duplicates'])               # whether to remove duplicates from initialization
+    nb_patch = int(config['caiman']['cnmfe']['nb_patch'])                           # number of background components (rank) per patch (0 for CNMFE)
+    min_corr = float(config['caiman']['cnmfe']['min_corr'])                         # min peak value from correlation image
+    min_pnr = int(config['caiman']['cnmfe']['min_pnr'])                             # min peak to noise ration from PNR image
+    ssub_B = int(config['caiman']['cnmfe']['ssub_B'])                               # additional downsampling factor in space for background (increase to 2 if slow)
+    ring_size_factor = float(config['caiman']['cnmfe']['ring_size_factor'])         # radius of ring is gSiz*ring_size_factor
+    min_SNR = float(config['caiman']['cnmfe']['min_SNR'])                           # minimum SNR for accepting new components
+    SNR_lowest = float(config['caiman']['cnmfe']['SNR_lowest'])
+    rval_lowest = float(config['caiman']['cnmfe']['rval_lowest'])
+    use_cuda = bool(config['caiman']['cnmfe']['use_cuda'])                          # flag for gpu acceleration
+    method_init = str(config['caiman']['cnmfe']['method_init'])    
+    only_init = bool(config['caiman']['cnmfe']['only_init'])  
+    update_background_components = bool(config['caiman']['cnmfe']['update_background_components'])  
+    center_psf = bool(config['caiman']['cnmfe']['center_psf'])  
+    del_duplicates = bool(config['caiman']['cnmfe']['del_duplicates'])               # whether to remove duplicates from initialization
 
     parameters.change_params(params_dict={'method_init': 'corr_pnr',       # use this for 1 photon
                                     'K': K,

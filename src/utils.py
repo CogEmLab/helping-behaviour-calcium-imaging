@@ -12,6 +12,68 @@ from caiman.source_extraction.cnmf.cnmf import load_CNMF
 from scipy import ndimage
 from src.plotting import *
 import cv2
+from elephant.statistics import mean_firing_rate, isi
+from scipy.signal import find_peaks
+from src.loaders.config_loader import load_config
+
+def compute_event_rates(dff, cohort, animal, session, calcium_fps, distance, width):
+    # Ensure the directory exists
+    os.makedirs(f'tech_plots/snr/{cohort}/{animal}/{session}', exist_ok=True)
+
+    # Compute event rate for each neuron
+    event_rates = []
+    isis = []
+
+    for i, signal in enumerate(dff):
+        # Min-max normalize the signal and zero the mean
+        signal = (signal - np.min(signal)) / (np.max(signal) - np.min(signal))
+        signal = signal - np.mean(signal)
+
+        # Plot 20 random signals
+        if i % len(dff) // 20 == 0:
+            fig, ax = plt.subplots(figsize=(16, 4))
+            ax.plot(signal, color='black', label='Signal')
+
+            # Detect peaks
+            peaks, _ = find_peaks(signal, distance=distance, width=width, height=0.2)
+            if len(peaks) == 0:
+                event_rates.append(0)
+                isis.append(0)
+                continue
+
+            event_train = peaks / calcium_fps
+            rate = mean_firing_rate(event_train)
+            mean_isi = np.mean(isi(event_train))
+
+            event_rates.append(rate)
+            isis.append(mean_isi)
+
+            # Plot peaks
+            ax.plot(peaks, signal[peaks], '*', color='red', label=f'Peaks (height=0.2)', alpha=1)
+
+            ax.set_title(f'Signal with Peaks - Neuron {i}')
+            ax.set_xlabel('Time (frames)')
+            ax.set_ylabel('Signal Amplitude')
+            ax.legend()
+            ax.set_aspect('auto')
+            plt.savefig(f'tech_plots/snr/{cohort}/{animal}/{session}/neuron_{i}_peaks.png', bbox_inches='tight')
+            plt.close()
+        else:
+            # Detect peaks
+            peaks, _ = find_peaks(signal, distance=distance, width=width, height=0.2)
+            if len(peaks) == 0:
+                event_rates.append(0)
+                isis.append(0)
+                continue
+
+            event_train = peaks / calcium_fps
+            rate = mean_firing_rate(event_train)
+            mean_isi = np.mean(isi(event_train))
+
+            event_rates.append(rate)
+            isis.append(mean_isi)
+
+    return event_rates, isis
 
 def shuffle_signal(DF_F_Z_scored, bin_time_seconds=3, fps=30):
     """
@@ -403,8 +465,13 @@ def analyze_data(ci_movie_path, save_dir_docs, fps=30, motion_correct=False, plo
         num_rejected: The number of rejected components.
     """
     logging.info('Analyzing data...')
+
     # Load parameters 
-    config = load_config('tech_docs\caiman_parameters.yaml')
+    config = load_config(
+            "config\master.yaml",           
+            overrides=None                    
+        )
+    
     # Get the name of the file
     save_name = os.path.basename(ci_movie_path).split('.')[0]
 
