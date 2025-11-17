@@ -1,267 +1,275 @@
-import matplotlib
-matplotlib.use('Agg')  # Set the backend to 'Agg' before importing pyplot
-matplotlib.rcParams['axes.unicode_minus'] = False
+"""
+Batch CNMF-E processing script.
+"""
+
 import os
 import logging
+import datetime
+import numpy as np
 import pandas as pd
-from caiman.source_extraction.cnmf import params as params
-from src.utils import *
-from glob import glob 
+from glob import glob
 from tqdm import tqdm
 from tifffile import imwrite
-import os
-from collections import defaultdict
-import datetime
-import yaml
+import matplotlib
+import argparse
+
+matplotlib.use('Agg')
+matplotlib.rcParams['axes.unicode_minus'] = False
+
+from src.loaders.config_loader import load_config
+from src.cnmfe.cnmfe_utils import *
+from src.utils import analyze_data, plot_random_traces
 from src.plotting import quality_control_plotting
 
-with open('tech_docs/cnmfe_batch_params.yaml', 'r') as f:
-    params = yaml.safe_load(f)
 
-paths = [os.path.normpath(p) for p in params['paths']]
-session_file_paths = [os.path.normpath(p) for p in params['session_file_paths']]
-config_filepath = os.path.normpath(params['config_filepath'])
-skip_if_exists = params['skip_if_exists']
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Batch CNMF-E processing pipeline with config + override support."
+    )
 
-# Define required columns
-required_columns = ['excluded', 'session', 'pair', 'sex', 'miniscope video', 'fps (ci downsampled)', 'timevideoend(s)', 'session outcome', 'final outcome', 'timevictiminsertion(s)', 'mouse']
+    parser.add_argument(
+        "--config",
+        default="config/master.yaml",
+        help="Path to main config file (default: config/master.yaml)."
+    )
 
-for GLOBAL_PATH, session_file_path in zip(paths, session_file_paths):
+    parser.add_argument(
+        "--override",
+        nargs="*",
+        default=None,
+        help="One or more override config files."
+    )
 
-    # Configure logging, move logging to tech docs, save the path to it and add there time
-    log_filename = os.path.join('tech_docs', f'batch_cnmfe_{datetime.datetime.now().strftime("%Y%m%d_%H%M%S")}.log')
-    # Create log file
-    os.makedirs(os.path.dirname(log_filename), exist_ok=True)
-    # Set up logging
-    logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-    # Check if miniscope folder exist, if yes, seach for files
-    miniscope_paths = glob(f'{GLOBAL_PATH}/**/miniscope/**.tiff', recursive=True)
+    parser.add_argument(
+        "--base_dir",
+        default=".",
+        help="Base directory for resolving relative config paths."
+    )
 
-    # Define the path to the session file
-    session_file_path  = os.path.normpath(os.path.join(GLOBAL_PATH, session_file_path))
+    return parser.parse_args()
 
-    # Read the session file
-    session_df = pd.read_csv(session_file_path)
-    # Convert all column names to small lettercase
-    session_df.columns = [x.lower() for x in session_df.columns]
-    
-    # Check if all required columns are present
-    if not all(x in session_df.columns for x in required_columns):
-        print('here')
-        logging.warning(f'Session file {session_file_path} is missing one or more of the required columns: {required_columns}. Skipping it.')
 
-    # Check if Ca Imaging Length(s) column is present, if not add it with default value of NaN
-    if 'ca imaging length(s)' not in session_df.columns:
-        session_df['ca imaging length(s)'] = np.nan
+def main():
 
-    SNR_dict = defaultdict(list)
-    max_shifts_dict = defaultdict(list)
+    # -------- Parse CLI --------
+    args = parse_args()
 
-    for path in tqdm(miniscope_paths):
-        
-        # Extract session and mouse name from path
-        session = path.split('/')[2]
-        filename = os.path.splitext(os.path.basename(path))[0]
+    # -------- Load merged config --------
+    config = load_config(
+        args.config,
+        overrides=args.override,
+        base_dir=args.base_dir
+    )
 
-        # Log the filename and path
-        logging.info(f'Processing {filename} in {session}')
+    # For quick access:
+    cfg_general = config["caiman"]["general"]
+    cfg_mc = config["caiman"]["motion_correction"]
+    cfg_paths = cfg_general["data_paths"]
+    cfg_sessions = cfg_general["session_file_paths"]
 
-        # Read FPS from the session file
-        session_entry = session_df[session_df['miniscope video'] == filename]
-        if not session_entry.empty:
-            FPS = int(session_entry['fps (ci downsampled)'].values[0])
-            logging.info(f'Setting FPS to {FPS} based on session file.')
-        else:
-            FPS = 30 # Assuming default=30
-            logging.info(f'No FPS found in session file, setting to default=30.')
+    skip_if_exists = cfg_general["skip_if_exists"]
+    required_columns = cfg_general["required_columns"]
+    documentation_path = cfg_general["documentation_path"]
+    default_fps = cfg_general["default_fps"]
 
-        # Find index of session file entry with the given filename in Miniscope video TIFF column
-        idx = session_df.index[session_df['miniscope video'] == filename].tolist()
-        if len(idx) != 1:
-            logging.error(f'No single entry found for {filename} in the session file. Cannot extract needed metadata.')
-            continue
-        
-        # Assert that session in sesison entry corresponds to session
-        assert session_entry['session'].values[0] == session
+    # Print effective config at start of run
+    print("\n========== RUNNING CNMF-E BATCH ==========")
+    print("Loaded config:", args.config)
+    if args.override:
+        print("Overrides:", args.override)
+    print("==========================================\n")
 
-        # Check if session entry is excluded
-        if session_entry['excluded'].values[0] == 'TRUE':
-            logging.info(f'Skipping {filename} in {session} because it is excluded.')
+    # -------- Iterate over dataset roots --------
+    for GLOBAL_PATH, session_file_path in zip(cfg_paths, cfg_sessions):
 
-        if session_entry.shape[0] == 0:
-            logging.error(f'No entry found for {filename} in the session file. Cannot extract needed metadata.')
-            # If no entry found, skip to the next file but write to the txt file the filename and path
-            with open('no_entry_found.txt', 'a') as f:
-                f.write(f'{filename} {path}\n')
-            continue
+        # Set up log
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_filename = os.path.join(
+            documentation_path,
+            f'batch_cnmfe_{timestamp}.log'
+        )
+        os.makedirs(os.path.dirname(log_filename), exist_ok=True)
+        logging.basicConfig(
+            filename=log_filename,
+            level=logging.INFO,
+            format='%(asctime)s - %(levelname)s - %(message)s'
+        )
 
-        # Create save directory
-        OUTPUT_DIR = os.path.normpath(GLOBAL_PATH.replace('data', 'processed-data'))
+        logging.info("Starting batch CNMFE run")
+        logging.info(f"Root path: {GLOBAL_PATH}")
 
-        save_dir_model = os.path.join(OUTPUT_DIR, session, 'cnmfe_model')
-        save_dir_data = os.path.join(OUTPUT_DIR, session, 'cnmfe_data')
-        save_dir_docs = os.path.join(OUTPUT_DIR, session, 'cnmfe_docs')
-        save_dir_npy = os.path.join(OUTPUT_DIR, session, 'npy_data')
-        save_dir_quality_control = os.path.join(OUTPUT_DIR, 'quality_control')
+        # Find TIFFs
+        miniscope_paths = glob(
+            f'{GLOBAL_PATH}/**/miniscope/**.tiff',
+            recursive=True
+        )
 
-        os.makedirs(save_dir_model, exist_ok=True)
-        os.makedirs(save_dir_data, exist_ok=True)
-        os.makedirs(save_dir_docs, exist_ok=True)
-        os.makedirs(save_dir_npy, exist_ok=True)
-        os.makedirs(save_dir_quality_control, exist_ok=True)
+        # Load session file
+        session_file_fullpath = os.path.normpath(
+            os.path.join(GLOBAL_PATH, session_file_path)
+        )
 
-        # Extract the mouse name from the session file
-        mouse = str(session_entry['pair'].values[0].split('-')[0])
+        session_df = pd.read_csv(session_file_fullpath)
+        session_df.columns = [c.lower() for c in session_df.columns]
 
-        # Extract the session duration from the session file
-        if ':' in str(session_entry['timevideoend(s)'].values[0]):
-            session_duration = float(f'{int(session_entry["timevideoend(s)"].values[0].split(":")[0])*60 + int(session_entry["timevideoend(s)"].values[0].split(":")[1]):.2f}')
-        else:
-            session_duration = float(session_entry['timevideoend(s)'].values[0])
-
-        # Extract outcome of the session from the session file
-        session_outcome = session_entry['session outcome'].values[0]
-        final_outcome = session_entry['final outcome'].values[0]
-        
-        # Extract the time of victim insertion from the session file
-        time_victim_inserted = session_entry['timevictiminsertion(s)'].values[0]
-        if ':' in str(time_victim_inserted):
-            time_victim_inserted = float(f'{int(time_victim_inserted.split(":")[0])*60 + int(time_victim_inserted.split(":")[1]):.2f}')
-        else:
-            time_victim_inserted = float(time_victim_inserted)
-        
-        # Extract sex of the animal 
-        sex = session_entry['sex'].values[0]
-
-        logging.info(f'Processing {session} {mouse}, Sex: {sex}, Session duration: {session_duration}, Session outcome: {session_outcome}, Final outcome: {final_outcome}, Time victim inserted: {time_victim_inserted}')
-
-        # Check if the file has already been processed only
-        if os.path.exists(os.path.join(save_dir_model, f'{filename}.hdf5')) and skip_if_exists:
-            logging.info(f'File {filename} has already been processed. Skipping it.')
+        # Validate required columns
+        if not all(col in session_df.columns for col in required_columns):
+            logging.warning(
+                f"Session file {session_file_fullpath} missing required columns: "
+                f"{required_columns}. Skipping."
+            )
             continue
 
-        try:
-            cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected, border_px = analyze_data(path, save_dir_docs, config_filepath, fps=FPS, motion_correct=True)
-        except Exception as e:
-            logging.error(f'Error processing {session} {mouse}: {str(e)}')
+        # Ensure imaging length column
+        if "ca imaging length(s)" not in session_df.columns:
+            session_df["ca imaging length(s)"] = np.nan
 
-        # Get dF/F; detrend only (1p protocol)
-        cnmfe_model.estimates.detrend_df_f(detrend_only=True)
-        # Get dF/F
-        DF_F = cnmfe_model.estimates.F_dff
-        # Check if dF/F shape matches the number of accepted components after component selection
-        assert DF_F.shape[0] == num_accepted
-        # ^ Good that you check this!
+        # Prepare storage
+        SNR_dict = {}
+        max_shifts_dict = {}
 
-        # This is the work-around for the non-helper animal (848) where session is damaged after certain moment.
-        if '2021-10-27-10-25-03_video' in filename:
-            logging.info('For file %s, cutting dF/F to 6000 frames', filename)
-            DF_F = DF_F[:, :6000]
-        elif '2021-10-29-10-43-11_video' in filename:
-            logging.info('For file %s, cutting dF/F to 8000 frames', filename)
-            DF_F = DF_F[:, :8000]
+        # -------- Process each recording file --------
+        for path in tqdm(miniscope_paths, desc=f"Processing {GLOBAL_PATH}"):
 
-        # Normalize dF/F to have a mean of 0 and a standard deviation of 1
-        DF_F_Z_scored = (DF_F - DF_F.mean(axis=1)[:, None]) / DF_F.std(axis=1)[:, None]
-        # ^ I saw your traces and this seems to be OK but when I did my analysis earlier where I only used the S Matrix for later steps
-        # ^ I have normalized using the SNR value that you also obtain from Caiman. This could help you to filter out noisy data.
-        # ^ Maybe keep it as an option for later, or to experiment with it.
+            session = path.split('/')[2]
+            filename = os.path.splitext(os.path.basename(path))[0]
 
-        # Save cnmfe model
-        cnmfe_save_dir = os.path.join(save_dir_model, f'{filename}.hdf5')
-        cnmfe_model.save(cnmfe_save_dir)
-        
-        # Save correlation image
-        correlation_image_path = os.path.join(save_dir_data, f'correlation_image_{filename}.tif')
-        imwrite(correlation_image_path, correlation_image)
-        
-        # Save peak-to-noise ratio image
-        peak_to_noise_ratio_path = os.path.join(save_dir_data, f'peak_to_noise_ratio_{filename}.tif')
-        imwrite(peak_to_noise_ratio_path, peak_to_noise_ratio)
-        
-        # Save dF/F
-        np.save(os.path.join(save_dir_npy, f'{filename}.npy'), DF_F_Z_scored)
-        
-        # Copy the motion corrected file to the save directory
-        save_motion_corrected = os.path.join(os.path.dirname(path).replace('data', 'processed-data').replace('miniscope', 'cnmfe_data'), os.path.basename(fname_new))
-        print(save_motion_corrected)
-        os.makedirs(os.path.dirname(save_motion_corrected), exist_ok=True)
-        os.system(f'cp {fname_new} {save_motion_corrected}')
+            logging.info(f"Processing {filename} in {session}")
 
-        # Delete the motion corrected file
-        os.system(f'rm {fname_new}')
+            # Match entry for session
+            session_entry = session_df[session_df["miniscope video"] == filename]
 
-        # Get SNR values (for accepted components only)
-        SNR = cnmfe_model.estimates.SNR_comp
+            if session_entry.empty:
+                logging.error(f"No entry found for {filename}. Skipping.")
+                continue
 
-        # Create a dictionary to save SNR values for each animal and session
-        SNR_dict[mouse].extend(SNR)
-    
-        # Similarly, get the maximum shift values
-        max_shifts_dict[mouse].extend([border_px])
+            idx = session_entry.index[0]
 
-        # Check if SNR values contain only int, if not, remove that component from accepted_components
-        if not all(isinstance(x, int) for x in SNR):
+            # FPS
+            if not pd.isna(session_entry["fps (ci downsampled)"].values[0]):
+                FPS = int(session_entry["fps (ci downsampled)"].values[0])
+            else:
+                FPS = default_fps
 
+            # Skip excluded
+            if str(session_entry["excluded"].values[0]).upper() == "TRUE":
+                logging.info(f"Skipping excluded file: {filename}")
+                continue
+
+            # Output directories
+            OUTPUT_DIR = GLOBAL_PATH.replace("data", "processed-data")
+
+            save_dir_model = os.path.join(OUTPUT_DIR, session, "cnmfe_model")
+            save_dir_data = os.path.join(OUTPUT_DIR, session, "cnmfe_data")
+            save_dir_docs = os.path.join(OUTPUT_DIR, session, "cnmfe_docs")
+            save_dir_npy = os.path.join(OUTPUT_DIR, session, "npy_data")
+            save_dir_quality = os.path.join(OUTPUT_DIR, "quality_control")
+
+            for d in [
+                save_dir_model, save_dir_data, save_dir_docs,
+                save_dir_npy, save_dir_quality
+            ]:
+                os.makedirs(d, exist_ok=True)
+
+            # Check if already processed
+            if skip_if_exists and os.path.exists(
+                os.path.join(save_dir_model, f"{filename}.hdf5")
+            ):
+                logging.info(f"{filename} already processed. Skipping.")
+                continue
+
+            # Run CNMF-E
             try:
-                plot_random_traces(DF_F_Z_scored, snr=SNR, filename=os.path.join(save_dir_docs, f'{filename}_random_traces.png'))
-                logging.info('Plot saved to: %s', save_dir_docs)
+                result = analyze_data(
+                    path,
+                    save_dir_docs,
+                    args.config,   # path to main config file
+                    fps=FPS
+                )
+                (
+                    cnmfe_model, ci_movie, fname_new, correlation_image,
+                    peak_to_noise_ratio, dims, total_components,
+                    num_accepted, num_rejected, border_px
+                ) = result
+
             except Exception as e:
-                logging.error('Error: %s', e)
-                logging.error('Could not plot random traces for %s', filename)
-                
-        session_df.loc[idx[0], 'total components'] = total_components
-        session_df.loc[idx[0], 'num accepted'] = num_accepted
-        session_df.loc[idx[0], 'num rejected'] = num_rejected
-        session_df.loc[idx[0], 'dimensions'] = str(dims)
-        session_df.loc[idx[0], 'correlation image path'] = correlation_image_path
-        session_df.loc[idx[0], 'peak-to-noise ratio path'] = peak_to_noise_ratio_path
-        session_df.loc[idx[0], 'cnmfe model path'] = cnmfe_save_dir
-        session_df.loc[idx[0], 'motion corrected path'] = save_motion_corrected
-        session_df.loc[idx[0], 'maximum shift'] = float(border_px)
-        session_df.loc[idx[0], 'cnmfe log file location'] = log_filename
+                logging.error(f"Error processing {filename}: {e}")
+                continue
 
-        # Update the ca imaging length(s) value in the session file with actual duration of DF_F in seconds
-        session_df.loc[idx[0], 'ca imaging length(s)'] = DF_F.shape[1] / FPS
+            # ---------------- Save CNMF-E outputs ----------------
 
-        # Save the session file
-        session_df.to_csv(f'{GLOBAL_PATH}/SESSION_FILE_{os.path.basename(__file__)[:-3]}.csv', index=False)
+            cnmfe_model.estimates.detrend_df_f(detrend_only=True)
+            DF_F = cnmfe_model.estimates.F_dff
 
-    logging.info(f'Batch CNMFE processing complete for cohort {GLOBAL_PATH}')
+            # Normalize
+            DF_F_z = (DF_F - DF_F.mean(1)[:, None]) / DF_F.std(1)[:, None]
 
-    try:
-        quality_control_plotting(SNR_dict, max_shifts_dict, save_dir_quality_control)
-    except Exception as e:
-        logging.error('Error: %s', e)
-        logging.error('Could not plot quality control plots')
+            # Save model
+            model_path = os.path.join(save_dir_model, f"{filename}.hdf5")
+            cnmfe_model.save(model_path)
 
-    logging.info(f'Quality control plots saved to {save_dir_quality_control}')
+            # Save images
+            imwrite(os.path.join(save_dir_data, f"correlation_{filename}.tif"),
+                    correlation_image)
+            imwrite(os.path.join(save_dir_data, f"pnr_{filename}.tif"),
+                    peak_to_noise_ratio)
 
-    print(session_df)    
-    # Normalize number of components
-    session_df['normalized_components'] = session_df['num accepted'] / session_df['ca imaging length(s)']
-    # For each unique mouse, sum the normalized components over all days
-    sum_normalized_components = session_df.groupby(['mouse'])['normalized_components'].sum()
-    # Add the sum of normalized components to the data
-    session_df = session_df.join(sum_normalized_components, on='mouse', rsuffix='_sum')
-    # Compute K_id(Num Accepted components for animal i and day d) as k_id (normalized by Session Duration) /sum(k_il over all days) for each animal i and day d
-    session_df['normalized_components'] = (session_df['normalized_components'] / session_df['normalized_components_sum']) * 100
-    # Remove the sum of normalized components
-    session_df = session_df.drop(columns=['normalized_components_sum'])
+            # Save npy
+            np.save(os.path.join(save_dir_npy, f"{filename}.npy"), DF_F_z)
 
-    # For each unique mouse, sum the normalized components over all days
-    components_sum = session_df.groupby(['mouse'])['num accepted'].sum()
-    # Add the sum of normalized components to the data
-    session_df = session_df.join(components_sum, on='mouse', rsuffix='_sum')
-    # Compute K_id(Num Accepted components for animal i and day d) as k_id (normalized by Session Duration) /sum(k_il over all days) for each animal i and day d
-    session_df['components_percent'] = (session_df['num accepted'] / session_df['num accepted_sum']) * 100
+            # Copy motion corrected file
+            save_motion_corrected = (
+                os.path.dirname(path)
+                .replace("data", "processed-data")
+                .replace("miniscope", "cnmfe_data")
+            )
+            os.makedirs(save_motion_corrected, exist_ok=True)
+            mc_target = os.path.join(save_motion_corrected, os.path.basename(fname_new))
+            os.system(f"cp {fname_new} {mc_target}")
+            os.system(f"rm {fname_new}")
 
-    # Round Ca Imaging Length(s) and Normalized components to 2 decimal places
-    session_df['ca imaging length(s)'] = session_df['ca imaging length(s)'].round(2)
-    session_df['normalized_components'] = session_df['normalized_components'].round(2)
-    session_df['components_percent'] = session_df['components_percent'].round(2)
+            # SNR
+            SNR = cnmfe_model.estimates.SNR_comp
+            SNR_dict.setdefault(session, []).extend(SNR)
+            max_shifts_dict.setdefault(session, []).append(border_px)
 
-    # Save session file
-    session_df.to_csv(f'{GLOBAL_PATH}/SESSION_FILE_{os.path.basename(__file__)[:-3]}.csv', index=False)
+            # QC plot
+            try:
+                plot_random_traces(
+                    DF_F_z,
+                    snr=SNR,
+                    filename=os.path.join(save_dir_docs, f"{filename}_random.png")
+                )
+            except Exception as e:
+                logging.error(f"Failed QC plot for {filename}: {e}")
 
-    logging.info(f'Session file saved to {GLOBAL_PATH}')
+            # Update session DF
+            session_df.loc[idx, "total components"] = total_components
+            session_df.loc[idx, "num accepted"] = num_accepted
+            session_df.loc[idx, "num rejected"] = num_rejected
+            session_df.loc[idx, "dimensions"] = str(dims)
+            session_df.loc[idx, "cnmfe model path"] = model_path
+            session_df.loc[idx, "motion corrected path"] = mc_target
+            session_df.loc[idx, "maximum shift"] = float(border_px)
+            session_df.loc[idx, "cnmfe log file location"] = log_filename
+            session_df.loc[idx, "ca imaging length(s)"] = DF_F.shape[1] / FPS
+
+        # Save final updated session file
+        out_session_file = os.path.join(
+            GLOBAL_PATH,
+            f"SESSION_FILE_batch_cnmfe.csv"
+        )
+        session_df.to_csv(out_session_file, index=False)
+
+        # QC plots
+        try:
+            quality_control_plotting(SNR_dict, max_shifts_dict, save_dir_quality)
+        except Exception as e:
+            logging.error(f"QC plotting error: {e}")
+
+        logging.info(f"Finished cohort {GLOBAL_PATH}")
+
+    print("Batch CNMF-E complete.\n")
+
+if __name__ == "__main__":
+    main()

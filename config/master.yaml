@@ -1,3 +1,4 @@
+#! MASTER CONFIG SHOULDN'T BE CHANGED. PLEASE USE THE 'MERGE' FUNCTIONALITY TO CHANGE PARAMETERS FOR THE INDIVIDUAL EXPERIMENTS.
 # ======================================================
 # MASTER CONFIG FOR RESCUE PIPELINE
 # Combines: CaImAn, place cells, orientation tuning,
@@ -6,14 +7,20 @@
 
 # ----------- PATHS -------------------------------------------------
 paths:
-  session_file: "data/SESSION_FILE_batch_cnmfe.csv"
-  annotations_dir: "annotations"
-  metadata_file: "processed-data"
+  session_file: "data/SESSION_FILE_batch_cnmfe.csv"    # central metadata file
   results_root: "results"
+  documentation_path: "docs"                           # the local path where to store all notes and documentation 
   dlc_column_orientation: "Egocentric orientation (to door)"
+  default_fps: 30                                      # the FPS to set to calcium imaging data if unavailable in the session file
 
 # ----------- CAIMAN PARAMETERS -------------------------------------
 caiman:
+  general:
+    data_paths: ['data/Jan_2024', 'data/Mar_2024', 'data/May_2024', 'data/Oct_2021', 'data/Feb_2025', 'data/Dec_2024_no_connectivity']         # list of data paths to be processed in batch cnmfe; equal to cohorts
+    session_file_paths: ['data/Jan_2024/session_file_MiniscopeCW_01_2024_Moises.csv', 'data/Mar_2024/session_file_MiniscopeCW_03_2024_Moises.csv', 'data/May_2024/session_file_MiniscopeCW_05_2024_Moises.csv', 'data/Oct_2021/updated_session_file_MiniscopeCW_all_Moises.csv', data/Feb_2025/Feb_2025_session_file.csv, 'data/Dec_2024_no_connectivity/Dec_2024_no_connectivity_session_file.csv'] # list of cohort-level metadata
+    skip_if_exists: true  # false would rerun all cohorts even if they already were processed
+    required_columns: ['excluded', 'session', 'pair', 'sex', 'miniscope video', 'fps (ci downsampled)', 'timevideoend(s)', 'session outcome', 'final outcome', 'timevictiminsertion(s)', 'mouse']  # columns that are required to be present in the cohort-level session file
+
   motion_correction:
     motion_correct: true   # flag for motion correction
     fr: 30                 # movie frame rate #! this is actually not entirely correct for the full data, there are a few with 20. should be watched out in the script inself or else where
@@ -81,9 +88,9 @@ orientation_tuning:
 
 # ----------- FUNCTIONAL CONNECTIVITY --------------------------------
 functional_connectivity:
-  threshold: 0.3
-  img_dims: [400, 640]
-  fig_size: [30, 15]
+  threshold: 0.3                       # threshold for pearson correlation coefficient used to define functionally connected neurons
+  img_dims: [400, 640]                 # size of the frame of calcium imaging data
+  fig_size: [30, 15]                   #! here and next plotting parameters, that should be actually removed from this config part
   grid_spec: [3, 6]
   output_subfolder: "functional_connectivity"
 
