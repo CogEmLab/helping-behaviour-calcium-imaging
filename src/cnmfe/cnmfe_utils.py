@@ -82,12 +82,6 @@ def reevaluate_components(model_path, fname_new, fps=30):
                                                                             swap_dim=False) # change swap dim if output looks weird, it is a problem with tiffile
     
     cm.stop_server(dview=cluster)
-    
-    # Set A_thr field to None before selecting components (threshold step of reevaluate_comps creates a dictionary of different shape of A)
-    cnmfe_model.estimates.A_thr = None
-
-    # Select only the accepted components
-    cnmfe_model.estimates.select_components(use_object=True, save_discarded_components=True)
 
     return (cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected)
 
@@ -122,6 +116,8 @@ def analyze_data(ci_movie_path, save_dir_docs, config, fps=30, plot=False):
 
     # Get parameters for motion correction
     params_mc = get_params_mot_corr(ci_movie_path, config=config)
+
+    motion_correct = config["caiman"]["motion_correction"]["motion_correct"]
 
     # Perform motion correction if True
     if motion_correct:
@@ -196,4 +192,10 @@ def analyze_data(ci_movie_path, save_dir_docs, config, fps=30, plot=False):
     # ^ Just out of curiosity, which is subsampling being used in above function when passing the ci_movie array?
     cm.stop_server(dview=cluster)
     
+    # Set A_thr field to None before selecting components (threshold step of reevaluate_comps creates a dictionary of different shape of A)
+    cnmfe_model.estimates.A_thr = None
+
+    # Select only the accepted components
+    cnmfe_model.estimates.select_components(use_object=True, save_discarded_components=True)
+
     return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected

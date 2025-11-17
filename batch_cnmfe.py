@@ -18,7 +18,7 @@ matplotlib.rcParams['axes.unicode_minus'] = False
 
 from src.loaders.config_loader import load_config
 from src.cnmfe.cnmfe_utils import *
-from src.utils import analyze_data, plot_random_traces
+from src.utils import plot_random_traces
 from src.plotting import quality_control_plotting
 
 
@@ -63,14 +63,13 @@ def main():
 
     # For quick access:
     cfg_general = config["caiman"]["general"]
-    cfg_mc = config["caiman"]["motion_correction"]
+    documentation_path = config["paths"]["documentation_path"]
+
     cfg_paths = cfg_general["data_paths"]
     cfg_sessions = cfg_general["session_file_paths"]
-
+    default_fps = cfg_general["default_fps"]
     skip_if_exists = cfg_general["skip_if_exists"]
     required_columns = cfg_general["required_columns"]
-    documentation_path = cfg_general["documentation_path"]
-    default_fps = cfg_general["default_fps"]
 
     # Print effective config at start of run
     print("\n========== RUNNING CNMF-E BATCH ==========")
@@ -179,22 +178,22 @@ def main():
                 continue
 
             # Run CNMF-E
-            try:
-                result = analyze_data(
-                    path,
-                    save_dir_docs,
-                    args.config,   # path to main config file
-                    fps=FPS
-                )
-                (
-                    cnmfe_model, ci_movie, fname_new, correlation_image,
-                    peak_to_noise_ratio, dims, total_components,
-                    num_accepted, num_rejected, border_px
-                ) = result
+            # try:
+            result = analyze_data(
+                path,
+                save_dir_docs,
+                config,   # path to main config file
+                fps=FPS
+            )
+            (
+                cnmfe_model, ci_movie, fname_new, correlation_image,
+                peak_to_noise_ratio, dims, total_components,
+                num_accepted, num_rejected, border_px
+            ) = result
 
-            except Exception as e:
-                logging.error(f"Error processing {filename}: {e}")
-                continue
+            # except Exception as e:
+            #     logging.error(f"Error processing {filename}: {e}")
+            #     continue
 
             # ---------------- Save CNMF-E outputs ----------------
 

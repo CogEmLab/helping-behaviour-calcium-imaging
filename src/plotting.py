@@ -8,60 +8,107 @@ import os
 from scipy.optimize import curve_fit
 from scipy.stats import ks_2samp
 from scipy.stats import false_discovery_control
-import pandas as pd
 
-def plot_registration_validation(data, cohort, output_path=None, ax=None):
+def quality_control_plotting(SNR_dict, max_shifts_dict, save_dir):
     """
-    Plot combined percentage of registered components vs. the number of sessions for all animals in a cohort.
-
+    Create quality control boxplots for SNR and Maximum Shifts.
+    
     Parameters:
-    ----------
-    data : DataFrame
-        Data containing 'Percentage', 'K', and 'Animal' columns.
-    cohort : str
-        Cohort identifier for the title and labels.
-    output_path : str, optional
-        Path to save the generated plot. If None, the plot is not saved.
-    ax : matplotlib axis object, optional
-        The axis to plot on. If None, a new figure and axis are created.
-
-    Returns:
-    -------
-    ax : matplotlib axis
-        The axis with the plot.
+    -----------
+    SNR_dict : dict
+        Dictionary with animal names as keys and lists of SNR values
+    max_shifts_dict : dict
+        Dictionary with animal names as keys and lists of maximum shift values
+    save_dir : str
+        Directory to save the quality control plots
     """
-    if ax is None:
-        plt.figure(figsize=(10, 8))
-        ax = plt.gca()
-
-    # Barplot for averages
-    sns.barplot(
-        data=data, x='K', y='Percentage', 
-        ci=None, estimator=np.mean, color='k', alpha=1, ax=ax, fill=False
-    )
+    # Ensure output directory exists
+    os.makedirs(save_dir, exist_ok=True)
     
-    # Swarmplot for individual points
-    sns.swarmplot(
-        data=data, x='K', y='Percentage', hue='Animal', 
-        dodge=True, palette='Set2', s=3, alpha=0.6, ax=ax
-    )
-
-    ax.set_title(f'% of Registered Components vs. Number of Sessions\nCohort {cohort}')
-    ax.set_ylabel('Percentage (%)')
-    ax.set_xlabel('Number of Sessions (K)')
-    ax.legend(title='Animal', bbox_to_anchor=(1.05, 1), loc='upper left')
+    # Prepare data for plotting
+    plt.style.use('dark_background')
     
-    # Remove unnecessary spines
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-
+    # SNR Boxplot
+    plt.figure(figsize=(10, 6))
+    
+    # Prepare data for boxplot
+    snr_data = []
+    snr_labels = []
+    for animal, snr_values in SNR_dict.items():
+        snr_data.append(snr_values)
+        snr_labels.append(animal)
+    
+    # Create boxplot with individual points
+    bp = plt.boxplot(snr_data, labels=snr_labels, patch_artist=True, 
+                     boxprops=dict(facecolor='darkgrey', color='white'),
+                     medianprops=dict(color='white'))
+    
+    # Add scatter plot
+    for i, snr_values in enumerate(snr_data):
+        # Scatter plot with jitter
+        x = np.random.normal(i+1, 0.04, size=len(snr_values))
+        plt.scatter(x, snr_values, alpha=0.5, color='lightgrey', s=20)
+    
+    plt.title('Signal-to-Noise Ratio (SNR) by Animal', color='white')
+    plt.xlabel('Animal', color='white')
+    plt.ylabel('SNR', color='white')
+    plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
-    if output_path is not None:
-        # Save and close the plot
-        plt.savefig(output_path)
-        plt.close()
+    plt.savefig(os.path.join(save_dir, 'SNR_boxplot.png'), 
+                dpi=300, facecolor='black')
+    plt.close()
     
-    return ax
+    # Maximum Shifts Boxplot
+    plt.figure(figsize=(10, 6))
+    
+    # Prepare data for boxplot
+    max_shifts_data = []
+    max_shifts_labels = []
+    for animal, shifts in max_shifts_dict.items():
+        max_shifts_data.append(shifts)
+        max_shifts_labels.append(animal)
+    
+    # Create boxplot with individual points
+    bp = plt.boxplot(max_shifts_data, labels=max_shifts_labels, patch_artist=True, 
+                     boxprops=dict(facecolor='darkgrey', color='white'),
+                     medianprops=dict(color='white'))
+    
+    # Add scatter plot
+    for i, shifts in enumerate(max_shifts_data):
+        # Scatter plot with jitter
+        x = np.random.normal(i+1, 0.04, size=len(shifts))
+        plt.scatter(x, shifts, alpha=0.5, color='lightgrey', s=20)
+    
+    plt.title('Maximum Motion Shifts by Animal', color='white')
+    plt.xlabel('Animal', color='white')
+    plt.ylabel('Maximum Shift (pixels)', color='white')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+    plt.savefig(os.path.join(save_dir, 'MaxShifts_boxplot.png'), 
+                dpi=300, facecolor='black')
+    plt.close()
+    
+    # Save summary statistics
+    with open(os.path.join(save_dir, 'quality_control_summary.txt'), 'w') as f:
+        f.write("SNR Summary:\n")
+        for animal, snr_values in SNR_dict.items():
+            f.write(f"{animal}:\n")
+            f.write(f"  Mean: {np.mean(snr_values):.2f}\n")
+            f.write(f"  Median: {np.median(snr_values):.2f}\n")
+            f.write(f"  Std Dev: {np.std(snr_values):.2f}\n")
+            f.write(f"  Min: {np.min(snr_values):.2f}\n")
+            f.write(f"  Max: {np.max(snr_values):.2f}\n\n")
+        
+        f.write("\nMaximum Shifts Summary:\n")
+        for animal, shifts in max_shifts_dict.items():
+            f.write(f"{animal}:\n")
+            f.write(f"  Mean: {np.mean(shifts):.2f}\n")
+            f.write(f"  Median: {np.median(shifts):.2f}\n")
+            f.write(f"  Std Dev: {np.std(shifts):.2f}\n")
+            f.write(f"  Min: {np.min(shifts):.2f}\n")
+            f.write(f"  Max: {np.max(shifts):.2f}\n\n")
+    
+    print(f"Quality control plots and summary saved to {save_dir}")
 
 def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third_dist_values=None, ax=None, 
                            significance_color='r', second_dist_color='grey', third_dist_color='b',
@@ -102,12 +149,6 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         Label for the third distribution.
     """
     
-    # Remove None from the arrays
-    first_dist_values = [x for x in first_dist_values if x is not None]
-    second_dist_values = [x for x in second_dist_values if x is not None]
-    if optional_third_dist_values is not None:
-        optional_third_dist_values = [x for x in optional_third_dist_values if x is not None]
-
     # Convert inputs to lists of floats
     first_dist_values = [float(x) for x in first_dist_values]
     second_dist_values = [float(x) for x in second_dist_values]
@@ -122,15 +163,15 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
     if optional_third_dist_values is not None:
         n_samples = min(len(first_dist_values), len(second_dist_values), len(optional_third_dist_values))
         first_sample_idx = np.random.RandomState(0).permutation(len(first_dist_values))[:n_samples]
-        second_sample_idx = np.random.RandomState(0).permutation(len(second_dist_values))[:n_samples]
-        third_sample_idx = np.random.RandomState(0).permutation(len(optional_third_dist_values))[:n_samples]
+        second_sample_idx = np.random.RandomState(3).permutation(len(second_dist_values))[:n_samples]
+        third_sample_idx = np.random.RandomState(7).permutation(len(optional_third_dist_values))[:n_samples]
         first_dist_values = [first_dist_values[i] for i in first_sample_idx]
         second_dist_values = [second_dist_values[i] for i in second_sample_idx]
         optional_third_dist_values = [optional_third_dist_values[i] for i in third_sample_idx]
     else:
         n_samples = min(len(first_dist_values), len(second_dist_values))
         first_sample_idx = np.random.RandomState(0).permutation(len(first_dist_values))[:n_samples]
-        second_sample_idx = np.random.RandomState(0).permutation(len(second_dist_values))[:n_samples]
+        second_sample_idx = np.random.RandomState(3).permutation(len(second_dist_values))[:n_samples]
         first_dist_values = [first_dist_values[i] for i in first_sample_idx]
         second_dist_values = [second_dist_values[i] for i in second_sample_idx]
     
@@ -147,44 +188,27 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
         ax.legend()
 
     # Set axis limits and aesthetics
-    ax.set_xlim(-0.5, 0.5)
+    ax.set_xlim(0.30, 0.7)
+    ax.set_ylim(0.9, 1)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
     # Perform the Kolmogorov-Smirnov test with Bonferroni correction
-    if optional_third_dist_values is None:
-        ks_result = ks_2samp(second_dist_values, first_dist_values)
-        p_value_corrected = ks_result[1]
-        # Compute the effect size (D statistic)
-        D_statistic = np.abs(np.mean(first_dist_values) - np.mean(second_dist_values)) / np.sqrt(np.var(first_dist_values) + np.var(second_dist_values) + 1e-10)
-        # Add p-value and effect size to the plot
-        ax.text(0.65, 0.85, 'p-value: {:.4f}\nD-statistic: {:.4f}'.format(p_value_corrected, D_statistic), transform=ax.transAxes, ha='center', va='center')
-        # Save the results to a file
-        with open(filename.replace('.png', '.txt'), 'w') as f:
-            f.write('KS statistic: {:.4f}\np-value: {:.4f}\np-value corrected: {:.4f}\nD-statistic: {:.4f}\n'.format(
-                ks_result[0], ks_result[1], p_value_corrected, D_statistic))
-    else:
-        # Perform three tests and Bonferroni correct the p-values
-        comparisons = [(second_dist_values, first_dist_values), (second_dist_values, optional_third_dist_values), (first_dist_values, optional_third_dist_values)]
-        labels = [(shuffled_label, true_label), (shuffled_label, third_label), (true_label, third_label)]
-        test_results = [ks_2samp(*comparison) for comparison in comparisons]
-        p_values = [test_result[1] for test_result in test_results]
+    # if optional_third_dist_values is None:
+    #     ks_result = ks_2samp(second_dist_values, first_dist_values)
+    #     p_value_corrected = ks_result[1]
+    #     # Add p-value to the plot
+    #     ax.text(0.65, 0.85, f'p-value: {p_value_corrected:.4f}', transform=ax.transAxes, ha='center', va='center')
+    # else:
+    #     # Perform three tests and Bonferroni correct the p-values
+    #     test_results = [ks_2samp(second_dist_values, first_dist_values), ks_2samp(second_dist_values, optional_third_dist_values), ks_2samp(first_dist_values, optional_third_dist_values)]
+    #     p_values = [test_result[1] for test_result in test_results]
+    #     # Correct the p-values using the Bonferroni correction
+        # p_values_corrected = false_discovery_control(p_values, method='bh')
+        # Add p-values to the plot
+        #for i, p_value in enumerate(p_values_corrected):
+        #    ax.text(0.65, 0.85 - i * 0.05, f'p-value: {p_value:.4f}', transform=ax.transAxes, ha='center', va='center')
 
-        # Correct the p-values using the Bonferroni correction
-        p_values_corrected = false_discovery_control(p_values, method='bh')
-        
-        # Compute the effect size (D statistic) for each comparison
-        D_statistics = []
-        for comparison in comparisons:
-            D_statistic = np.abs(np.mean(comparison[0]) - np.mean(comparison[1])) / np.sqrt(np.var(comparison[0]) + np.var(comparison[1]) + 1e-10)
-            D_statistics.append(D_statistic)
-
-        # Save the results to a file
-        with open(filename.replace('.png', '.txt'), 'w') as f:
-            for i, test_result in enumerate(test_results):
-                f.write('Test {}: comparing {} and {} distributions\nKS statistic: {:.4f}\np-value: {:.4f}\np-value corrected: {:.4f}\nD-statistic: {:.4f}\n'.format(
-                    i+1, labels[i][0], labels[i][1], test_result[0], test_result[1], p_values_corrected[i], D_statistics[i]))
-                
     # If a filename is provided, save the plot
     if filename is not None:
         # Create the directory if it doesn't exist
@@ -193,7 +217,7 @@ def plot_ecdf_with_ks_test(first_dist_values, second_dist_values, optional_third
             os.makedirs(directory)
         # Save the plot to both PNG and EPS formats
         plt.savefig(filename + '.png', dpi=300)
-        plt.savefig(filename.replace('.png', '.eps'))
+        plt.savefig(filename + '.eps')
         plt.close(plt.gcf())  # Close the figure after saving
     else:
         return ax
@@ -287,7 +311,7 @@ def plot_scatter(
         ax.set_ylim(ylim)
 
     # Set y ticks to be -1, -0.5, 0, 0.5, 1
-    ax.set_yticks([-1, -0.5, 0, 0.5, 1])
+    # ax.set_yticks([-1, -0.5, 0, 0.5, 1])
 
     # Turn off the top and right spines for clean aesthetics
     ax.spines['top'].set_visible(False)
@@ -345,11 +369,10 @@ def plot_scatter(
         directory = os.path.dirname(filename)
         if not os.path.exists(directory):
             os.makedirs(directory)
-        # Save the plot to png, eps, and svg
+        # Save the plot to both png and eps
         plt.savefig(filename + '.png', dpi=300)
         plt.savefig(filename + '.eps')
-        plt.savefig(filename + '.svg')
-        plt.close(plt.gcf())  # Close the figure after saving
+        plt.close(plt.gcf()) # make sure to close the figure afterwards
     else:
         return ax
 
@@ -436,9 +459,7 @@ def plot_matrix(matrix, ax=None, title='', xlabel='', ylabel='', cbar_label='', 
         fig.savefig(save_path, bbox_inches='tight')
         if save_path.endswith('.png'):
             eps_path = save_path.replace('.png', '.eps')
-            svg_path = save_path.replace('.png', '.svg')
             fig.savefig(eps_path, format='eps', bbox_inches='tight')
-            fig.savefig(svg_path, format='svg', bbox_inches='tight')
         plt.close(fig)
     
     return ax
@@ -613,7 +634,6 @@ def plot_correlated_traces(ax=None, traces=None, component_pairs=None, distances
 
         plt.savefig(f'{filename}', dpi=300, bbox_inches='tight')
         plt.savefig(f'{filename}'.replace('.png', '.eps'), format='eps', bbox_inches='tight')
-        plt.savefig(f'{filename}'.replace('.png', '.svg'), format='svg', bbox_inches='tight')
         plt.close()
 
 def plot_random_traces(DF_F_Z_scored, num_traces=10, fps=30, snr=None, ax=None, filename=None):
@@ -685,7 +705,6 @@ def plot_random_traces(DF_F_Z_scored, num_traces=10, fps=30, snr=None, ax=None, 
     if filename is not None:
         plt.savefig(filename, dpi=300, bbox_inches='tight')
         plt.savefig(str(filename).replace('.png', '.eps'), dpi=300, bbox_inches='tight')
-        plt.savefig(str(filename).replace('.png', '.svg'), dpi=300, bbox_inches='tight')
     
     return ax
 
@@ -819,7 +838,8 @@ def plot_heatmap(matrix, title=None, xlabel='Time (s)', aligned=True, filename=N
         ax.axvline(int((window_to_use * FPS) / 2), color='black', linestyle='dashed', linewidth=2, label='Victim crossing')
     return ax
 
-def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), ylabel='Y-axis Label', colors1=None, colors2=None):
+
+def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), ylabel='Y-axis Label'):
     '''
     Function to plot boxplots for two sets of data.
     Performs statistical tests if conditions are met and annotates the plot accordingly.
@@ -831,8 +851,6 @@ def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), yla
         title (str): Title of the plot.
         labels (tuple): Labels for the boxplot groups.
         ylabel (str): Label for the Y-axis.
-        colors1 (list): Colors for the first group if specified.
-        colors2 (list): Colors for the second group if specified.
 
     Returns:
         ax (matplotlib.axes.Axes): The axis with the boxplots plotted on it.    
@@ -845,50 +863,46 @@ def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), yla
     for element in ['boxes', 'whiskers', 'fliers', 'means', 'medians', 'caps']:
         plt.setp(bp[element], color='black')
     
-    # Add scatter plot of the data points (small and black or specified colors)
+    # Add scatter plot of the data points (small and black)
     for i, data in enumerate([data1, data2], start=1):
-        color = 'black' if colors1 is None and colors2 is None else [colors1, colors2][i-1]
         ax.scatter(np.random.normal(i, 0.04, size=len(data)), data, 
-                   alpha=0.7, s=3, color=color, zorder=3)
+                   alpha=0.7, s=3, color='black', zorder=3)
     
     # Add labels and title
     ax.set_ylabel(ylabel)
     ax.set_title(title)
 
-    try:
-        # Test for normality and equal variance
-        _, normality_p1 = stats.shapiro(data1)
-        _, normality_p2 = stats.shapiro(data2)
-        _, equal_var_p = stats.levene(data1, data2)
+    # Test for normality and equal variance
+    _, normality_p1 = stats.shapiro(data1)
+    _, normality_p2 = stats.shapiro(data2)
+    _, equal_var_p = stats.levene(data1, data2)
 
-        # Determine if conditions for parametric test are met
-        normality_met = normality_p1 > 0.05 and normality_p2 > 0.05
-        equal_var_met = equal_var_p > 0.05
+    # Determine if conditions for parametric test are met
+    normality_met = normality_p1 > 0.05 and normality_p2 > 0.05
+    equal_var_met = equal_var_p > 0.05
 
-        # Perform statistical test
-        if normality_met and equal_var_met:
-            _, p_value = stats.ttest_ind(data1, data2)
+    # Perform statistical test
+    if normality_met and equal_var_met:
+        _, p_value = stats.ttest_ind(data1, data2)
+    else:
+        _, p_value = stats.mannwhitneyu(data1, data2)
+
+    # Add significance annotation if p-value is significant
+    if p_value < 0.05:
+        y_max = max(np.max(data1), np.max(data2))
+        y_min = min(np.min(data1), np.min(data2))
+        y_range = y_max - y_min
+        line_height = y_max + 0.1 * y_range
+        
+        if p_value < 0.001:
+            stars = '***'
+        elif p_value < 0.01:
+            stars = '**'
         else:
-            _, p_value = stats.mannwhitneyu(data1, data2)
-
-        # Add significance annotation if p-value is significant
-        if p_value < 0.05:
-            y_max = max(np.max(data1), np.max(data2))
-            y_min = min(np.min(data1), np.min(data2))
-            y_range = y_max - y_min
-            line_height = y_max + 0.1 * y_range
-            
-            if p_value < 0.001:
-                stars = '***'
-            elif p_value < 0.01:
-                stars = '**'
-            else:
-                stars = '*'
-            
-            ax.plot([1, 1, 2, 2], [line_height, line_height*1.05, line_height*1.05, line_height], lw=1.5, c='black')
-            ax.text(1.5, line_height*1.05, stars, ha='center', va='bottom', color='black')
-    except Exception as e:
-        print(f"Statistical test failed: {e}")
+            stars = '*'
+        
+        ax.plot([1, 1, 2, 2], [line_height, line_height*1.05, line_height*1.05, line_height], lw=1.5, c='black')
+        ax.text(1.5, line_height*1.05, stars, ha='center', va='bottom', color='black')
 
     # Turn off the top and right spines
     ax.spines['top'].set_visible(False)
@@ -897,7 +911,6 @@ def plot_boxplots(data1, data2, ax, title='', labels=('Group 1', 'Group 2'), yla
     return ax
 
 def plot_values_over_days(data, x_column, y_column, ax=None, order=None, title=None, hue_column=None, figsize=(10, 6), filename=None):
-    #TODO: Add mixed models statistical test
     """
     Plot values as a bar plot over days with optional swarm plot overlay and save the figure.
     
@@ -960,137 +973,3 @@ def plot_values_over_days(data, x_column, y_column, ax=None, order=None, title=N
     
 
     return fig, ax
-
-def plot_rigid_shifts(motion_corrector, save_dir=None, save_name=None, ax=None):
-    #todo: fix. it doesn't work
-    """
-    Plot the rigid shifts during motion correction.
-
-    Parameters:
-        motion_corrector: The motion corrector object.
-        save_dir: The directory to save the plot.
-        ax: The axis to plot on. If None, create a new figure.
-
-    Returns:
-        ax: The axis with the plot.
-    """
-    if ax is None:
-        fig, ax = plt.subplots(figsize=(6, 3))
-    else:
-        fig = ax.get_figure()
-
-    ax.plot(motion_corrector.shifts_rig[0], 'k-', label='x shifts')
-    ax.plot(motion_corrector.shifts_rig[1], '--', color='gray', label='y shifts')
-
-    ax.legend()
-    ax.set_xlabel('Frames')
-    ax.set_ylabel('Pixels')
-
-    # Save plot
-    if save_dir is not None and save_name is not None:
-        fig.savefig(f'{save_dir}/rigid_shifts_{save_name}.png')
-        # Close the plot to avoid memory leak
-        plt.close(fig)
-
-    return ax
-
-def quality_control_plotting(SNR_dict, max_shifts_dict, save_dir):
-    """
-    Create quality control boxplots for SNR and Maximum Shifts.
-    
-    Parameters:
-    -----------
-    SNR_dict : dict
-        Dictionary with animal names as keys and lists of SNR values
-    max_shifts_dict : dict
-        Dictionary with animal names as keys and lists of maximum shift values
-    save_dir : str
-        Directory to save the quality control plots
-    """
-    # Ensure output directory exists
-    os.makedirs(save_dir, exist_ok=True)
-    
-    # Prepare data for plotting
-    plt.style.use('dark_background')
-    
-    # SNR Boxplot
-    plt.figure(figsize=(10, 6))
-    
-    # Prepare data for boxplot
-    snr_data = []
-    snr_labels = []
-    for animal, snr_values in SNR_dict.items():
-        snr_data.append(snr_values)
-        snr_labels.append(animal)
-    
-    # Create boxplot with individual points
-    bp = plt.boxplot(snr_data, labels=snr_labels, patch_artist=True, 
-                     boxprops=dict(facecolor='darkgrey', color='white'),
-                     medianprops=dict(color='white'))
-    
-    # Add scatter plot
-    for i, snr_values in enumerate(snr_data):
-        # Scatter plot with jitter
-        x = np.random.normal(i+1, 0.04, size=len(snr_values))
-        plt.scatter(x, snr_values, alpha=0.5, color='lightgrey', s=20)
-    
-    plt.title('Signal-to-Noise Ratio (SNR) by Animal', color='white')
-    plt.xlabel('Animal', color='white')
-    plt.ylabel('SNR', color='white')
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, 'SNR_boxplot.png'), 
-                dpi=300, facecolor='black')
-    plt.close()
-    
-    # Maximum Shifts Boxplot
-    plt.figure(figsize=(10, 6))
-    
-    # Prepare data for boxplot
-    max_shifts_data = []
-    max_shifts_labels = []
-    for animal, shifts in max_shifts_dict.items():
-        max_shifts_data.append(shifts)
-        max_shifts_labels.append(animal)
-    
-    # Create boxplot with individual points
-    bp = plt.boxplot(max_shifts_data, labels=max_shifts_labels, patch_artist=True, 
-                     boxprops=dict(color='white'),
-                     medianprops=dict(color='white'))
-    
-    # Add scatter plot
-    for i, shifts in enumerate(max_shifts_data):
-        # Scatter plot with jitter
-        x = np.random.normal(i+1, 0.04, size=len(shifts))
-        plt.scatter(x, shifts, alpha=0.5, color='lightgrey', s=20)
-    
-    plt.title('Maximum Motion Shifts by Animal', color='white')
-    plt.xlabel('Animal', color='white')
-    plt.ylabel('Maximum Shift (pixels)', color='white')
-    plt.xticks(rotation=45, ha='right')
-    plt.tight_layout()
-    plt.savefig(os.path.join(save_dir, 'MaxShifts_boxplot.png'), 
-                dpi=300, facecolor='black')
-    plt.close()
-    
-    # Save summary statistics
-    with open(os.path.join(save_dir, 'quality_control_summary.txt'), 'w') as f:
-        f.write("SNR Summary:\n")
-        for animal, snr_values in SNR_dict.items():
-            f.write(f"{animal}:\n")
-            f.write(f"  Mean: {np.mean(snr_values):.2f}\n")
-            f.write(f"  Median: {np.median(snr_values):.2f}\n")
-            f.write(f"  Std Dev: {np.std(snr_values):.2f}\n")
-            f.write(f"  Min: {np.min(snr_values):.2f}\n")
-            f.write(f"  Max: {np.max(snr_values):.2f}\n\n")
-        
-        f.write("\nMaximum Shifts Summary:\n")
-        for animal, shifts in max_shifts_dict.items():
-            f.write(f"{animal}:\n")
-            f.write(f"  Mean: {np.mean(shifts):.2f}\n")
-            f.write(f"  Median: {np.median(shifts):.2f}\n")
-            f.write(f"  Std Dev: {np.std(shifts):.2f}\n")
-            f.write(f"  Min: {np.min(shifts):.2f}\n")
-            f.write(f"  Max: {np.max(shifts):.2f}\n\n")
-    
-    print(f"Quality control plots and summary saved to {save_dir}")
