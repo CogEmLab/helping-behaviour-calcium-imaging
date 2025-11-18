@@ -165,8 +165,7 @@ def analyze_data(ci_movie_path, save_dir_docs, config, fps=30, plot=False):
     cnmfe_model.fit(ci_movie)
 
     if plot:
-        plot_rigid_shifts(motion_corrector, save_dir_docs, save_name)
-
+        plot_rigid_shifts(motion_corrector, save_dir_docs, save_name)  #! lost this function somewhere
     logging.info('CNMF-E analysis completed.')
 
     quality_params = {'use_cnn' : False,
@@ -198,4 +197,4 @@ def analyze_data(ci_movie_path, save_dir_docs, config, fps=30, plot=False):
     # Select only the accepted components
     cnmfe_model.estimates.select_components(use_object=True, save_discarded_components=True)
 
-    return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected
+    return cnmfe_model, ci_movie, fname_new, correlation_image, peak_to_noise_ratio, dims, total_components, num_accepted, num_rejected, border_px

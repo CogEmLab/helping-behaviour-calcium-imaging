@@ -178,22 +178,23 @@ def main():
                 continue
 
             # Run CNMF-E
-            # try:
-            result = analyze_data(
-                path,
-                save_dir_docs,
-                config,   # path to main config file
-                fps=FPS
-            )
-            (
-                cnmfe_model, ci_movie, fname_new, correlation_image,
-                peak_to_noise_ratio, dims, total_components,
-                num_accepted, num_rejected, border_px
-            ) = result
+            try:
+                result = analyze_data(
+                    path,
+                    save_dir_docs,
+                    config,   # path to main config file
+                    fps=FPS
+                )
 
-            # except Exception as e:
-            #     logging.error(f"Error processing {filename}: {e}")
-            #     continue
+                (
+                    cnmfe_model, ci_movie, fname_new, correlation_image,
+                    peak_to_noise_ratio, dims, total_components,
+                    num_accepted, num_rejected, border_px
+                ) = result
+
+            except Exception as e:
+                logging.error(f"Error processing {filename}: {e}")
+                continue
 
             # ---------------- Save CNMF-E outputs ----------------
 
