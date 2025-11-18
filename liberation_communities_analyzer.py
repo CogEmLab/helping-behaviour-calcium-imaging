@@ -7,7 +7,7 @@ import neurokit2 as nk
 from src.session_loader import Session
 import os
 from datetime import datetime
-from src.specificity_M import calculate_event_specificity
+from src.specificity import calculate_event_specificity
 
 plt.switch_backend('agg')
 
@@ -82,6 +82,10 @@ class CommunityAnalyzer:
             self.communities_data = pd.concat(communities_list, ignore_index=True)
             self.communities_data['Mouse'] = self.communities_data['Mouse'].astype(str)
             self.communities_data['Session'] = self.communities_data['Session'].astype(str)
+            required_columns = ['pre_auc', 'post_auc', 'response_index', 'response_category']
+            for col in required_columns:
+                if col not in self.communities_data.columns:
+                    self.communities_data[col] = np.nan  # Initialize with NaNs
 
         if 'Reg_ID' not in self.communities_data.columns:
             self.communities_data['Reg_ID'] = np.nan
@@ -344,7 +348,7 @@ class CommunityAnalyzer:
         if os.path.exists(mapping_file):
             self.registration_mapping = np.load(mapping_file, allow_pickle=True).item()
 
-    def analyze_community_event_response(self, community_signals, victim_lib_timecode, fps, window_seconds=34, snr=None):
+    def analyze_community_event_response(self, community_signals, victim_lib_timecode, fps, mouse_id, session_id, comm_id, comm_neurons, window_seconds=34, snr=None):
         """Analyze if a community shows liberation-related activity and categorize its response type"""
         # Calculate event window frames
         half_window = int(window_seconds/2)
@@ -452,13 +456,24 @@ class CommunityAnalyzer:
             rest_entropy = np.zeros_like(event_entropy)
             entropy_change = 0
 
-        p_value, k = calculate_event_specificity(
+        #Calculate whole signal entropy once
+        whole_signal = np.mean(community_signals, axis=0)
+        whole_entropy, _ = compute_multiscale_entropy(
+            whole_signal,
+            scales=min(9, len(whole_signal) // 4),
+            m=2,
+            r=0.15
+        )
+
+        #Calculate event-specificity  
+
+        p_value = calculate_event_specificity(
             np.mean(community_signals, axis=0),
             event_window_tuple,
             window_seconds,
             fps,
             plot=True
-        )
+        )[0]
 
         print('----------------------------------------------------------------------------------------------------------------------')
         print('P VALUE:', p_value)
@@ -468,6 +483,7 @@ class CommunityAnalyzer:
             p_value <= 0.00001 and
             len(community_signals) >= 2
         )
+        print(f"Marked as liberation community: {is_liberation}")
 
         response_type = ''
         response_score = 0
@@ -492,18 +508,179 @@ class CommunityAnalyzer:
         else:
                 response_type = 'None'
 
+        # Calculate per-neuron metrics
+        neuron_data = []
+        for idx, neuron_signal in enumerate(community_signals):
+            neuron_id = comm_neurons[idx]
+            
+            # Calculate indices for pre- and post-windows
+            start_pre = max(0, event_frame - half_window_frames)
+            end_pre = event_frame
+            start_post = event_frame
+            end_post = min(len(neuron_signal), event_frame + half_window_frames)
+
+            pre_window = neuron_signal[start_pre:end_pre]
+            post_window = neuron_signal[start_post:end_post]
+            
+            # Create combined event window for peak detection
+            event_window = np.concatenate([pre_window, post_window])
+            
+            # Detect peaks in the entire event window
+            peaks, _ = find_peaks(event_window, 
+                                distance=int(0.45*fps),
+                                width=(int(0.3 * fps), int(10.0 * fps)),
+                                height=3.0,
+                                prominence=0.5,
+                                rel_height=0.6
+                                )
+            
+            if len(peaks) == 0:
+                # No peaks detected - mark as non-responsive
+                neuron_data.append({
+                    'Mouse': mouse_id,
+                    'Session': session_id,
+                    'Community_ID': comm_id,
+                    'is_liberation': is_liberation,
+                    'Neuron_ID': neuron_id,
+                    'response_category': 'non-responsive',
+                    'pre_auc': np.nan,
+                    'post_auc': np.nan,
+                    'response_index': np.nan
+                })
+                continue  # Skip remaining calculations
+
+            # Calculate baseline from pre-window (only if we have peaks)
+            rest_baseline = np.percentile(pre_window, 10) if len(pre_window) > 0 else 0
+
+            # Calculate AUC components
+            pre_auc = np.trapz(pre_window - rest_baseline) if len(pre_window) > 0 else 0
+            post_auc = np.trapz(post_window - rest_baseline) if len(post_window) > 0 else 0
+
+            # Response index calculation with absolute values in denominator
+            sum_auc = abs(pre_auc) + abs(post_auc)
+            response_index = (post_auc - pre_auc) / (sum_auc + 1e-10) if sum_auc != 0 else 0
+            
+            # Categorization logic with stricter thresholds
+            if response_index > 0.159:
+                category = 'post-responsive'
+            elif response_index < -0.159:
+                category = 'pre-responsive'
+            else:
+                category = 'mixed'
+
+            # --- Visualization of EVENT WINDOW ONLY ---
+            fig, ax = plt.subplots(figsize=(8, 4))
+            
+            # Create time axis for the event window
+            window_duration = (len(pre_window) + len(post_window)) / fps
+            window_time = np.linspace(-len(pre_window)/fps, len(post_window)/fps, 
+                                    len(pre_window) + len(post_window))
+            
+            # Plot baseline-corrected signal
+            baselined_signal = np.concatenate([pre_window - rest_baseline, post_window - rest_baseline])
+            ax.plot(window_time, baselined_signal, label='Baselined Signal', color='blue')
+            
+            # Add event line at 0 seconds
+            ax.axvline(x=0, color='red', linestyle='--', label='Liberation Event')
+            
+            # Add shaded regions for pre/post windows
+            ax.axvspan(window_time[0], 0, alpha=0.1, color='gray', label='Pre-event')
+            ax.axvspan(0, window_time[-1], alpha=0.1, color='green', label='Post-event')
+            
+            ax.set_title(f"Neuron {neuron_id} | Mouse {mouse_id}\nSession {session_id} | Community {comm_id}")
+            ax.set_xlabel("Time relative to event (s)")
+            ax.set_ylabel("ΔF/F (baselined)")
+            
+            # Annotate with response details
+            ax.text(0.05, 0.95, 
+                    f"Response Index: {response_index:.2f}\nCategory: {category}",
+                    transform=ax.transAxes, 
+                    fontsize=10, 
+                    verticalalignment='top',
+                    bbox=dict(facecolor='white', alpha=0.7, edgecolor='gray'))
+
+            ax.legend()
+            fig.tight_layout()
+
+            # Save figure
+            fig_dir = os.path.join("results", "figures", "neuron_response_figures")
+            os.makedirs(fig_dir, exist_ok=True)
+            fig_filename_png = f"neuron_{neuron_id}_mouse{mouse_id}_session{session_id}_community{comm_id}.png"
+            fig_filename_eps = f"neuron_{neuron_id}_mouse{mouse_id}_session{session_id}_community{comm_id}.eps"
+            fig_path_png = os.path.join(fig_dir, fig_filename_png)
+            fig_path_eps = os.path.join(fig_dir, fig_filename_eps)
+
+            plt.savefig(fig_path_png)    # Save as PNG
+            plt.savefig(fig_path_eps, format='eps')  # Save as EPS
+
+            neuron_data.append({
+                'Mouse': mouse_id,
+                'Session': session_id,
+                'Community_ID': comm_id,
+                'is_liberation': is_liberation,
+                'Neuron_ID': neuron_id,
+                'pre_auc': pre_auc,
+                'post_auc': post_auc,
+                'response_index': response_index,
+                'response_category': category
+            })
         
+        # Update communities data
+        update_df = pd.DataFrame(neuron_data)
+        output_dir = os.path.join("results", "neuron_response_metrics")
+        os.makedirs(output_dir, exist_ok=True)
+        csv_filename = f"neuron_metrics_mouse{mouse_id}_session{session_id}_community{comm_id}.csv"
+        csv_path = os.path.join(output_dir, csv_filename)
+
+        # Save the DataFrame to CSV
+        update_df.to_csv(csv_path, index=False)
+        print(f"Saved neuron metrics to {csv_path}")        
+
+        index_cols = ['Mouse', 'Session', 'Community_ID', 'Neuron_ID']
+        self.communities_data.set_index(index_cols, inplace=True)
+        update_df.set_index(index_cols, inplace=True)
+        for col in ['pre_auc', 'post_auc', 'response_index', 'response_category']:
+            self.communities_data[col].update(update_df[col])
+        self.communities_data.reset_index(inplace=True)
+        
+        # Convert neuron_data to DataFrame for easy manipulation
+        neuron_df = pd.DataFrame(neuron_data)
+
+        # Count each category
+        n_total = len(neuron_df)
+        n_post = (neuron_df['response_category'] == 'post-responsive').sum()
+        n_pre = (neuron_df['response_category'] == 'pre-responsive').sum()
+        n_mixed = (neuron_df['response_category'] == 'mixed').sum()
+        n_non_responsive = (neuron_df['response_category'] == 'non-responsive').sum()
+
+        # Calculate percentages
+        pct_post = n_post / n_total if n_total > 0 else 0
+        pct_pre = n_pre / n_total if n_total > 0 else 0
+        pct_mixed = n_mixed / n_total if n_total > 0 else 0
+        pct_non_responsive = n_non_responsive / n_total if n_total > 0 else 0
+
         return {
             'event_auc': event_auc,
             'auc_change': auc_change,
             'sync_score': event_sync_score,
             'sync_change': sync_change,
             'entropy': np.mean(event_entropy),
+            'rest_entropy': np.mean(rest_entropy),
+            'whole_entropy': np.mean(whole_entropy),
             'entropy_change': entropy_change,
-            'k-value': k,
+            'p-value': p_value,
             'is_liberation_community': is_liberation,
             'response_score': response_score,
             'response_type': response_type,
+            'pct_post_responsive': pct_post,
+            'pct_pre_responsive': pct_pre,
+            'pct_mixed_responsive': pct_mixed,
+            'pct_non_responsive': pct_non_responsive,
+            'n_post_responsive': n_post,
+            'n_pre_responsive': n_pre,
+            'n_mixed_responsive': n_mixed,
+            'n_non_responsive': n_non_responsive,
+            'n_total_neurons': n_total
         }
     
     def _calculate_synchronization(self, signals):
@@ -511,7 +688,7 @@ class CommunityAnalyzer:
         return np.mean(corr_matrix[np.triu_indices_from(corr_matrix, k=1)])
 
     def get_previous_session_info(self, mouse, current_session):
-        available_sessions = self.session_file[self.session_file['Mouse'] == mouse]['Session'].unique()
+        available_sessions = self.session_file[self.session_file['mouse'] == mouse]['session'].unique()
         sorted_sessions = [s for s in reversed(self.SESSION_ORDER) if s in available_sessions]
         
         try:
@@ -544,7 +721,7 @@ class CommunityAnalyzer:
             liberation_time_sec = session_obj.victim_lib_timecode
             liberation_frame = int(liberation_time_sec) if not pd.isna(liberation_time_sec) else None
             
-            figures_dir = os.path.join('results', 'figures', 'communities',
+            figures_dir = os.path.join('figures', 'communities',
                                         f"mouse_{session_obj.animal_id}",
                                         f"session_{session_obj.session}")
             os.makedirs(figures_dir, exist_ok=True)
@@ -588,6 +765,10 @@ class CommunityAnalyzer:
                         corrected_signals,
                         liberation_time_sec,
                         fps,
+                        animal_id,
+                        session_obj.session,
+                        comm_id,
+                        comm_neurons,
                         window_seconds=34,
                         snr = np.mean(community_snrs)
                     )
@@ -598,11 +779,22 @@ class CommunityAnalyzer:
                         'sync_score': 0,
                         'sync_change': 0,
                         'entropy': 0,
+                        'rest_entropy': 0,
+                        'whole_entropy': 0,
                         'entropy_change': 0,
-                        'k-value': 0,
+                        'p-value': 0,
                         'is_liberation_community': False,
                         'response_score': 0,
-                        'response_type': 'None'
+                        'response_type': 'None',
+                        'pct_post_responsive': 0.0,
+                        'pct_pre_responsive': 0.0,
+                        'pct_mixed_responsive': 0.0,
+                        'pct_non_responsive': 0.0,
+                        'n_post_responsive': 0,
+                        'n_pre_responsive': 0,
+                        'n_mixed_responsive': 0,
+                        'n_non_responsive': 0,
+                        'n_total_neurons': 0
                     }
 
                 # Then initialize features dictionary with all metrics
@@ -616,20 +808,23 @@ class CommunityAnalyzer:
                     'Community_ID': comm_id,
                     'Size': len(comm_neurons),
                     'Sync_Score': self._calculate_synchronization(community_signals),
-                    'Has_Liberation_Cells': comm_data['Has_Liberation_Cells'].iloc[0],
-                    'N_Liberation_Cells': comm_data['N_Liberation_Cells'].iloc[0],
-                    'Liberation_Cells_Ratio': comm_data['Liberation_Cells_Ratio'].iloc[0],
                     'Event_AUC': event_metrics['event_auc'],
-                    'AUC_Change': event_metrics['auc_change'],
                     'Event_Sync': event_metrics['sync_score'],
                     'Sync_Change': event_metrics['sync_change'],
-                    'Entropy': event_metrics['entropy'],
-                    'Entropy_Change': event_metrics['entropy_change'],
-                    'k-value': event_metrics['k-value'],
+                    'Event_Entropy': event_metrics['entropy'],
+                    'Rest_Entropy': event_metrics['rest_entropy'],
+                    'Whole_Entropy': event_metrics['whole_entropy'],
+                    'p-value': event_metrics['p-value'],
                     'Is_Liberation_Community': event_metrics['is_liberation_community'],
-                    'Response_Score': event_metrics['response_score'],
-                    'Response_Type': event_metrics['response_type'],
-                    'SNR': np.mean(community_snrs),
+                    'pct_post_responsive': event_metrics['pct_post_responsive'],
+                    'pct_pre_responsive': event_metrics['pct_pre_responsive'],
+                    'pct_mixed_responsive': event_metrics['pct_mixed_responsive'],
+                    'pct_non_responsive': event_metrics['pct_non_responsive'],
+                    'n_post_responsive': event_metrics['n_post_responsive'],
+                    'n_pre_responsive': event_metrics['n_pre_responsive'],
+                    'n_mixed_responsive': event_metrics['n_mixed_responsive'],
+                    'n_non_responsive': event_metrics['n_non_responsive'],
+                    'n_total_neurons': event_metrics['n_total_neurons']
                 }
 
                 if hasattr(self, 'tracked_communities'):
@@ -658,7 +853,7 @@ class CommunityAnalyzer:
                 mean_signal = np.mean(corrected_signals, axis=0)
               
                 # Create figure
-                fig, ax = plt.subplots(figsize=(13, 6))
+                fig, ax = plt.subplots(figsize=(12, 6))
 
                 # Calculate time vector in seconds
                 time_vector = np.arange(len(mean_signal)) / fps  # Convert frames to seconds
@@ -669,65 +864,74 @@ class CommunityAnalyzer:
                 fig_height = max(base_height, 4 + (len(comm_neurons) * height_per_neuron))
                 
                 # Create figure with two subplots stacked vertically
-                fig = plt.figure(figsize=(13, fig_height))
+                fig = plt.figure(figsize=(12, fig_height))
                 gs = plt.GridSpec(2, 1, height_ratios=[1, 2], hspace=0.3)
                 
                 # Top subplot for average signal
                 ax1 = fig.add_subplot(gs[0])
                 ax2 = fig.add_subplot(gs[1])
-
+                time_vector = np.arange(len(mean_signal)) / fps
                 # Plot average signal
-                ax1.plot(time_vector, mean_signal, 'b-')
+                ax1.plot(time_vector, mean_signal, 'b-', label='Average Signal')
                 if liberation_frame is not None:
-                    ax1.axvline(x=liberation_frame, color='r', linestyle='--')
+                    ax1.axvline(x=liberation_frame, color='r', linestyle='--', label='Liberation Event')
+                handles, labels = ax1.get_legend_handles_labels()
+                if handles:
+                    ax1.legend()
+                ax1.set_title(f'Community {comm_id} Average Signal')
+                ax1.set_xlabel('Time (seconds)')
+                ax1.set_ylabel('ΔF/F')
+
+                # Add tracking information
+                tracking_text = []
+                # Look through all communities from previous sessions that were tracked to this one
+                for prev_mouse, prev_communities in self.tracked_communities.items():
+                    if prev_mouse == mouse:  # Only check same mouse
+                        for prev_key, tracking_info in prev_communities.items():
+                            for track in tracking_info:
+                                if (track['Session'] == session_obj.session and 
+                                    track['Community_ID'] == comm_id):
+                                    next_comm_id = prev_key.split('_')[1]
+                                    next_session = self.get_previous_session_info(mouse, session_obj.session)
+                                    tracking_text.append(
+                                        f"Tracked from: Session {next_session}, "
+                                        f"Community {next_comm_id}, "
+                                        f"Overlap: {track['Overlap_Ratio']:.2f}, "
+                                        f"Common Neurons: {track['Common_Neurons']}"
+                                    )
                 
-                # Add scale bars for time and fluorescence
-                time_scale = 10  # seconds
-                fluorescence_scale = 1.0  # ΔF/F
-                window_size = 34  # seconds
-                y_offset_top = ax1.get_ylim()[0] - 0.5
-
-                ax1.hlines(y=y_offset_top,
-                        xmin=time_vector[0] + 0.5,
-                        xmax=time_vector[0] + time_scale,
-                        color='black',
-                        linewidth=2)
-                ax1.text(time_vector[0] + time_scale / 2,
-                        y_offset_top - 0.2,
-                        '10 s',
-                        ha='center',
-                        fontsize=10)
-
-                ax1.vlines(x=time_vector[0] + 0.5,
-                        ymin=y_offset_top,
-                        ymax=y_offset_top + fluorescence_scale,
-                        color='black',
-                        linewidth=2)
-                ax1.text(time_vector[0] + 1,
-                        y_offset_top + fluorescence_scale / 2,
-                        'ΔF/F=1.0',
-                        rotation=90,
-                        va='center',
-                        fontsize=10)
-
-                # Signal shading around liberation event (add window_size parameter)
-                if liberation_frame is not None:
-                    half_window = window_size / 2
-                    shade_start = max(0, liberation_frame - half_window)
-                    shade_end = min(len(mean_signal), liberation_frame + half_window)
+                if tracking_text:
+                    ax1.text(0.05, 0.95, '\n'.join(tracking_text), 
+                            transform=ax1.transAxes,
+                            verticalalignment='top', fontsize=8, 
+                            bbox=dict(facecolor='white', alpha=0.7))
+                else:
+                    ax1.text(0.05, 0.95, "No tracking information from previous sessions",
+                            transform=ax1.transAxes,
+                            verticalalignment='top', fontsize=8, 
+                            bbox=dict(facecolor='white', alpha=0.7))
                     
-                    for ax in [ax1, ax2]:
-                        ax.axvspan(shade_start, shade_end, 
-                                color='orange', alpha=0.2)
+                # Add metrics as text to the upper left corner
+                metrics_text = (
+                    f'Size: {len(comm_neurons)}\n'
+                    f'Sync Change: {event_metrics["sync_change"]:.3f}\n'
+                    f'Event Entropy: {event_metrics["entropy"]:.3f}\n'
+                    f'Whole Entropy: {event_metrics["whole_entropy"]:.3f}\n'
+                    f'Event AUC: {event_metrics["event_auc"]:.3f}\n'
+                    f'Is Liberation Community: {features["Is_Liberation_Community"]}\n'
+                    f'Response Score: {event_metrics["response_score"]}\n'
+                    f'Response Type: {event_metrics["response_type"]}'
+                )
                 
                 # Add background shading for liberation communities
                 if features["Is_Liberation_Community"]:
                     ax1.set_facecolor('#e6ffe6')  # Light green background
                     ax2.set_facecolor('#e6ffe6')
-
-                # Adjust y-limits of top plot
-                ylim_top = ax1.get_ylim()
-                ax1.set_ylim(ylim_top[0] - fluorescence_scale, ylim_top[1])
+                ax1.text(0.95, 0.95, metrics_text,
+                        bbox=dict(facecolor='white', alpha=0.8, edgecolor='none'),
+                        transform=ax1.transAxes,
+                        verticalalignment='top',
+                        horizontalalignment='left')
                 
                 # Calculate first peak time for each neuron for sorting
                 def get_first_peak_time(signal, fps=30):
@@ -774,15 +978,36 @@ class CommunityAnalyzer:
                 offset = signal_range * 1.2
 
                 # Plot each neuron's signal with offset
-                for i, neuron_signal in enumerate(sorted_signals):
+                for i, (neuron_id, neuron_signal) in enumerate(zip(sorted_neurons, sorted_signals)):
                     shifted_signal = neuron_signal + (i * offset)
-                    ax2.plot(time_vector, shifted_signal, 'b-', linewidth=1)
+                    
+                    # Check if neuron is a liberation cell
+                    is_liberation_cell = comm_data[comm_data['Neuron_ID'] == neuron_id]['Is_Liberation_Cell'].iloc[0]
+                    reg_id = int(comm_data[comm_data['Neuron_ID'] == neuron_id]['Reg_ID'].iloc[0])
+                    print(f"Processing neuron {neuron_id} with reg_id {reg_id}")
+                    # Get complete history for this neuron
+                    
+                    neuron_text = f'Neuron {neuron_id} (Reg ID: {reg_id:03d})'
+                    history = self.get_neuron_history(mouse=session_row['mouse'], current_session=session_obj.session, reg_id=reg_id)
+                    print(f"History for neuron {neuron_id}: {history}")
+                    if history:
+                        neuron_text += history
+
+                    if is_liberation_cell:
+                        neuron_text += ' ★'
+                        ax2.plot(time_vector, shifted_signal, 'r-', linewidth=1.5)
+                    else:
+                        ax2.plot(time_vector, shifted_signal, 'b-', linewidth=1)
+
+                    ax2.text(time_vector[-1] + 2, shifted_signal[-1], 
+                            neuron_text,
+                            color='red' if is_liberation_cell else 'black', 
+                            fontsize=8, va='center')
                 
                 # Add liberation event line
                 if not pd.isna(liberation_time_sec):
                     ax2.axvline(x=liberation_frame, color='r', linestyle='--')
-
-               
+                
                 # Customize bottom subplot
                 ax2.set_xlabel('Time (seconds)')
                 ax2.set_ylabel('ΔF/F (offset)')
@@ -826,8 +1051,41 @@ class CommunityAnalyzer:
         print(f"\nTotal features extracted: {len(self.features)}")
         print(f"Unique sessions: {len(self.features['Session'].unique())}")
         print(f"Unique mice: {len(self.features['Mouse'].unique())}")
+        self.communities_data['Is_Liberation_Community'] = features['Is_Liberation_Community']
 
         return self.features
+    
+    def _plot_tracking_validation(self, validation_df):
+        """Create validation plots for community tracking"""
+        fig, axes = plt.subplots(2, 2, figsize=(15, 15))
+
+        for animal_id in self.tracked_communities:
+            for key, tracking_data in self.tracked_communities[animal_id].items():
+                # Plot tracking validation using Common_Reg_IDs instead of overlap calculations
+                overlaps = [d['Overlap_Ratio'] for d in tracking_data]
+                plt.plot(overlaps, label=f"Community {key}")
+        
+        # Plot tracking ratio distribution
+        sns.histplot(data=validation_df, x='Tracking_Ratio', ax=axes[0,0])
+        axes[0,0].set_title('Distribution of Community Tracking Ratios')
+        axes[0,0].set_xlabel('Tracking Ratio')
+      
+        # Plot tracked neurons by mouse
+        sns.boxplot(data=validation_df, x='Mouse', y='N_Tracked_Neurons', ax=axes[1,0])
+        axes[1,0].set_title('Number of Tracked Neurons by Mouse')
+        axes[1,0].tick_params(axis='x', rotation=45)
+        
+        # Plot tracking success over sessions
+        session_success = validation_df.groupby('Session_Pair')['Tracking_Ratio'].mean()
+        sns.barplot(x=session_success.index, y=session_success.values, ax=axes[1,1])
+        axes[1,1].set_title('Mean Tracking Success by Session Pair')
+        axes[1,1].tick_params(axis='x', rotation=45)
+        
+        plt.tight_layout()
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        plt.savefig(os.path.join('figures', 'communities', 
+                    f'tracking_validation_{timestamp}.png'))
+        plt.close()
 
     def validate_community_tracking(self):
         """Validate community tracking across sessions and generate validation metrics"""
@@ -891,17 +1149,137 @@ class CommunityAnalyzer:
 
         return validation_df
 
+    def plot_liberation_communities_temporal(self):
+        """Plot temporal relationships between liberation and non-liberation communities' averaged signals in two stacked plots."""
+        required_columns = ['Mouse', 'Session', 'Community_ID', 'Is_Liberation_Community']
+        self.communities_data['Is_Liberation_Community'] = (
+            self.communities_data['Is_Liberation_Community']
+            .fillna(False)
+            .astype(bool)
+        )
+        if not all(col in self.communities_data.columns for col in required_columns):
+            raise ValueError("Missing required columns in communities_data")
 
+        grouped = self.communities_data.groupby(['Mouse', 'Session'])
+        for (mouse, session), group in grouped:
+            liberation_comms = group[group['Is_Liberation_Community'] == True]
+            non_liberation_comms = group[group['Is_Liberation_Community'] == False]
+
+            if liberation_comms.empty and non_liberation_comms.empty:
+                print(f"No communities found for Mouse {mouse} Session {session}")
+                continue
+
+            fig, (ax_top, ax_bottom) = plt.subplots(2, 1, figsize=(15, 10), sharex=True, gridspec_kw={'height_ratios': [1, 1]})
+
+            session_obj = next((s for s in self.sessions if 
+                                str(s.animal_id) == mouse and 
+                                s.session == session), None)
+            if not session_obj:
+                print(f"Session metadata missing for Mouse {mouse} Session {session}")
+                plt.close(fig)
+                continue
+
+            fps = session_obj.calcium_fps
+            lib_timecode = session_obj.victim_lib_timecode
+
+            if lib_timecode is None or (isinstance(lib_timecode, float) and np.isnan(lib_timecode)):
+                liberation_frame = None
+            else:
+                liberation_frame = int(lib_timecode * fps)
+
+            # --- Liberation communities (top) ---
+            if not liberation_comms.empty:
+                # Filter to only communities with >1 neuron
+                valid_liberation = []
+                for comm_id, comm_group in liberation_comms.groupby('Community_ID'):
+                    if len(comm_group['Neuron_ID'].unique()) > 1:
+                        valid_liberation.append((comm_id, comm_group))
+                n_liberation = len(valid_liberation)
+                colors_liberation = plt.cm.viridis(np.linspace(0, 1, max(1, n_liberation)))
+                for idx, (comm_id, comm_group) in enumerate(valid_liberation):
+                    neuron_ids = comm_group['Neuron_ID'].unique()
+                    signals = session_obj.load_dff_signal()[neuron_ids]
+                    baseline = np.median(signals[:, :int(10*fps)], axis=1)
+                    corrected = signals - baseline[:, np.newaxis]
+                    mean_signal = np.mean(corrected, axis=0)
+                    time_vector = np.arange(len(mean_signal)) / fps
+                    ax_top.plot(
+                        time_vector, mean_signal, 
+                        color=colors_liberation[idx],
+                        label=f'Liberation Community {comm_id}',
+                        linewidth=2.5,
+                        alpha=0.85,
+                    )
+                if liberation_frame is not None:
+                    ax_top.axvline(
+                        x=liberation_frame/fps, color='r', linestyle='--', 
+                        linewidth=2, label='Liberation Event'
+                    )
+                ax_top.set_title('Liberation Communities')
+                ax_top.set_ylabel('ΔF/F (baselined)')
+                ax_top.legend(fontsize='small', loc='upper right')
+            else:
+                ax_top.text(0.5, 0.5, 'No liberation communities', ha='center', va='center', fontsize=14, transform=ax_top.transAxes)
+                ax_top.set_title('Liberation Communities')
+                ax_top.set_ylabel('ΔF/F (baselined)')
+                ax_top.set_xticks([])
+                ax_top.set_yticks([])
+
+            # --- Non-liberation communities (bottom) ---
+            if not non_liberation_comms.empty:
+                valid_non_liberation = []
+                for comm_id, comm_group in non_liberation_comms.groupby('Community_ID'):
+                    if len(comm_group['Neuron_ID'].unique()) > 1:
+                        valid_non_liberation.append((comm_id, comm_group))
+                n_non_liberation = len(valid_non_liberation)
+                colors_non_liberation = plt.cm.plasma(np.linspace(0, 1, max(1, n_non_liberation)))
+                for idx, (comm_id, comm_group) in enumerate(valid_non_liberation):
+                    neuron_ids = comm_group['Neuron_ID'].unique()
+                    signals = session_obj.load_dff_signal()[neuron_ids]
+                    baseline = np.median(signals[:, :int(10*fps)], axis=1)
+                    corrected = signals - baseline[:, np.newaxis]
+                    mean_signal = np.mean(corrected, axis=0)
+                    time_vector = np.arange(len(mean_signal)) / fps
+                    ax_bottom.plot(
+                        time_vector, mean_signal, 
+                        color=colors_non_liberation[idx],
+                        label=f'Non-Liberation Community {comm_id}',
+                        linewidth=1.5,
+                        alpha=0.5,
+                    )
+                if liberation_frame is not None:
+                    ax_bottom.axvline(
+                        x=liberation_frame/fps, color='r', linestyle='--', 
+                        linewidth=2, label='Liberation Event'
+                    )
+                ax_bottom.set_title('Non-Liberation Communities')
+                ax_bottom.set_xlabel('Time (seconds)')
+                ax_bottom.set_ylabel('ΔF/F (baselined)')
+                ax_bottom.legend(fontsize='small', loc='upper right')
+            else:
+                ax_bottom.text(0.5, 0.5, 'No non-liberation communities', ha='center', va='center', fontsize=14, transform=ax_bottom.transAxes)
+                ax_bottom.set_title('Non-Liberation Communities')
+                ax_bottom.set_xlabel('Time (seconds)')
+                ax_bottom.set_ylabel('ΔF/F (baselined)')
+                ax_bottom.set_xticks([])
+                ax_bottom.set_yticks([])
+
+            fig.suptitle(f"Mouse {mouse} - Session {session}\nLiberation (top) vs. Non-Liberation Communities (bottom)")
+            fig.tight_layout(rect=[0, 0, 1, 0.97])
+
+            fig_dir = os.path.join("figures", "communities", f"mouse_{mouse}", f"session_{session}")
+            os.makedirs(fig_dir, exist_ok=True)
+            save_path = os.path.join(fig_dir, f"temporal_relationships_{mouse}_{session}.png")
+            plt.savefig(save_path, bbox_inches='tight', dpi=300)
+            print(f"Saved figure to {save_path}")
+            plt.close(fig)
 
 def main():
     session_file = pd.read_csv('data/SESSION_FILE_batch_cnmfe.csv')
     
-    # Only select the Feb_2025 cohort
-    session_file = session_file[session_file['cohort'] == 'Feb_2025']
-
     # Create output directories
     os.makedirs('processed-data', exist_ok=True)
-    os.makedirs('results/figures/communities', exist_ok=True)
+    os.makedirs('figures/communities', exist_ok=True)
     
     # Initialize and run analyzer
     analyzer = CommunityAnalyzer('results/communities')
@@ -920,6 +1298,22 @@ def main():
 
     # Extract features with tracking information
     features = analyzer.extract_community_features()
+    analyzer.communities_data = (
+        analyzer.communities_data
+        .drop(columns=['Is_Liberation_Community'], errors='ignore')
+        .merge(
+            features[['Mouse', 'Session', 'Community_ID', 'Is_Liberation_Community']],
+            on=['Mouse', 'Session', 'Community_ID'],
+            how='left'
+        )
+    )
+    
+    if 'Is_Liberation_Community' not in analyzer.communities_data.columns:
+        raise ValueError("'Is_Liberation_Community' column missing after merge")
+    print("Columns in communities_data:", analyzer.communities_data.columns.tolist())
+    print("Liberation communities count:", analyzer.communities_data['Is_Liberation_Community'].sum())
+
+    analyzer.plot_liberation_communities_temporal()
     
     print("\nAnalysis complete.")
     print("Results saved in processed-data and figures/communities")

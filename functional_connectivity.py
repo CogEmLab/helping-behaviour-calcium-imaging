@@ -9,25 +9,27 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 import seaborn as sns
 from src.plotting import *
-from src.session_loader import Session
+from src.loaders.session_loader import Session
 from src.functional_connectivity_utils import *
 import networkx as nx
 from src.utils import load_session_file
+from src.loaders.config_loader import load_config
 
-# Load the configuration
-config = load_config('tech_docs/functional_connectivity_config.yaml')
+# Load parameters 
+config = load_config(
+        "config\master.yaml",           
+        overrides=None                    
+    )
 
 # Access the configuration values
-SESSION_FILE = load_session_file(config['session_file_dir'])
-METADATA_FILE = config['metadata_file']
-ANNOTATIONS_DIR = config['annotations_dir']
+SESSION_FILE = load_session_file(config['paths']['session_file'])
 
-IMG_DIMS = tuple(config['img_dims'])
-THRESHOLD = config['threshold']
-FIG_SIZE = tuple(config['fig_size'])
-GRID_SPEC = tuple(config['grid_spec'])
-SESSION_ORDER = config['session_order']
-DAYS_OF_HELPING_ORDER = config['days_of_helping_order']
+IMG_DIMS = tuple(config['functional_connectivity']['img_dims'])
+THRESHOLD = config['functional_connectivity']['threshold']
+FIG_SIZE = tuple(config['functional_connectivity']['fig_size'])
+GRID_SPEC = tuple(config['functional_connectivity']['grid_spec'])
+SESSION_ORDER = config['functional_connectivity']['session_order']
+DAYS_OF_HELPING_ORDER = config['functional_connectivity']['days_of_helping_order']
 
 def process_session(SESSION_FILE, row, plot, axes):
     """Processes a session to calculate mean correlations and return a DataFrame."""
@@ -49,9 +51,6 @@ def process_session(SESSION_FILE, row, plot, axes):
     liberation_cells_ids = session.get_event_associated_cells_ids('Liberation')
     random_event_cells_ids = session.get_event_associated_cells_ids('Random')
 
-    # For liberation cells, also get Reg IDs 
-    lib_tracking = liberation_associated_metadata['Tracked'] if liberation_associated_metadata is not None else []
-    
     # Get the timecode of the victim liberation
     victim_lib_timecode = parse_timecode(session.victim_lib_timecode)
     border = int((victim_lib_timecode * session.calcium_fps) - 15 * session.calcium_fps) if victim_lib_timecode is not None else None #* The formula calculates a time point 15 seconds before the victim liberation time, converted to frame numbers in the calcium imaging data.
@@ -59,8 +58,15 @@ def process_session(SESSION_FILE, row, plot, axes):
     # Compute correlations
     distances, correlation_matrix, adjacency_matrix, correlated_pairs = compute_correlations(neuron_positions, dff_signal[:,:border], THRESHOLD, bin_size_seconds=60, sampling_rate=session.calcium_fps)
 
+    # Save the correlation and adjacency matrices as .npy files
+    # save_dir = 'correlation_matrices'
+    # if not os.path.exists(save_dir):
+    #     os.makedirs(save_dir)
+    # np.save(os.path.join(save_dir, f"{session.animal_id}_{session.session}_correlation_matrix.npy"), correlation_matrix)
+    # np.save(os.path.join(save_dir, f"{session.animal_id}_{session.session}_adjacency_matrix.npy"), adjacency_matrix)
+
     # Create a graph from the adjacency matrix
-    position_dict, G, colors, labels = build_graph(session, neuron_positions, adjacency_matrix, liberation_cells_ids, random_event_cells_ids, lib_tracking)
+    position_dict, G, colors, labels = build_graph(session, neuron_positions, adjacency_matrix, liberation_cells_ids, random_event_cells_ids)
 
     # Separate correlation pairs depending on the neuron identity; only do it if there are at least some liberation cells
     correlated_pairs_lib_to_all = []
@@ -148,34 +154,6 @@ def process_session(SESSION_FILE, row, plot, axes):
     # plot_correlated_traces(ax=None, traces=accepted_dff_signal, component_pairs=correlated_pairs_tuple_list, distances=distances, liberation_cell_ids=liberation_cells_ids, correlation_matrix=correlation_matrix, title='Traces of highly correlated pairs (overlaid)', filename=fig_path, victim_lib_time=session.victim_lib_timecode * session.calcium_fps, fps=session.calcium_fps)
     plot_correlated_traces(ax=None, traces=dff_signal, component_pairs=correlated_pairs_tuple_list, distances=distances, liberation_cell_ids=liberation_cells_ids, correlation_matrix=correlation_matrix, title='Traces of highly correlated pairs (overlaid)', filename=fig_path, victim_lib_time=session.victim_lib_timecode * session.calcium_fps, fps=session.calcium_fps)
 
-    if liberation_cells_ids is not None and len(liberation_cells_ids) > 2:
-        # Get a dff_f for cells that are not in liberation_cells_ids and not in random_event_cells_ids
-        ids_to_exclude = list(set(liberation_cells_ids).union(set(random_event_cells_ids)))
-        
-        # Create a mask
-        mask = np.ones(dff_signal.shape[0], dtype=bool)
-        mask[ids_to_exclude] = False
-
-        # Compute correlations
-        __, correlation_matrix_rest, ___, ___ = compute_correlations(neuron_positions[mask], dff_signal[mask,:border], THRESHOLD, bin_size_seconds=60, sampling_rate=session.calcium_fps)
-
-        correlation_values = get_values(correlation_matrix_rest)
-        correlation_liberation_only_values = get_values(correlation_matrix_liberation_only) 
-        correlation_random_only_values = get_values(correlation_matrix_random_only)
-        
-        # Get the 95th percentile for each data
-        correlation_values_99th_percentile = np.percentile(correlation_values, 99)
-        correlation_liberation_only_values_99th_percentile = np.percentile(correlation_liberation_only_values, 99) 
-        correlation_random_only_values_99th_percentile = np.percentile(correlation_random_only_values, 99)
-    else:
-        correlation_values = []
-        correlation_liberation_only_values = []
-        correlation_random_only_values = []
-        
-        correlation_values_99th_percentile = None
-        correlation_liberation_only_values_99th_percentile = None
-        correlation_random_only_values_99th_percentile = None
-    
     results = {
         'Cohort': session.cohort,
         'Session': session.session,
@@ -200,9 +178,6 @@ def process_session(SESSION_FILE, row, plot, axes):
         'Number of liberation cells': len(liberation_cells_ids) if liberation_cells_ids is not None else 0,
         'Average response score (lib -> all)': avg_response_score_lib_to_all if liberation_associated_metadata is not None else None,
         'Average response score (lib -> lib)': avg_response_score_only_lib if liberation_associated_metadata is not None else None,
-        '99th percentile correlation values (all)': correlation_values_99th_percentile,
-        '99th percentile correlation values (lib -> lib)': correlation_liberation_only_values_99th_percentile,
-        '99th percentile correlation values (ran -> ran)': correlation_random_only_values_99th_percentile,
     }
 
     # Add identity counts to results
@@ -211,6 +186,25 @@ def process_session(SESSION_FILE, row, plot, axes):
             results[f'Number of {identity} cells in correlations (lib -> all)'] = count
         for identity, count in identity_counts_only_lib.items():
             results[f'Number of {identity} cells in correlations (lib -> lib)'] = count
+
+    if liberation_cells_ids is not None and len(liberation_cells_ids) > 2:
+        # Get a dff_f for cells that are not in liberation_cells_ids and not in random_event_cells_ids
+        ids_to_exclude = list(set(liberation_cells_ids).union(set(random_event_cells_ids)))
+        
+        # Create a mask
+        mask = np.ones(dff_signal.shape[0], dtype=bool)
+        mask[ids_to_exclude] = False
+
+        # Compute correlations
+        __, correlation_matrix_rest, ___, ___ = compute_correlations(neuron_positions[mask], dff_signal[mask,:border], THRESHOLD, bin_size_seconds=60, sampling_rate=session.calcium_fps)
+
+        correlation_values = get_values(correlation_matrix_rest)
+        correlation_liberation_only_values = get_values(correlation_matrix_liberation_only) 
+        correlation_random_only_values = get_values(correlation_matrix_random_only)
+    else:
+        correlation_values = []
+        correlation_liberation_only_values = []
+        correlation_random_only_values = []
 
     # Instead of plotting these values here, sample random 60 of them and return
     sampled_distances, sampled_correlations = sample_values(get_values(distances), get_values(correlation_matrix), n_samples=60)
@@ -231,14 +225,12 @@ def main(SESSION_FILE):
     # Get random index for plotting 
     idx = np.random.randint(0, len(SESSION_FILE))
     for i, row in tqdm(SESSION_FILE.iterrows()):
-
         if i == idx:
             print('Plotting session with index:', i)
             plot=True
         else:
             plot=False
 
-        # Process the session
         corr_data, pccs, pccs_lib, pccs_rand, sampled_distances, sampled_correlations, SESSION_FILE = process_session(SESSION_FILE, row, plot, axes)
         
         if not corr_data.empty:
@@ -254,7 +246,7 @@ def main(SESSION_FILE):
                 correlation_values_rand.extend(pccs_rand)
 
     # Remove 847 Mouse from plotting
-    all_data = all_data[all_data['Mouse'] != 847]
+    # all_data = all_data[all_data['Mouse'] != 848]
         
     # Plot the clustering coefficient over days
     plot_values_over_days(all_data, 'Session', 'Clustering coefficient (all)', ax=axes['clustering-coefficient-over-days'], order=SESSION_ORDER, hue_column='Mouse')
@@ -297,7 +289,7 @@ def main(SESSION_FILE):
 
     # Plot histogram of PCC values for all accepted components and liberation cells (separate figure)
     fig, ax = plt.subplots(figsize=(8, 8))
-    sns.histplot(data=df, x='PCC', hue='Label', ax=ax, bins=50, common_norm=False, stat='density', fill=True, alpha=0.7, palette={'All cells': 'black', 'Liberation cells': 'tab:red', 'Random Event cells': 'tab:blue'}, kde=False)
+    sns.histplot(data=df, x='PCC', hue='Label', ax=ax, bins=50, common_norm=False, stat='density', fill=False, alpha=0.7, palette={'All cells': 'black', 'Liberation cells': 'tab:red', 'Random Event cells': 'tab:blue'}, kde=False)
     ax.set_xlim(-1, 1)
     ax.set_title('PCC distribution')
     ax.set_xlabel('Pearson correlation coefficient')
